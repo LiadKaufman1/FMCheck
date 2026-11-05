@@ -1,0 +1,15 @@
+# Files Cloudflare should not publish (only the site itself goes live).
+.git
+.github
+.cache
+node_modules
+scripts
+tests
+README.md
+LICENSE
+package.json
+package-lock.json
+wrangler.jsonc
+.assetsignore
+.gitignore
+.nojekyll
