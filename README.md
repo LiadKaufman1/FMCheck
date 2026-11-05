@@ -25,8 +25,9 @@ Rolls are treated as evenly spread over that range.
 | What | Source | How |
 | --- | --- | --- |
 | Item list, scroll list | [maplestory.io](https://maplestory.io) (GMS v83) | `data/*.json`, built by `scripts/build_data.py` |
-| Item base stats, slots, icons | maplestory.io | fetched by the page when an item is picked |
-| Prices | typed by the user, saved in the browser | optional live feed, see below |
+| Item base stats, slots | maplestory.io | stored in `data/equips.json` |
+| Scroll icons | maplestory.io | stored in `assets/scrolls/`, by `scripts/fetch_icons.py` |
+| Prices | price list filled from `prices.html` | `data/prices.json`, see below |
 
 ### Prices
 
