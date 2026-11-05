@@ -75,10 +75,11 @@ canvas has a full text description, AA color contrast, visible keyboard focus. T
 offers larger text, stop animations, high contrast and underlined links (saved per browser). The accessibility
 statement is in `terms.html#accessibility`.
 
-## Reading a finished item
+## Price my finished item
 
-Step 1 can read the game's item tooltip from a screenshot or photo, or take the numbers typed in.
-The tooltip shows `Name (+passes)`, each stat as `total (clean +gain)` and `Remaining Enhancements`.
-`js/reader.js` reads the picture in the browser (Tesseract.js, loaded on first use; the image is never uploaded)
-and parses the text; `inferScrolls` in `js/calc.js` finds the scroll combinations whose gains add up exactly,
-ranked by success chance × how common the tier is. The user confirms and the calculator is filled in.
+The "Price my finished item" tab is a box that looks like the game's item tooltip: type the name, the (+N),
+each stat as the game shows it ("+total" and the number after + in brackets) and Remaining Enhancements,
+or fill it from a screenshot. `inferScrolls` in `js/calc.js` finds the scroll combinations whose gains add up
+exactly, ranked by success chance × how common the tier is; the tab then asks only for today's prices and shows
+the estimate and card (it fills the same calculator underneath). Screenshots are read in the browser by
+`js/reader.js` (Tesseract.js, loaded on first use; the image is never uploaded).

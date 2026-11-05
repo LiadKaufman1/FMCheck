@@ -1,8 +1,8 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=9f3554b4";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, inferScrolls, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, failedItemValue, mesos, UNITS, readRange } from "./calc.js?v=9f3554b4";
-import { getPrice, setPrice } from "./prices.js?v=9f3554b4";
-import { parseTooltip, readImage } from "./reader.js?v=9f3554b4";
-import { drawCard, cardBlob } from "./card.js?v=9f3554b4";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=d04d4cb4";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, inferScrolls, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, failedItemValue, mesos, UNITS, readRange } from "./calc.js?v=d04d4cb4";
+import { getPrice, setPrice } from "./prices.js?v=d04d4cb4";
+import { parseTooltip, readImage } from "./reader.js?v=d04d4cb4";
+import { drawCard, cardBlob } from "./card.js?v=d04d4cb4";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -143,7 +143,6 @@ $("cats").addEventListener("click", (e) => {
   if (!b) return;
   filter.cat = filter.cat === b.dataset.cat ? "" : b.dataset.cat;
   renderCats();
-  $("equipNames").innerHTML = eq.map((e) => `<option value="${esc(e[1])}"></option>`).join("");
   if (state.item && search.value === state.item.name) search.value = ""; // browsing again after a pick
   search.focus();
   showResults();
@@ -577,6 +576,7 @@ function saveHash() {
   if (r) q.set("r", r);
   if (state.left !== state.slots) q.set("l", state.left);
   if (s) q.set("s", s);
+  if (mode === "f") q.set("m", "f");
   history.replaceState(null, "", `#${q}`);
 }
 
@@ -597,123 +597,191 @@ function readHash() {
   return { id, restore: { clean, rows, left: q.has("l") ? +q.get("l") : undefined } };
 }
 
-// ---------- read a finished item (screenshot or typed in) ----------
+// ---------- "Price my finished item": the game's tooltip, typed in or read from a screenshot ----------
 //
-// The game's tooltip shows "Name (+passes)", each stat as "total (clean +gain)" and "Remaining Enhancements".
-// From that we work out which scrolls passed (inferScrolls) and fill in the calculator; the user adds prices.
+// The tooltip shows "Name (+passes)", each stat as "+total" or "+total (clean +gain)", and "Remaining Enhancements".
+// From that we work out which scrolls passed (inferScrolls), ask only for prices, and show the estimate.
+// Under the hood it fills the same calculator, so the estimate and card are the same as in "Build an item".
 
-const rd = { item: null, upgrades: null, left: null, stats: {}, options: [], choice: 0, note: "" };
-const STAT_ORDER = GAME_ORDER;
+let mode = "b";
+const fin = { item: null, options: [], choice: 0, clean: null };
 
-function readerItem() {
-  const name = ($("rdItem")?.value || "").trim().toLowerCase();
-  return equips.find((e) => e[1].toLowerCase() === name) || null;
+function setMode(m) {
+  mode = m;
+  document.documentElement.classList.toggle("mode-f", m === "f");
+  $("tabBuild").setAttribute("aria-selected", String(m === "b"));
+  $("tabFinished").setAttribute("aria-selected", String(m === "f"));
+  $("finishedCard").hidden = m !== "f";
+  $("resultCard").querySelector("h2 b").textContent = m === "f" ? "2" : "4";
+  if (m === "f") { if (!fin.item) $("resultCard").hidden = true; else applyFin(); }
+  else if (state.item) { for (const id of ["cleanField", "rollCard", "scrollCard", "resultCard"]) $(id).hidden = false; renderCleanPrice(); update(); }
+}
+for (const el of document.querySelectorAll("[data-mode]")) {
+  el.addEventListener("click", () => { setMode(el.dataset.mode); (el.dataset.mode === "f" ? $("finName") : search).focus(); });
 }
 
-function inferNow() {
-  const e = rd.item;
-  if (!e) { rd.options = []; return; }
-  const gains = Object.fromEntries(Object.entries(rd.stats).map(([k, v]) => [k, v.gain || 0]));
+const byName = (name) => { const n = (name || "").trim().toLowerCase(); return equips.find((e) => e[1].toLowerCase() === n) || null; };
+
+// Stat lines: the item's own stats plus the ones its scrolls can add, in the game's order.
+function finStatKeys(e) {
   const prefix = Math.floor(e[0] / 10000);
-  const used = rd.left != null ? e[4] - rd.left : null;
-  rd.options = inferScrolls({ gains, passes: rd.upgrades, used, scrolls: scrolls.filter((s) => s.target === prefix) });
-  rd.choice = 0;
+  const fromScrolls = new Set(scrolls.filter((s) => s.target === prefix).flatMap((s) => Object.keys(s.stats)));
+  return GAME_ORDER.filter((k) => e[5][k] || fromScrolls.has(k));
 }
 
-function renderReader(status = "") {
-  const box = $("reader");
-  box.hidden = false;
-  const e = rd.item;
-  const keys = e ? [...new Set([...STAT_ORDER.filter((k) => e[5][k]), ...Object.keys(rd.stats)])].filter((k) => GAME_LABEL[k]) : [];
-  const num = (v) => (v == null ? "" : v);
-  const optText = (o) => (o.rows.length ? o.rows.map((r) => `${r.n}× ${esc(r.scroll.name)}`).join(" + ") : "No scroll passed");
-  box.innerHTML = `
-    <p class="reader-status" role="status">${esc(status || rd.note || "Check what we read and fix anything that's off.")}</p>
-    <div class="reader-grid">
-      <label>Item<input id="rdItem" list="equipNames" value="${e ? esc(e[1]) : ""}" placeholder="Item name" autocomplete="off" /></label>
-      <label>Upgrades (+N)<input id="rdUp" type="number" min="0" inputmode="numeric" value="${num(rd.upgrades)}" /></label>
-      <label>Remaining Enhancements<input id="rdLeft" type="number" min="0" inputmode="numeric" value="${num(rd.left)}" /></label>
-    </div>
-    ${keys.length ? `<table class="reader-stats"><thead><tr><th>Stat</th><th>Clean</th><th>+ from scrolls</th></tr></thead><tbody>
-      ${keys.map((k) => `<tr data-k="${k}"><th scope="row">${GAME_LABEL[k]}</th>
-        <td><input type="number" min="0" inputmode="numeric" data-f="base" aria-label="${GAME_LABEL[k]} clean" value="${num(rd.stats[k]?.base ?? e[5][k])}" /></td>
-        <td><input type="number" min="0" inputmode="numeric" data-f="gain" aria-label="${GAME_LABEL[k]} from scrolls" value="${num(rd.stats[k]?.gain ?? 0)}" /></td></tr>`).join("")}
-      </tbody></table>` : ""}
-    ${e ? `<fieldset class="reader-opts"><legend>Scrolls that passed</legend>
-      ${rd.options.length ? rd.options.map((o, i) => `<label><input type="radio" name="rdOpt" value="${i}" ${i === rd.choice ? "checked" : ""} />
-        ${optText(o)} <small>${i === 0 && rd.options.length > 1 ? "most likely · " : ""}${Math.round(o.share * 100)}%</small></label>`).join("")
-      : `<p class="warn">No scrolls for this item add up to these numbers. Check the upgrades and the "+ from scrolls" values.</p>`}
-    </fieldset>` : `<p class="hint">Pick the item to continue.</p>`}
-    <div class="reader-actions">
-      <button id="rdUse" type="button" ${e && rd.options.length ? "" : "disabled"}>Use this</button>
-      <button id="rdCancel" type="button" class="ghost-btn">Cancel</button>
-    </div>`;
+function renderFinItem() {
+  const e = fin.item;
+  if (!e) { $("finHead").innerHTML = ""; $("finStats").innerHTML = ""; return; }
+  const req = (e[6] && e[6].req) || [0, 0, 0, 0];
+  $("finHead").innerHTML = `<span class="tt-icon"><img src="${icon(e[0])}" alt="" /></span>
+    <span class="tt-req">REQ LEV : ${e[2]}${["STR", "DEX", "INT", "LUK"].map((k, i) => (req[i] ? `<br>REQ ${k} : ${req[i]}` : "")).join("")}
+    <br><span class="tt-type">Type: ${esc(e[3])} · ${e[4]} slots</span></span>`;
+  $("finStats").innerHTML = finStatKeys(e).map((k) => `<div class="tt-line" data-k="${k}">
+    <span class="tt-dot">•</span> ${GAME_LABEL[k]}:
+    +<input data-f="total" type="number" min="0" inputmode="numeric" placeholder="${e[5][k] || ""}" aria-label="${GAME_LABEL[k]} total" />
+    <span class="tt-paren">( <span class="tt-clean" data-clean>${e[5][k] || 0}</span> + <input data-f="gain" type="number" min="0" inputmode="numeric" placeholder="0" aria-label="${GAME_LABEL[k]} from scrolls, the number after + in brackets" /> )</span>
+  </div>`).join("");
 }
 
-function readReaderForm() {
-  const e = readerItem();
-  if (e !== rd.item) { rd.item = e; rd.stats = {}; }
-  const v = (id) => { const x = $(id)?.value; return x === "" || x == null ? null : Math.max(0, Math.floor(+x)); };
-  rd.upgrades = v("rdUp");
-  rd.left = v("rdLeft");
-  for (const tr of $("reader").querySelectorAll("tr[data-k]")) {
-    const k = tr.dataset.k;
-    rd.stats[k] = { base: +tr.querySelector('[data-f="base"]').value || 0, gain: +tr.querySelector('[data-f="gain"]').value || 0 };
+function readFin() {
+  const num = (el) => (el && el.value !== "" ? Math.max(0, Math.floor(+el.value)) : null);
+  const e = fin.item;
+  const stats = {};
+  for (const line of $("finStats").querySelectorAll(".tt-line[data-k]")) {
+    const total = num(line.querySelector('[data-f="total"]')), gain = num(line.querySelector('[data-f="gain"]')) || 0;
+    if (total == null && !gain) continue;
+    const t = total ?? (e[5][line.dataset.k] || 0) + gain;
+    stats[line.dataset.k] = { base: Math.max(0, t - gain), gain };
+    line.querySelector("[data-clean]").textContent = Math.max(0, t - gain); // the game's "(clean +gain)"
   }
+  return { upgrades: num($("finUp")), left: num($("finLeft")), stats };
 }
 
-$("reader").addEventListener("change", (e) => {
-  if (e.target.name === "rdOpt") { rd.choice = +e.target.value; return; }
-  readReaderForm();
-  inferNow();
-  const focusId = e.target.id;
-  renderReader();
-  if (focusId && $(focusId)) $(focusId).focus();
-});
-$("reader").addEventListener("click", (e) => {
-  if (e.target.id === "rdCancel") { $("reader").hidden = true; return; }
-  if (e.target.id !== "rdUse") return;
-  const o = rd.options[rd.choice], it = rd.item;
-  if (!o || !it) return;
-  const clean = Object.fromEntries(Object.entries(rd.stats).map(([k, v]) => [k, v.base]));
-  const rows = o.rows.map((r) => ({ scroll: scrollById.get(r.scroll.id), successes: r.n }));
-  $("reader").hidden = true;
-  pickItem(it[0], { clean, rows, left: rd.left ?? it[4] }).then(() => {
-    toast("Filled in from your item. Now enter the clean price and the scroll prices.");
-    $("cleanPrice").querySelector("input")?.focus();
-  });
-});
-
-function openReader(parsed, status) {
-  Object.assign(rd, { item: parsed?.item || state.item && equips.find((x) => x[0] === state.item.id) || null,
-    upgrades: parsed?.upgrades ?? null, left: parsed?.left ?? null, stats: {}, choice: 0, note: "" });
-  for (const [k, v] of Object.entries(parsed?.stats || {})) rd.stats[k] = { base: v.base, gain: v.gain };
-  inferNow();
-  renderReader(status);
-  $("reader").scrollIntoView({ block: "nearest", behavior: "smooth" });
+function onFinInput(e) {
+  if (e && e.target.id === "finName") {
+    const it = byName($("finName").value);
+    if (it === fin.item) return;
+    fin.item = it;
+    renderFinItem();
+  }
+  if (!fin.item) {
+    $("finScrolls").innerHTML = `<p class="hint">Type the item's name as it shows in the game, then its stats.</p>`;
+    $("finPrices").innerHTML = ""; $("resultCard").hidden = true;
+    return;
+  }
+  const r = readFin(), it = fin.item;
+  const used = r.left != null ? it[4] - r.left : null;
+  const gains = Object.fromEntries(Object.entries(r.stats).map(([k, v]) => [k, v.gain]));
+  const prefix = Math.floor(it[0] / 10000);
+  const passes = r.upgrades ?? (Object.values(gains).some(Boolean) ? null : 0);
+  fin.options = inferScrolls({ gains, passes, used, scrolls: scrolls.filter((s) => s.target === prefix) });
+  fin.choice = 0;
+  fin.read = r;
+  renderFinScrolls();
+  renderFinPrices();
+  applyFin();
 }
 
-$("readBtn").addEventListener("click", () => $("readFile").click());
-$("typeBtn").addEventListener("click", () => openReader(null, "Type the numbers from the item's tooltip in the game."));
-$("readFile").addEventListener("change", async (e) => {
+function renderFinScrolls() {
+  const box = $("finScrolls");
+  const r = fin.read;
+  if (r.left != null && r.left > fin.item[4]) { box.innerHTML = `<p class="warn">This item has only ${fin.item[4]} slots.</p>`; return; }
+  if (!fin.options.length) {
+    box.innerHTML = `<p class="warn">No scrolls for this item add up to these numbers. Check the (+N) and the numbers after + in brackets.</p>`;
+    return;
+  }
+  const text = (o) => (o.rows.length ? o.rows.map((x) => `${x.n}× ${esc(x.scroll.name)}`).join(" + ") : "No scroll passed");
+  const used = r.left != null ? fin.item[4] - r.left : null, passed = fin.options[0].rows.reduce((a, x) => a + x.n, 0);
+  box.innerHTML = `<p class="label">Scrolls that passed${used != null && used > passed ? ` · ${used - passed} failed` : ""}</p>
+    ${fin.options.length === 1 ? `<p class="fin-one">${text(fin.options[0])}</p>`
+    : `<fieldset class="reader-opts"><legend class="sr-only">Pick the scrolls</legend>${fin.options.map((o, i) => `<label>
+      <input type="radio" name="finOpt" value="${i}" ${i === fin.choice ? "checked" : ""} /> ${text(o)}
+      <small>${i === 0 ? "most likely · " : ""}${Math.round(o.share * 100)}%</small></label>`).join("")}</fieldset>`}`;
+}
+
+function finScrollList() {
+  const o = fin.options[fin.choice];
+  return o ? o.rows.map((x) => scrollById.get(x.scroll.id)) : [];
+}
+
+function renderFinPrices() {
+  const box = $("finPrices");
+  if (!fin.options.length) { box.innerHTML = ""; return; }
+  const it = fin.item;
+  box.innerHTML = `<p class="label">Today's prices (from – to)</p>
+    <div class="scroll-row price-row" data-clean="1">
+      <img src="${icon(it[0])}" alt="" />
+      <span class="nm"><b>Clean ${esc(it[1])}</b><small>with the clean stats above</small></span><span></span>
+      <span class="row-price price-input">${rangeFields(fin.clean, "k")}
+        <a href="${priceLink(it[0], it[1])}" data-name="${esc(it[1])}" target="_blank" rel="noopener">check price ↗</a></span>
+    </div>
+    ${finScrollList().map((sc) => `<div class="scroll-row price-row" data-id="${sc.id}">
+      <img src="${scrollIcon(sc.id)}" alt="" />
+      <span class="nm"><b>${esc(sc.name)}</b><small>${esc(scrollOdds(sc))} · ${esc(plusList(sc.stats))}</small></span><span></span>
+      <span class="row-price price-input">${rangeFields(getPrice(sc.id), "m")}
+        <a href="${priceLink(sc.id, sc.name)}" data-name="${esc(sc.name)}" target="_blank" rel="noopener">check price ↗</a></span>
+    </div>`).join("")}`;
+}
+
+// Fill the calculator from the tooltip and show the estimate.
+async function applyFin() {
+  const it = fin.item, o = fin.options[fin.choice], r = fin.read;
+  if (!it || !o || !r) { $("resultCard").hidden = true; return; }
+  const clean = { ...it[5] };
+  for (const [k, v] of Object.entries(r.stats)) clean[k] = v.base;
+  const rows = o.rows.map((x) => ({ scroll: scrollById.get(x.scroll.id), successes: x.n }));
+  const passed = rows.reduce((a, x) => a + x.successes, 0);
+  await pickItem(it[0], { clean, rows, left: r.left ?? Math.max(0, it[4] - passed) });
+  cleanPrice = fin.clean;
+  update();
+}
+
+$("finBox").addEventListener("input", (e) => onFinInput(e));
+$("finName").addEventListener("change", (e) => onFinInput(e));
+$("finScrolls").addEventListener("change", (e) => {
+  if (e.target.name !== "finOpt") return;
+  fin.choice = +e.target.value;
+  renderFinPrices();
+  applyFin();
+});
+function onFinPrice(e) {
+  if (!["from", "to", "unit"].includes(e.target.dataset.f)) return;
+  const row = e.target.closest(".price-row");
+  if (row.dataset.clean) { fin.clean = readFields(row); cleanPrice = fin.clean; }
+  else setPrice(+row.dataset.id, readFields(row));
+  update();
+}
+$("finPrices").addEventListener("input", onFinPrice);
+$("finPrices").addEventListener("change", onFinPrice);
+
+// Screenshot: read it in the browser, then fill the tooltip box.
+$("finRead").addEventListener("click", () => $("finFile").click());
+$("finFile").addEventListener("change", async (e) => {
   const file = e.target.files?.[0];
   e.target.value = "";
   if (!file) return;
-  $("reader").hidden = false;
-  $("reader").innerHTML = `<p class="reader-status" role="status">Reading your item…</p><progress id="rdProg" max="1" value="0"></progress>`;
+  const st = $("finStatus"), prog = $("finProg");
+  prog.hidden = false; prog.value = 0; st.textContent = "Reading your item…";
   try {
-    const text = await readImage(file, (v, label) => {
-      if ($("rdProg")) $("rdProg").value = v;
-      const st = $("reader").querySelector(".reader-status"); if (st) st.textContent = label;
-    });
-    const parsed = parseTooltip(text, equips);
-    const found = [parsed.item ? "the item" : null, parsed.upgrades != null ? "upgrades" : null,
-      parsed.left != null ? "slots left" : null, Object.keys(parsed.stats).length ? `${Object.keys(parsed.stats).length} stats` : null].filter(Boolean);
-    openReader(parsed, found.length ? `Read ${found.join(", ")}. Check it and fix anything that's off.`
-      : "Couldn't read much from this picture. A straight screenshot works best; you can also type the numbers in.");
+    const text = await readImage(file, (v, label) => { prog.value = v; st.textContent = label; });
+    const p = parseTooltip(text, equips);
+    if (p.item) { $("finName").value = p.item[1]; fin.item = p.item; renderFinItem(); }
+    $("finUp").value = p.upgrades ?? "";
+    $("finLeft").value = p.left ?? "";
+    for (const [k, v] of Object.entries(p.stats)) {
+      const line = $("finStats").querySelector(`.tt-line[data-k="${k}"]`);
+      if (!line) continue;
+      line.querySelector('[data-f="total"]').value = v.total;
+      line.querySelector('[data-f="gain"]').value = v.gain || "";
+    }
+    const got = [p.item ? "the item" : null, p.upgrades != null ? "(+N)" : null, p.left != null ? "slots left" : null,
+      Object.keys(p.stats).length ? `${Object.keys(p.stats).length} stats` : null].filter(Boolean);
+    st.textContent = got.length ? `Read ${got.join(", ")}. Check the numbers below and fix anything that's off.`
+      : "Couldn't read much from this picture. A straight screenshot works best; you can also type it in.";
+    onFinInput();
   } catch {
-    openReader(null, "Couldn't read the picture here. You can type the numbers in instead.");
-  }
+    st.textContent = "Couldn't read the picture here. You can type the numbers in instead.";
+  } finally { prog.hidden = true; }
 });
 
 // ---------- accessibility options (saved in this browser) ----------
@@ -759,6 +827,10 @@ if (DONATE_URL) {
   scrolls = sc;
   scrollById = new Map(sc.map((s) => [s.id, s]));
   renderCats();
+  $("equipNames").innerHTML = eq.map((e) => `<option value="${esc(e[1])}"></option>`).join("");
+  // A shared calculation opens in "Build an item", where all of it is shown; "#m=f" alone opens the finished-item tab.
+  const hq = new URLSearchParams(location.hash.slice(1));
+  if (hq.get("m") === "f" && !hq.get("i")) setMode("f");
   const h = readHash();
   if (h) pickItem(h.id, h.restore);
   else if (search.value.trim()) showResults(); // typed before the list loaded

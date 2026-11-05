@@ -32,10 +32,9 @@
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
   <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="css/style.css?v=9f3554b4" />
+  <link rel="stylesheet" href="css/style.css?v=d04d4cb4" />
 </head>
 <body>
-  <p class="moved">FMCheck's main address is <a href="https://fmcheck.org/">fmcheck.org</a>. This backup address works too.</p>
   <a class="skip" href="#itemSearch">Skip to the calculator</a>
   <!-- Moving background: meso drops, Maple items and monsters floating up. Stars at night (dark mode). -->
   <div class="sky" aria-hidden="true">
@@ -67,6 +66,7 @@
   </div>
 
   <header class="top">
+    <p class="moved">FMCheck's main address is <a href="https://fmcheck.org/">fmcheck.org</a>. This backup address works too.</p>
     <h1 class="logo" aria-label="FMCheck">
       <span class="word" data-text="FM">FM</span><img class="logo-scroll" src="assets/scroll.png" alt="" /><span class="word" data-text="Check">Check</span>
     </h1>
@@ -80,16 +80,40 @@
   </header>
 
   <main>
+    <div class="tabs" role="tablist" aria-label="What do you want to do?">
+      <button type="button" role="tab" id="tabBuild" data-mode="b" aria-selected="true" aria-controls="itemCard">🛠️ Build an item</button>
+      <button type="button" role="tab" id="tabFinished" data-mode="f" aria-selected="false" aria-controls="finishedCard">📜 Price my finished item</button>
+    </div>
+    <datalist id="equipNames"></datalist>
+
+    <!-- Finished item: typed in like the game's tooltip (or read from a screenshot) -->
+    <section class="card" id="finishedCard" role="tabpanel" aria-labelledby="tabFinished" hidden>
+      <h2><b>1</b> Your item, as it shows in the game</h2>
+      <div class="fin-actions">
+        <button id="finRead" type="button" class="read-btn">📷 Fill from a screenshot</button>
+        <input id="finFile" type="file" accept="image/*" hidden />
+        <span class="hint">or type it in below</span>
+      </div>
+      <p id="finStatus" class="reader-status" role="status"></p>
+      <progress id="finProg" max="1" value="0" hidden></progress>
+      <div class="tt-box" id="finBox">
+        <div class="tt-title">
+          <input id="finName" list="equipNames" placeholder="Item name" autocomplete="off" aria-label="Item name" />
+          <span class="tt-up">(+<input id="finUp" type="number" min="0" inputmode="numeric" aria-label="Upgrades, the number after +" />)</span>
+        </div>
+        <div class="tt-head" id="finHead"></div>
+        <div id="finStats" class="tt-stats"></div>
+        <div class="tt-line"><span class="tt-dot">•</span> Remaining Enhancements:
+          <input id="finLeft" type="number" min="0" inputmode="numeric" aria-label="Remaining Enhancements" /></div>
+      </div>
+      <div id="finScrolls" class="fin-scrolls"></div>
+      <div id="finPrices" class="fin-prices"></div>
+    </section>
+
     <!-- 1. Item -->
     <section class="card" id="itemCard">
       <h2><b>1</b> Item</h2>
-      <div class="reader-entry">
-        <button id="readBtn" type="button" class="read-btn">📷 Have a finished item? Read it from a screenshot</button>
-        <button id="typeBtn" type="button" class="link-btn">or type in its stats</button>
-        <input id="readFile" type="file" accept="image/*" hidden />
-      </div>
-      <div id="reader" class="reader" hidden></div>
-      <datalist id="equipNames"></datalist>
+      <button type="button" class="link-btn to-finished" data-mode="f">Have a finished item? Price it as it shows in the game →</button>
       <div id="cats" class="cats" role="toolbar" aria-label="Item categories"></div>
       <div class="search-row">
       <div class="search">
@@ -248,6 +272,6 @@ chance = clean roll × scrolls</pre>
     <label><input type="checkbox" data-a11y="links" /> Underline links</label>
     <a href="terms.html#accessibility">Accessibility statement</a>
   </div>
-  <script type="module" src="js/app.js?v=9f3554b4"></script>
+  <script type="module" src="js/app.js?v=d04d4cb4"></script>
 </body>
 </html>
