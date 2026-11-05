@@ -277,3 +277,53 @@ export function failedItemValue({ cleanPrice, slots, left }) {
   const ratio = 0.1 + 0.9 * Math.max(0, left) / slots;
   return { value: cleanPrice * ratio, ratio };
 }
+
+// ---------- Reading a finished item: which scrolls passed? ----------
+const TIER_PRIOR = { Lesser: 1, Intermediate: 1, Greater: 0.5, Chaos: 0.35 };
+//
+// The game shows each stat as "total (clean +gain)" and the item name with (+passes).
+// Find the combinations of passed scrolls whose gains add up exactly, and rank them by how likely they are:
+//   likelihood = product over passes of (success chance × how common the tier is), × 0.2 if slots failed
+//                but every chosen scroll can't fail
+// gains: { stat: points }, passes: number | null, used: number | null (slots used), scrolls: [{ id, stats, success }]
+export function inferScrolls({ gains, passes = null, used = null, scrolls }) {
+  const want = Object.fromEntries(Object.entries(gains).filter(([, v]) => v > 0));
+  const keys = Object.keys(want);
+  if (!keys.length) return passes ? [] : [{ rows: [], score: 1, share: 1 }]; // nothing gained: no scroll passed
+  // only scrolls that add nothing outside the gained stats
+  const cands = scrolls.filter((s) => Object.keys(s.stats).length && Object.keys(s.stats).every((k) => k in want));
+  const maxPasses = passes ?? used ?? 20;
+  const out = [];
+  const left = { ...want };
+  const pick = [];
+  (function dfs(i, count) {
+    if (keys.every((k) => left[k] === 0)) {
+      if (passes == null || count === passes) out.push(pick.filter((p) => p.n > 0).map((p) => ({ ...p })));
+      return;
+    }
+    if (i >= cands.length || count >= maxPasses) return;
+    const s = cands[i];
+    // how many of this scroll fit at most
+    let most = maxPasses - count;
+    for (const [k, v] of Object.entries(s.stats)) most = Math.min(most, Math.floor(left[k] / v));
+    for (let n = most; n >= 0; n--) {
+      for (const [k, v] of Object.entries(s.stats)) left[k] -= v * n;
+      pick.push({ scroll: s, n });
+      dfs(i + 1, count + n);
+      pick.pop();
+      for (const [k, v] of Object.entries(s.stats)) left[k] += v * n;
+      if (out.length > 500) return;
+    }
+  })(0, 0);
+  const scored = out.map((rows) => {
+    const n = rows.reduce((a, r) => a + r.n, 0);
+    // Greater and Chaos scrolls are rare in Classic (crafted or quest rewards), so they're less likely to be the answer.
+    let score = rows.reduce((p, r) => p * ((r.scroll.success / 100) * (TIER_PRIOR[r.scroll.tier] ?? 1)) ** r.n, 1);
+    const failed = used != null ? used - n : 0;
+    if (failed < 0) score = 0;
+    if (failed > 0 && rows.every((r) => r.scroll.success >= 100)) score *= 0.2; // fails came from scrolls that can fail
+    return { rows, score };
+  }).filter((o) => o.score > 0);
+  const total = scored.reduce((a, o) => a + o.score, 0) || 1;
+  return scored.sort((a, b) => b.score - a.score).slice(0, 4).map((o) => ({ ...o, share: o.score / total }));
+}

@@ -30,7 +30,7 @@
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
   <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="css/style.css?v=686976c5" />
+  <link rel="stylesheet" href="css/style.css?v=bed1d5b6" />
 </head>
 <body>
   <a class="skip" href="#itemSearch">Skip to the calculator</a>
@@ -80,6 +80,13 @@
     <!-- 1. Item -->
     <section class="card" id="itemCard">
       <h2><b>1</b> Item</h2>
+      <div class="reader-entry">
+        <button id="readBtn" type="button" class="read-btn">📷 Have a finished item? Read it from a screenshot</button>
+        <button id="typeBtn" type="button" class="link-btn">or type in its stats</button>
+        <input id="readFile" type="file" accept="image/*" hidden />
+      </div>
+      <div id="reader" class="reader" hidden></div>
+      <datalist id="equipNames"></datalist>
       <div id="cats" class="cats" role="toolbar" aria-label="Item categories"></div>
       <div class="search-row">
       <div class="search">
@@ -238,6 +245,6 @@ chance = clean roll × scrolls</pre>
     <label><input type="checkbox" data-a11y="links" /> Underline links</label>
     <a href="terms.html#accessibility">Accessibility statement</a>
   </div>
-  <script type="module" src="js/app.js?v=686976c5"></script>
+  <script type="module" src="js/app.js?v=bed1d5b6"></script>
 </body>
 </html>

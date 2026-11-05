@@ -122,3 +122,43 @@ test("failed slots lower a clean item's value", () => {
   near(at(0), 100);                // all failed: base stats keep 10%
   assert.ok(at(3) < at(4));
 });
+
+import { inferScrolls } from "../js/calc.js";
+test("reading a finished item: which scrolls passed", () => {
+  const S = (id, k, v, success) => ({ id, stats: { [k]: v }, success });
+  const glove = [S(1, "CRT", 1, 100), S(2, "CRT", 2, 60), S(3, "CRT", 3, 10), S(4, "CRT", 4, 10), S(5, "PAD", 1, 100), S(6, "PAD", 2, 60)];
+  // Work Gloves (+1), Crit (1 +4): one pass for +4 can only be the Chaos-like +4 scroll
+  const one = inferScrolls({ gains: { CRT: 4 }, passes: 1, used: 1, scrolls: glove });
+  assert.equal(one.length, 1); assert.equal(one[0].rows[0].scroll.id, 4);
+  // +4 ATT in two passes: two of the +2 scroll
+  const two = inferScrolls({ gains: { PAD: 4 }, passes: 2, used: 3, scrolls: glove });
+  assert.equal(two[0].rows[0].scroll.id, 6); assert.equal(two[0].rows[0].n, 2);
+  // two stats at once
+  const mix = inferScrolls({ gains: { PAD: 2, CRT: 1 }, passes: 2, used: 2, scrolls: glove });
+  assert.ok(mix[0].rows.some((r) => r.scroll.id === 6) && mix[0].rows.some((r) => r.scroll.id === 1)); // +2 ATT scroll and +1 Crit scroll
+  // nothing gained
+  assert.deepEqual(inferScrolls({ gains: {}, passes: 0, used: 2, scrolls: glove })[0].rows, []);
+});
+
+import { parseTooltip } from "../js/reader.js";
+test("reading a tooltip's text", () => {
+  const equips = [[1082000, "Work Gloves", 10, "Glove", 5, { PDD: 6, CRT: 1 }, {}], [1472018, "Steel Slain", 50, "Claw", 7, { PAD: 34 }, {}]];
+  const text = `Work Gloves (+1)
+REQ LEV : 10
+REQ STR : 0
+BEGINNER WARRIOR MAGICIAN BOWM
+Type: Gloves
+Weapon Def.: +6 34,966
+Critical Rate: +5 (1 +4)
+Remaining Enhancements: 4`;
+  const r = parseTooltip(text, equips);
+  assert.equal(r.item[0], 1082000);
+  assert.equal(r.upgrades, 1);
+  assert.equal(r.left, 4);
+  assert.deepEqual(r.stats.CRT, { total: 5, base: 1, gain: 4 });
+  assert.deepEqual(r.stats.PDD, { total: 6, base: 6, gain: 0 });
+  // OCR slips in the name still find the item
+  const r2 = parseTooltip("Stee1 Sla1n (+4)\nWeapon Att.: +42 (34 +8)\nRemaining Enhancements: 1", equips);
+  assert.equal(r2.item[0], 1472018);
+  assert.deepEqual(r2.stats.PAD, { total: 42, base: 34, gain: 8 });
+});

@@ -74,3 +74,11 @@ Skip link, labelled fields, the item search is an ARIA combobox, price and chanc
 canvas has a full text description, AA color contrast, visible keyboard focus. The round button at the bottom left
 offers larger text, stop animations, high contrast and underlined links (saved per browser). The accessibility
 statement is in `terms.html#accessibility`.
+
+## Reading a finished item
+
+Step 1 can read the game's item tooltip from a screenshot or photo, or take the numbers typed in.
+The tooltip shows `Name (+passes)`, each stat as `total (clean +gain)` and `Remaining Enhancements`.
+`js/reader.js` reads the picture in the browser (Tesseract.js, loaded on first use; the image is never uploaded)
+and parses the text; `inferScrolls` in `js/calc.js` finds the scroll combinations whose gains add up exactly,
+ranked by success chance × how common the tier is. The user confirms and the calculator is filled in.

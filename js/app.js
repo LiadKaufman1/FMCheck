@@ -1,7 +1,8 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=686976c5";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, failedItemValue, mesos, UNITS, readRange } from "./calc.js?v=686976c5";
-import { getPrice, setPrice } from "./prices.js?v=686976c5";
-import { drawCard, cardBlob } from "./card.js?v=686976c5";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=bed1d5b6";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, inferScrolls, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, failedItemValue, mesos, UNITS, readRange } from "./calc.js?v=bed1d5b6";
+import { getPrice, setPrice } from "./prices.js?v=bed1d5b6";
+import { parseTooltip, readImage } from "./reader.js?v=bed1d5b6";
+import { drawCard, cardBlob } from "./card.js?v=bed1d5b6";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -142,6 +143,7 @@ $("cats").addEventListener("click", (e) => {
   if (!b) return;
   filter.cat = filter.cat === b.dataset.cat ? "" : b.dataset.cat;
   renderCats();
+  $("equipNames").innerHTML = eq.map((e) => `<option value="${esc(e[1])}"></option>`).join("");
   if (state.item && search.value === state.item.name) search.value = ""; // browsing again after a pick
   search.focus();
   showResults();
@@ -594,6 +596,125 @@ function readHash() {
   }).filter(Boolean);
   return { id, restore: { clean, rows, left: q.has("l") ? +q.get("l") : undefined } };
 }
+
+// ---------- read a finished item (screenshot or typed in) ----------
+//
+// The game's tooltip shows "Name (+passes)", each stat as "total (clean +gain)" and "Remaining Enhancements".
+// From that we work out which scrolls passed (inferScrolls) and fill in the calculator; the user adds prices.
+
+const rd = { item: null, upgrades: null, left: null, stats: {}, options: [], choice: 0, note: "" };
+const STAT_ORDER = GAME_ORDER;
+
+function readerItem() {
+  const name = ($("rdItem")?.value || "").trim().toLowerCase();
+  return equips.find((e) => e[1].toLowerCase() === name) || null;
+}
+
+function inferNow() {
+  const e = rd.item;
+  if (!e) { rd.options = []; return; }
+  const gains = Object.fromEntries(Object.entries(rd.stats).map(([k, v]) => [k, v.gain || 0]));
+  const prefix = Math.floor(e[0] / 10000);
+  const used = rd.left != null ? e[4] - rd.left : null;
+  rd.options = inferScrolls({ gains, passes: rd.upgrades, used, scrolls: scrolls.filter((s) => s.target === prefix) });
+  rd.choice = 0;
+}
+
+function renderReader(status = "") {
+  const box = $("reader");
+  box.hidden = false;
+  const e = rd.item;
+  const keys = e ? [...new Set([...STAT_ORDER.filter((k) => e[5][k]), ...Object.keys(rd.stats)])].filter((k) => GAME_LABEL[k]) : [];
+  const num = (v) => (v == null ? "" : v);
+  const optText = (o) => (o.rows.length ? o.rows.map((r) => `${r.n}× ${esc(r.scroll.name)}`).join(" + ") : "No scroll passed");
+  box.innerHTML = `
+    <p class="reader-status" role="status">${esc(status || rd.note || "Check what we read and fix anything that's off.")}</p>
+    <div class="reader-grid">
+      <label>Item<input id="rdItem" list="equipNames" value="${e ? esc(e[1]) : ""}" placeholder="Item name" autocomplete="off" /></label>
+      <label>Upgrades (+N)<input id="rdUp" type="number" min="0" inputmode="numeric" value="${num(rd.upgrades)}" /></label>
+      <label>Remaining Enhancements<input id="rdLeft" type="number" min="0" inputmode="numeric" value="${num(rd.left)}" /></label>
+    </div>
+    ${keys.length ? `<table class="reader-stats"><thead><tr><th>Stat</th><th>Clean</th><th>+ from scrolls</th></tr></thead><tbody>
+      ${keys.map((k) => `<tr data-k="${k}"><th scope="row">${GAME_LABEL[k]}</th>
+        <td><input type="number" min="0" inputmode="numeric" data-f="base" aria-label="${GAME_LABEL[k]} clean" value="${num(rd.stats[k]?.base ?? e[5][k])}" /></td>
+        <td><input type="number" min="0" inputmode="numeric" data-f="gain" aria-label="${GAME_LABEL[k]} from scrolls" value="${num(rd.stats[k]?.gain ?? 0)}" /></td></tr>`).join("")}
+      </tbody></table>` : ""}
+    ${e ? `<fieldset class="reader-opts"><legend>Scrolls that passed</legend>
+      ${rd.options.length ? rd.options.map((o, i) => `<label><input type="radio" name="rdOpt" value="${i}" ${i === rd.choice ? "checked" : ""} />
+        ${optText(o)} <small>${i === 0 && rd.options.length > 1 ? "most likely · " : ""}${Math.round(o.share * 100)}%</small></label>`).join("")
+      : `<p class="warn">No scrolls for this item add up to these numbers. Check the upgrades and the "+ from scrolls" values.</p>`}
+    </fieldset>` : `<p class="hint">Pick the item to continue.</p>`}
+    <div class="reader-actions">
+      <button id="rdUse" type="button" ${e && rd.options.length ? "" : "disabled"}>Use this</button>
+      <button id="rdCancel" type="button" class="ghost-btn">Cancel</button>
+    </div>`;
+}
+
+function readReaderForm() {
+  const e = readerItem();
+  if (e !== rd.item) { rd.item = e; rd.stats = {}; }
+  const v = (id) => { const x = $(id)?.value; return x === "" || x == null ? null : Math.max(0, Math.floor(+x)); };
+  rd.upgrades = v("rdUp");
+  rd.left = v("rdLeft");
+  for (const tr of $("reader").querySelectorAll("tr[data-k]")) {
+    const k = tr.dataset.k;
+    rd.stats[k] = { base: +tr.querySelector('[data-f="base"]').value || 0, gain: +tr.querySelector('[data-f="gain"]').value || 0 };
+  }
+}
+
+$("reader").addEventListener("change", (e) => {
+  if (e.target.name === "rdOpt") { rd.choice = +e.target.value; return; }
+  readReaderForm();
+  inferNow();
+  const focusId = e.target.id;
+  renderReader();
+  if (focusId && $(focusId)) $(focusId).focus();
+});
+$("reader").addEventListener("click", (e) => {
+  if (e.target.id === "rdCancel") { $("reader").hidden = true; return; }
+  if (e.target.id !== "rdUse") return;
+  const o = rd.options[rd.choice], it = rd.item;
+  if (!o || !it) return;
+  const clean = Object.fromEntries(Object.entries(rd.stats).map(([k, v]) => [k, v.base]));
+  const rows = o.rows.map((r) => ({ scroll: scrollById.get(r.scroll.id), successes: r.n }));
+  $("reader").hidden = true;
+  pickItem(it[0], { clean, rows, left: rd.left ?? it[4] }).then(() => {
+    toast("Filled in from your item. Now enter the clean price and the scroll prices.");
+    $("cleanPrice").querySelector("input")?.focus();
+  });
+});
+
+function openReader(parsed, status) {
+  Object.assign(rd, { item: parsed?.item || state.item && equips.find((x) => x[0] === state.item.id) || null,
+    upgrades: parsed?.upgrades ?? null, left: parsed?.left ?? null, stats: {}, choice: 0, note: "" });
+  for (const [k, v] of Object.entries(parsed?.stats || {})) rd.stats[k] = { base: v.base, gain: v.gain };
+  inferNow();
+  renderReader(status);
+  $("reader").scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+
+$("readBtn").addEventListener("click", () => $("readFile").click());
+$("typeBtn").addEventListener("click", () => openReader(null, "Type the numbers from the item's tooltip in the game."));
+$("readFile").addEventListener("change", async (e) => {
+  const file = e.target.files?.[0];
+  e.target.value = "";
+  if (!file) return;
+  $("reader").hidden = false;
+  $("reader").innerHTML = `<p class="reader-status" role="status">Reading your item…</p><progress id="rdProg" max="1" value="0"></progress>`;
+  try {
+    const text = await readImage(file, (v, label) => {
+      if ($("rdProg")) $("rdProg").value = v;
+      const st = $("reader").querySelector(".reader-status"); if (st) st.textContent = label;
+    });
+    const parsed = parseTooltip(text, equips);
+    const found = [parsed.item ? "the item" : null, parsed.upgrades != null ? "upgrades" : null,
+      parsed.left != null ? "slots left" : null, Object.keys(parsed.stats).length ? `${Object.keys(parsed.stats).length} stats` : null].filter(Boolean);
+    openReader(parsed, found.length ? `Read ${found.join(", ")}. Check it and fix anything that's off.`
+      : "Couldn't read much from this picture. A straight screenshot works best; you can also type the numbers in.");
+  } catch {
+    openReader(null, "Couldn't read the picture here. You can type the numbers in instead.");
+  }
+});
 
 // ---------- accessibility options (saved in this browser) ----------
 

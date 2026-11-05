@@ -417,3 +417,27 @@ html.a11y-contrast .card { box-shadow: none; }
 @media (min-width: 1400px) {
   .top, main, footer { zoom: 1.32; }
 }
+
+/* read a finished item */
+.reader-entry { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.read-btn { background: var(--btn-bg); color: var(--btn-text); }
+.link-btn { background: none; color: var(--accent-text); padding: 4px; text-decoration: underline; font-weight: 700; }
+.reader { border: 2px dashed var(--card-edge); border-radius: 12px; padding: 12px; margin-bottom: 14px; background: var(--bg); }
+.reader-status { margin: 0 0 10px; font-weight: 700; }
+.reader progress { width: 100%; height: 10px; accent-color: var(--btn-bg); }
+.reader-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 8px; }
+.reader-grid label, .reader-stats { font-size: 13px; color: var(--muted); }
+.reader-grid label { display: grid; gap: 4px; }
+.reader-grid input { width: 100%; }
+.reader-stats { width: 100%; border-collapse: collapse; margin: 10px 0; }
+.reader-stats th { text-align: left; font-weight: 700; padding: 4px 6px 4px 0; color: var(--text); }
+.reader-stats thead th { color: var(--muted); font-size: 12px; }
+.reader-stats td { padding: 3px 4px; }
+.reader-stats input { width: 100%; }
+.reader-opts { border: 0; padding: 0; margin: 4px 0 10px; display: grid; gap: 6px; }
+.reader-opts legend { font-weight: 800; margin-bottom: 4px; }
+.reader-opts label { display: flex; gap: 8px; align-items: center; font-size: 14px; flex-wrap: wrap; }
+.reader-opts small { color: var(--muted); }
+.reader-actions { display: flex; gap: 8px; }
+.reader-actions button:disabled { opacity: .5; cursor: not-allowed; }
+@media (max-width: 560px) { .reader-grid { grid-template-columns: 1fr 1fr; } .reader-grid label:first-child { grid-column: 1 / -1; } }
