@@ -280,8 +280,18 @@ footer { color: var(--text); opacity: .8; font-size: 12px; padding-bottom: 32px;
 }
 .donate:hover { filter: brightness(1.05); }
 .donate:active { translate: 0 2px; box-shadow: 0 1px 0 #d9a21b; }
-.top .donate { position: absolute; right: 16px; top: 36px; }
-@media (max-width: 480px) { .top .donate { position: static; margin-top: 12px; } }
+.top-actions { position: absolute; right: 16px; top: 36px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+@media (max-width: 640px) { .top-actions { position: static; margin-top: 12px; justify-content: flex-start; } }
+.discord {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 999px;
+  background: #5865f2; color: #fff; text-decoration: none;
+  font: 700 14px "Fredoka", system-ui, sans-serif;
+  box-shadow: 0 3px 0 #3c45b8;
+}
+.discord:hover { filter: brightness(1.08); }
+.discord:active { translate: 0 2px; box-shadow: 0 1px 0 #3c45b8; }
+footer .community { font-weight: 800; }
 
 /* ---------- phones ---------- */
 @media (max-width: 560px) {

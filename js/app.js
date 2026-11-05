@@ -1,7 +1,7 @@
-import { iconUrl, priceLink, DONATE_URL } from "./config.js?v=a9ead540";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, mesos, UNITS, readRange } from "./calc.js?v=a9ead540";
-import { getPrice, setPrice } from "./prices.js?v=a9ead540";
-import { drawCard, cardBlob } from "./card.js?v=a9ead540";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=aab8d501";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, mesos, UNITS, readRange } from "./calc.js?v=aab8d501";
+import { getPrice, setPrice } from "./prices.js?v=aab8d501";
+import { drawCard, cardBlob } from "./card.js?v=aab8d501";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -534,6 +534,7 @@ function readHash() {
 
 // ---------- start ----------
 
+for (const a of document.querySelectorAll("[data-discord]")) a.href = DISCORD_URL;
 if (DONATE_URL) {
   for (const a of document.querySelectorAll("[data-donate]")) { a.href = DONATE_URL; a.hidden = false; }
 }

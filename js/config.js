@@ -12,3 +12,6 @@ export const priceLink = (id, name = "") =>
 
 // Donate button (PayPal), e.g. "https://www.paypal.com/paypalme/yourname". Empty hides the buttons.
 export const DONATE_URL = "https://paypal.me/FMCheck";
+
+// Community Discord (invite link that never expires).
+export const DISCORD_URL = "https://discord.gg/hWYs9vxhRv";
