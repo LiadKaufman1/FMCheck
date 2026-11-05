@@ -30,7 +30,7 @@
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
   <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="css/style.css?v=757e2e3f" />
+  <link rel="stylesheet" href="css/style.css?v=260cd9c8" />
 </head>
 <body>
   <!-- Moving background: meso drops, Maple items and monsters floating up. Stars at night (dark mode). -->
@@ -79,9 +79,16 @@
     <!-- 1. Item -->
     <section class="card" id="itemCard">
       <h2><b>1</b> Item</h2>
+      <div id="cats" class="cats" role="toolbar" aria-label="Item categories"></div>
+      <div class="search-row">
       <div class="search">
-        <input id="itemSearch" type="search" placeholder="Search an item, e.g. Steel Slain" autocomplete="off" spellcheck="false" />
+        <input id="itemSearch" type="search" placeholder="Search, or pick a category above" autocomplete="off" spellcheck="false" />
         <ul id="itemResults" class="results" hidden></ul>
+      </div>
+        <select id="jobFilter" aria-label="Class">
+          <option value="">All classes</option><option>Beginner</option><option>Warrior</option>
+          <option>Magician</option><option>Bowman</option><option>Thief</option>
+        </select>
       </div>
       <div id="itemInfo" class="item-info" hidden></div>
       <label class="price-field" id="cleanField" hidden>Clean item price (from – to)
@@ -211,6 +218,6 @@ chance = clean roll × scrolls</pre>
   </footer>
 
   <div id="toast" class="toast" role="status" hidden></div>
-  <script type="module" src="js/app.js?v=757e2e3f"></script>
+  <script type="module" src="js/app.js?v=260cd9c8"></script>
 </body>
 </html>
