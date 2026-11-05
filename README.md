@@ -7,19 +7,19 @@ add the scrolls that passed with today's price for each, and get a ballpark valu
 
 ## How the estimate works
 
-The estimate is the average cost to make this item from scratch:
+A buyer won't pay more than it would cost to make an item at least this good themselves, the cheapest way,
+so the estimate is that cost plus what the open slots are worth. The page shows the exact formulas under
+"How is this worked out?"; the code is `cheapestRoute` and `openSlotValue` in `js/calc.js`.
 
-```
-estimate = (clean item price + scroll cost per try) / chance a try works
-```
+- **Cheapest way to make one (M):** reach at least the same stat points within the same used slots, using any
+  tier of the same scroll that has a price. The maker picks the best scroll each step, stops at the goal, and
+  drops an item that can't reach it (or that a Chaos scroll destroyed) and starts over with a new clean item.
+  Solved as an expected-cost recursion with M on both sides, repeated until it settles.
+- **Open slots:** per slot = best scroll's (chance × gain × mesos per stat point − price − chance of losing the
+  item × M), never below 0; mesos per stat point = (M − clean price) ÷ points gained.
+- **Estimate** = M + open slots, worked out with all "from" prices and all "to" prices for the range.
 
-A try works when every scroll type passes at least as many times and no dark scroll booms the item.
-The clean price is for a clean item with the chosen stats, so the roll's rarity isn't counted again.
-Prices are entered as ranges (from – to). The estimate is worked out once with every "from" price and once
-with every "to" price, which gives the range shown.
-
-Clean stat ranges use the usual pre-Big-Bang rule: base ± min(ceil(10% of base), 5), or ±10 for DEF/HP/MP.
-The slider for the main stat shows how rare the roll is, to help price the clean item.
+Assumes a failed scroll uses up its slot (what community simulators assume; the game data doesn't say).
 
 ## Data
 

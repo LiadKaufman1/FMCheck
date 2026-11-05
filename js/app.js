@@ -1,6 +1,6 @@
-import { iconUrl, priceLink, DONATE_URL } from "./config.js?v=55f48da3";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, estimate, allocateFailures, openSlotValue, mesos, UNITS, readRange } from "./calc.js?v=55f48da3";
-import { getPrice, setPrice } from "./prices.js?v=55f48da3";
+import { iconUrl, priceLink, DONATE_URL } from "./config.js?v=973f6d27";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, openSlotValue, cheapestRoute, mesos, UNITS, readRange } from "./calc.js?v=973f6d27";
+import { getPrice, setPrice } from "./prices.js?v=973f6d27";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -255,9 +255,37 @@ $("pickerList").addEventListener("click", (e) => {
 // ---------- passed scrolls ----------
 
 const passedTotal = () => state.rows.reduce((n, r) => n + r.successes, 0);
+// A scroll family is one scroll in all its tiers, e.g. "Gloves Attack Scroll" (Lesser … Chaos).
+const family = (sc) => sc.name.split(":")[0].trim();
+const points = (sc) => Object.values(sc.stats).reduce((a, b) => a + b, 0);
+const familyTiers = (fam) => scrollsForItem().filter((sc) => family(sc) === fam);
+
+// Other tiers of the passed scrolls' families: their prices let us find the cheapest way to make the item.
+function renderOtherTiers() {
+  const box = $("otherTiers");
+  const fams = [...new Set(state.rows.map((r) => family(r.scroll)))];
+  const passedIds = new Set(state.rows.map((r) => r.scroll.id));
+  const others = fams.flatMap(familyTiers).filter((sc) => !passedIds.has(sc.id));
+  if (!others.length) { box.innerHTML = ""; return; }
+  box.innerHTML = `<p class="label">Other tiers (optional): their prices help find the cheapest way to make this item.</p>
+    ${others.map((sc) => `<div class="scroll-row tier-row" data-id="${sc.id}">
+      <img src="${scrollIcon(sc.id)}" alt="" />
+      <span class="nm"><b>${esc(shortName(sc))}</b><small>${esc(scrollOdds(sc))} · ${esc(plusList(sc.stats))}</small></span>
+      <span></span>
+      <span class="row-price price-input">${rangeFields(getPrice(sc.id), "m")}
+        <a href="${priceLink(sc.id, sc.name)}" data-name="${esc(sc.name)}" target="_blank" rel="noopener">check price ↗</a></span>
+    </div>`).join("")}`;
+}
+function onTierPrice(e) {
+  if (!["from", "to", "unit"].includes(e.target.dataset.f)) return;
+  const row = e.target.closest(".tier-row");
+  setPrice(+row.dataset.id, readFields(row));
+  update();
+}
 
 function renderRows() {
   const box = $("scrollRows");
+  renderOtherTiers();
   if (!state.rows.length) {
     box.innerHTML = `<p class="hint">None yet. A clean item works too.</p>`;
     return;
@@ -286,6 +314,8 @@ function onScrollPrice(e) {
   update();
 }
 $("scrollRows").addEventListener("input", onScrollPrice);
+$("otherTiers").addEventListener("input", onTierPrice);
+$("otherTiers").addEventListener("change", onTierPrice);
 $("scrollRows").addEventListener("change", onScrollPrice);
 
 $("scrollRows").addEventListener("click", (e) => {
@@ -353,14 +383,7 @@ function update() {
     ? `<span class="warn">more passed scrolls than used slots</span>`
     : `${used} used · ${passed} passed · ${failed} failed`;
 
-  // Failed slots aren't entered; spread them over the passed scroll types in the most likely way.
-  const types = state.rows.map((r) => ({ successes: r.successes, success: r.scroll.success, boom: r.scroll.boom }));
-  const fails = allocateFailures(types, Math.max(0, failed));
-  const groups = state.rows.map((r, i) => ({
-    used: r.successes + fails[i], successes: r.successes, success: r.scroll.success, boom: r.scroll.boom,
-    stats: r.scroll.stats,
-  }));
-
+  const groups = state.rows.map((r) => ({ successes: r.successes, stats: r.scroll.stats }));
   const fin = finalStats(state.clean, groups);
   $("final").innerHTML = STATS.filter(([k]) => fin[k]).map(([k, lbl]) => {
     const gain = fin[k] - (state.base[k] || 0);
@@ -370,47 +393,50 @@ function update() {
   saveHash();
   const out = $("estimate");
   if (failed < 0) { out.innerHTML = `<p class="warn">You listed more passed scrolls than used slots. Check "Slots left".</p>`; return; }
+  if (!cleanPrice) { out.innerHTML = `<p class="hint">Enter the clean item price (step 1) to get an estimate.</p>`; return; }
 
-  const missing = state.rows.filter((r) => !getPrice(r.scroll.id));
-  // Work it out twice: with every "from" price, then with every "to" price.
-  // The clean price already reflects the rolled stats, so the roll's rarity isn't counted again.
-  // Open slots: valued as more scrolls of the type that passed most (see openSlotValue).
-  const points = (sc) => Object.values(sc.stats).reduce((a, b) => a + b, 0);
-  const pointsGained = state.rows.reduce((n, r) => n + r.successes * points(r.scroll), 0);
-  const refRow = state.rows.slice().sort((a, b) => b.successes - a.successes)[0];
+  // What the item gained, per scroll family, and every tier of those families with a price.
+  const needs = {};
+  for (const r of state.rows) needs[family(r.scroll)] = (needs[family(r.scroll)] || 0) + r.successes * points(r.scroll);
+  const tiersAt = (end) => Object.keys(needs).flatMap(familyTiers).map((sc) => ({
+    id: sc.id, fam: family(sc), points: points(sc), success: sc.success, boom: sc.boom, price: getPrice(sc.id)?.[end],
+  })).filter((t) => Number.isFinite(t.price));
+  const pointsGained = Object.values(needs).reduce((a, b) => a + b, 0);
+
+  // Worked out twice: with every "from" price, then with every "to" price.
   const run = (end) => {
-    const base = estimate({
-      cleanPrice: cleanPrice ? cleanPrice[end] : 0, roll: null,
-      groups: groups.map((g, i) => ({ ...g, price: getPrice(state.rows[i].scroll.id)?.[end] || 0 })),
-    });
-    const open = openSlotValue({
-      value: base.value, cleanPrice: cleanPrice ? cleanPrice[end] : 0, pointsGained, slotsLeft: state.left,
-      ref: refRow && { success: refRow.scroll.success, boom: refRow.scroll.boom, points: points(refRow.scroll),
-        price: getPrice(refRow.scroll.id)?.[end] || 0 },
-    });
-    return { ...base, made: base.value, open: open.total, value: base.value + open.total };
+    const clean = cleanPrice[end], tiers = tiersAt(end);
+    const route = cheapestRoute({ cleanPrice: clean, slots: used, needs, tiers });
+    if (!route) return null;
+    // Open slots: the buyer can still scroll them. Best priced scroll, valued at this item's mesos per stat point.
+    let perSlot = 0;
+    for (const t of tiers) {
+      perSlot = Math.max(perSlot, openSlotValue({ value: route.cost, cleanPrice: clean, pointsGained, slotsLeft: 1, ref: t }).perSlot);
+    }
+    return { ...route, open: perSlot * state.left, value: route.cost + perSlot * state.left, tiers };
   };
-  const lo = run("lo"), hi = run("hi"), res = lo;
-  if (!cleanPrice) {
-    out.innerHTML = `<p class="hint">Enter the clean item price (step 1) to get an estimate.</p>`;
+  const lo = run("lo"), hi = run("hi");
+  const unpriced = state.rows.filter((r) => !getPrice(r.scroll.id)).map((r) => esc(shortName(r.scroll)));
+  if (!lo || !hi) {
+    out.innerHTML = `<p class="hint">${unpriced.length ? `Enter a price for ${unpriced.join(", ")} to get an estimate.` : "Enter the scroll prices to get an estimate."}</p>`;
     return;
   }
-  const failedNote = failed > 0 && state.rows.length
-    ? `<span>Failed slots</span><span>${failed} (likely ${state.rows.map((r, i) => fails[i] ? `${fails[i]}× ${esc(shortName(r.scroll))}` : "").filter(Boolean).join(", ")})</span>`
-    : "";
+
+  const byId = new Map(scrolls.map((sc) => [sc.id, sc]));
+  const plan = Object.entries(lo.uses).sort((a, b) => b[1] - a[1])
+    .map(([id, n]) => `${n.toFixed(1)}× ${esc(shortName(byId.get(+id)).split(":").pop().trim())}`).join(", ");
   const pct = (x) => (x >= 0.995 ? "100%" : x >= 0.01 ? `${(x * 100).toFixed(1)}%` : `${(x * 100).toPrecision(2)}%`);
+  const items = (n) => (n < 1e6 ? (n < 10 ? n.toFixed(1) : Math.round(n).toLocaleString("en-US")) : mesos(n));
   out.innerHTML = `
     <div class="big">${lo.value === hi.value ? "≈ " : ""}${rangeText(lo.value, hi.value)}</div>
     <div class="range">${lo.value === hi.value ? "from the prices you entered" : `midpoint ≈ ${mesos((lo.value + hi.value) / 2)}`}</div>
     <div class="breakdown">
-      <span>Cost to make it</span><span>${rangeText(lo.made, hi.made)}</span>
-      ${state.left > 0 ? `<span>${state.left} open slot${state.left > 1 ? "s" : ""} (room to scroll more)</span><span>${hi.open > 0 ? "+" + rangeText(lo.open, hi.open) : refRow ? "+0" : "add a passed scroll to value"}</span>` : ""}
-      <span>One try (clean + scrolls)</span><span>${rangeText(lo.tryCost, hi.tryCost)}</span>
-      ${failedNote}
-      <span>Scrolls pass like this</span><span>${pct(res.scrollChance)}</span>
-      <span>Odds of making it</span><span>1 in ${res.oneIn < 1e6 ? Math.round(res.oneIn).toLocaleString("en-US") : mesos(res.oneIn)}</span>
+      <span>Cheapest way to make one</span><span>${rangeText(lo.cost, hi.cost)}</span>
+      ${state.left > 0 ? `<span>${state.left} open slot${state.left > 1 ? "s" : ""} (room to scroll more)</span><span>${hi.open > 0 ? "+" + rangeText(lo.open, hi.open) : "+0 (more scrolls cost about what they add)"}</span>` : ""}
+      ${pointsGained ? `<span>Clean items it takes, on average</span><span>${items(lo.cleanItems)}</span>
+      <span>Scrolls per clean item</span><span>${plan || "–"}</span>` : ""}
     </div>
-    ${missing.length ? `<p class="warn">Enter a price for ${missing.map((r) => esc(shortName(r.scroll))).join(", ")}: counted as 0 for now.</p>` : ""}`;
+    ${unpriced.length ? `<p class="warn">No price for ${unpriced.join(", ")}: left out of the cheapest way.</p>` : ""}`;
 }
 
 // ---------- shareable address: #i=<id>&r=PAD.50,STR.3&l=2&s=2043001.5,... ----------

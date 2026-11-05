@@ -165,3 +165,104 @@ export function openSlotValue({ value, cleanPrice, pointsGained, slotsLeft, ref 
   const perSlot = Math.max(0, (ref.success / 100) * ref.points * perPoint - ref.price - boomLoss);
   return { perPoint, perSlot, total: perSlot * slotsLeft };
 }
+
+// ---------- Cheapest way to make an item at least this good ----------
+//
+// The community prices a scrolled item by what it would cost a buyer to make one at least as good
+// themselves, the cheapest way they can ("price ceiling = cheapest other route to the same result").
+//
+// Goal: gain at least `needs[f]` stat points in each scroll family f (e.g. "Gloves Attack Scroll"),
+// using at most `slots` slots (the item's used slots, so the copy keeps as many open slots).
+// Tools: every tier of those families with a known price (Lesser / Intermediate / Greater / Chaos).
+// The maker plays it smart: picks the best scroll for each step, stops once the goal is reached,
+// and drops an item that can no longer reach it (or that a Chaos scroll destroyed) and starts over
+// with a fresh clean item.
+//
+// Let M = the average total cost to finish one item (clean items + scrolls, retries included).
+//   C(s, need) = expected cost from here, with s slots left and `need` points still missing
+//   C(s, 0) = 0                                       goal reached
+//   C(s, need) = M  when the goal can't be reached     drop it, start over
+//   C(s, need) = min( M,  min over scrolls t: price_t + p_t·C(s−1, need−gain_t)
+//                                                    + (1−p_t)(1−boom_t)·C(s−1, need) + (1−p_t)·boom_t·M )
+//   M = clean price + C(slots, needs)                 solved by repeating until it settles
+//
+// tiers: [{ fam, points, success, boom, price, id }], needs: { fam: points }
+export function cheapestRoute({ cleanPrice, slots, needs, tiers }) {
+  const fams = Object.keys(needs).filter((f) => needs[f] > 0);
+  if (!fams.length) return { cost: cleanPrice, chance: 1, cleanItems: 1, uses: {}, first: null };
+  const usable = tiers.filter((t) => fams.includes(t.fam) && Number.isFinite(t.price) && t.points > 0);
+  const best = Object.fromEntries(fams.map((f) => [f, Math.max(0, ...usable.filter((t) => t.fam === f).map((t) => t.points))]));
+  if (fams.some((f) => !best[f])) return null; // a family with no priced scroll
+
+  const reachable = (s, need) => fams.reduce((n, f, i) => n + Math.ceil(Math.max(0, need[i]) / best[f]), 0) <= s;
+  const key = (s, need) => s + ":" + need.join(",");
+  const start = fams.map((f) => needs[f]);
+  if (!reachable(slots, start)) return null;
+
+  function solve(M) {
+    const memo = new Map();
+    const C = (s, need) => {
+      if (need.every((n) => n <= 0)) return { cost: 0, pick: null };
+      if (!reachable(s, need)) return { cost: M, pick: "drop" };
+      const k = key(s, need);
+      if (memo.has(k)) return memo.get(k);
+      let out = { cost: M, pick: "drop" };
+      for (const t of usable) {
+        const i = fams.indexOf(t.fam);
+        if (need[i] <= 0) continue;
+        const p = t.success / 100, b = (t.boom || 0) / 100;
+        const after = need.slice(); after[i] -= t.points;
+        const c = t.price + p * C(s - 1, after).cost + (1 - p) * (1 - b) * C(s - 1, need).cost + (1 - p) * b * M;
+        if (c < out.cost - 1e-9) out = { cost: c, pick: t };
+      }
+      memo.set(k, out);
+      return out;
+    };
+    return C;
+  }
+
+  // Find M where M = clean + cost of the first step onward (no dropping a fresh item).
+  let M = cleanPrice + 1, C;
+  for (let it = 0; it < 500; it++) {
+    C = solve(M);
+    let first = Infinity;
+    for (const t of usable) { // the first step must use a scroll
+      const i = fams.indexOf(t.fam);
+      if (start[i] <= 0) continue;
+      const p = t.success / 100, b = (t.boom || 0) / 100;
+      const after = start.slice(); after[i] -= t.points;
+      first = Math.min(first, t.price + p * C(slots - 1, after).cost + (1 - p) * (1 - b) * C(slots - 1, start).cost + (1 - p) * b * M);
+    }
+    const next = cleanPrice + first;
+    if (!Number.isFinite(next) || next > 1e15) return null;
+    if (Math.abs(next - M) <= 1e-7 * next) { M = next; break; }
+    M = next;
+  }
+  C = solve(M);
+
+  // Follow the chosen plan from a fresh item: chance it ends finished, and scrolls used per fresh item.
+  const uses = {};
+  let firstPick = null;
+  const walk = (s, need, prob, top) => {
+    if (prob < 1e-12) return 0;
+    if (need.every((n) => n <= 0)) return prob;
+    let pick = C(s, need).pick;
+    if (top) { // fresh item: best scroll, never drop
+      let bestC = Infinity;
+      for (const t of usable) {
+        const i = fams.indexOf(t.fam); if (need[i] <= 0) continue;
+        const p = t.success / 100, b = (t.boom || 0) / 100; const after = need.slice(); after[i] -= t.points;
+        const c = t.price + p * C(s - 1, after).cost + (1 - p) * (1 - b) * C(s - 1, need).cost + (1 - p) * b * M;
+        if (c < bestC) { bestC = c; pick = t; }
+      }
+      firstPick = pick;
+    }
+    if (!pick || pick === "drop") return 0;
+    uses[pick.id] = (uses[pick.id] || 0) + prob;
+    const p = pick.success / 100, b = (pick.boom || 0) / 100, i = fams.indexOf(pick.fam);
+    const after = need.slice(); after[i] -= pick.points;
+    return walk(s - 1, after, prob * p, false) + walk(s - 1, need, prob * (1 - p) * (1 - b), false);
+  };
+  const chance = walk(slots, start, 1, true);
+  return { cost: M, chance, cleanItems: chance > 0 ? 1 / chance : Infinity, uses, first: firstPick };
+}

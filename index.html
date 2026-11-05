@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=55f48da3" />
+  <link rel="stylesheet" href="css/style.css?v=973f6d27" />
 </head>
 <body>
   <!-- Moving background: meso drops, Maple items and monsters floating up. Stars at night (dark mode). -->
@@ -88,6 +88,7 @@
       </div>
       <p class="label">Scrolls that passed</p>
       <div id="scrollRows" class="scroll-rows"></div>
+      <div id="otherTiers" class="scroll-rows other-tiers"></div>
       <button id="openPicker" type="button" class="add-btn">+ Add a scroll</button>
       <div id="picker" class="picker" hidden>
         <input id="pickerSearch" type="search" placeholder="Filter, e.g. attack" autocomplete="off" />
@@ -102,14 +103,54 @@
       <div id="estimate" class="estimate"></div>
       <details class="how">
         <summary>How is this worked out?</summary>
-        <p>The estimate is the average cost to make this item from scratch.
-          One try = a clean item with these stats plus the same scrolls. A try works only if the scrolls pass
-          at least as many times (dark scrolls can also destroy the item). Failed slots are worked out from the slots left.</p>
-        <p><code>estimate = (clean price + scroll cost) ÷ chance a try works</code></p>
-        <p>Open slots add value: the buyer can still scroll them. Each one is counted as one more scroll of the type
-          that passed most: chance it passes × what it adds × what a stat point is worth on this item − the scroll's price.</p>
+        <p><b>The idea.</b> A buyer won't pay more than it would cost to make an item at least this good themselves,
+          the cheapest way they can, and a seller won't take much less. So the estimate is that cost, plus what the open slots are worth.</p>
+
+        <p><b>1. Cheapest way to make one (M)</b></p>
+        <p>The goal: a clean item with these stats that gains at least the same stat points, within the same number of used slots
+          (so it keeps as many open slots). Any tier of the same scroll can be used, if you entered its price.
+          The maker picks the best scroll for each step, stops once the goal is reached, and drops an item that can't reach it anymore
+          (or that a Chaos scroll destroyed) and starts again with a new clean item.</p>
+        <pre class="formula">M = clean price + C(used slots, points gained)
+
+C(s, 0) = 0
+  goal reached
+C(s, n) = M
+  if n points can't be reached in s slots:
+  drop it, start over
+C(s, n) = the smaller of M and,
+  over every scroll t:
+    price_t
+  + p_t × C(s − 1, n − gain_t)
+      it passes
+  + (1 − p_t) × (1 − boom_t) × C(s − 1, n)
+      it fails, item kept
+  + (1 − p_t) × boom_t × M
+      it fails and destroys the item</pre>
+        <p>s = slots left to use, n = points still missing, p = success chance, gain = points one pass adds,
+          boom = chance a failure destroys the item. M appears on both sides, so it's solved by repeating until it settles.</p>
+
+        <p><b>2. Open slots</b></p>
+        <pre class="formula">per stat point = (M − clean price) ÷ points gained
+
+per open slot = the best scroll's
+    p × gain × per stat point
+  − price
+  − (1 − p) × boom × M
+  (never below 0)
+
+open slots = per open slot × open slots</pre>
+
+        <p><b>3. Estimate</b></p>
+        <pre class="formula">estimate = M + open slots</pre>
         <p>It's worked out once with every "from" price and once with every "to" price, which gives the range.</p>
-        <p>Players don't always sell at rebuild cost, so treat it as a ballpark, and check what similar items sell for.</p>
+
+        <p><b>Scroll rates in MapleStory Classic</b>: Lesser 100% (+1), Intermediate 60% (+2), Greater 10% (+3; +4 weapon attack),
+          Chaos 10% (+4; +5 weapon attack) and half of Chaos failures destroy the item. Exact gains per scroll come from the game data.</p>
+        <p><b>Assumptions.</b> A failed scroll uses up its slot (what the community's simulators assume; the game data doesn't say).
+          Dropped or destroyed items count as worth nothing, so the estimate leans a little high.
+          The clean price you enter already covers how good the clean roll is.
+          Real sales can land above or below this: treat it as a ballpark and check what similar items sold for.</p>
       </details>
     </section>
   </main>
@@ -125,6 +166,6 @@
   </footer>
 
   <div id="toast" class="toast" role="status" hidden></div>
-  <script type="module" src="js/app.js?v=55f48da3"></script>
+  <script type="module" src="js/app.js?v=973f6d27"></script>
 </body>
 </html>

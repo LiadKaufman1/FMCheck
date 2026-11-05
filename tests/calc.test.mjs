@@ -87,3 +87,29 @@ test("open slots add value", () => {
   // a scroll too pricey for what it adds is worth 0, not negative
   assert.equal(openSlotValue({ value: 3e6, cleanPrice: 2e6, pointsGained: 8, slotsLeft: 1, ref: { success: 60, points: 2, price: 5e6 } }).total, 0);
 });
+
+import { cheapestRoute } from "../js/calc.js";
+const L = { fam: "A", points: 1, success: 100, boom: 0, id: 1 };
+const I = { fam: "A", points: 2, success: 60, boom: 0, id: 2 };
+const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-6 * Math.max(1, b), `${a} != ${b}`);
+test("cheapest route: guaranteed Lesser", () => {
+  const r = cheapestRoute({ cleanPrice: 100, slots: 3, needs: { A: 3 }, tiers: [{ ...L, price: 10 }] });
+  near(r.cost, 130); near(r.chance, 1);
+});
+test("cheapest route: one Intermediate, retry on fail", () => {
+  const r = cheapestRoute({ cleanPrice: 100, slots: 1, needs: { A: 2 }, tiers: [{ ...I, price: 10 }] });
+  near(r.cost, 110 / 0.6); near(r.chance, 0.6);
+});
+test("cheapest route picks the cheaper tier", () => {
+  // +3 in 3 slots: Lessers cost 3×10; Intermediate would be pricier
+  const r = cheapestRoute({ cleanPrice: 100, slots: 3, needs: { A: 3 }, tiers: [{ ...L, price: 10 }, { ...I, price: 50 }] });
+  near(r.cost, 130);
+  // +4 in 3 slots needs at least one Intermediate pass, so it costs more than all-Lesser +3
+  const r2 = cheapestRoute({ cleanPrice: 100, slots: 3, needs: { A: 4 }, tiers: [{ ...L, price: 10 }, { ...I, price: 50 }] });
+  assert.ok(r2.cost > 130 && r2.chance < 1);
+});
+test("cheapest route: nothing needed or nothing priced", () => {
+  near(cheapestRoute({ cleanPrice: 100, slots: 3, needs: {}, tiers: [] }).cost, 100);
+  assert.equal(cheapestRoute({ cleanPrice: 100, slots: 3, needs: { A: 2 }, tiers: [] }), null);
+  assert.equal(cheapestRoute({ cleanPrice: 100, slots: 1, needs: { A: 3 }, tiers: [{ ...I, price: 10 }] }), null); // can't reach
+});
