@@ -97,7 +97,6 @@ h1, h2, .big, button, .count { font-family: "Fredoka", "Nunito", system-ui, sans
   rotate: -2deg;
 }
 .logo .word { position: relative; color: #fff; }
-.logo .word + .logo-scroll + .word { color: #fff4e0; }
 .logo .word::before {
   content: attr(data-text);
   position: absolute; inset: 0; z-index: -1;
