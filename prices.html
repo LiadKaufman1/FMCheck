@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>FMCheck · Price List</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="top">
+    <h1>FM<span>Check</span> prices</h1>
+    <p>Fill in prices once; everyone using the calculator gets them. Tap "check ↗" to look a price up on meso.watch.</p>
+  </header>
+  <main>
+    <section class="card">
+      <div class="admin-bar">
+        <input id="q" type="search" placeholder="Filter: scroll or item name, e.g. sword ATT 60" autocomplete="off" />
+        <label class="row-inline"><input id="missing" type="checkbox" /> only without a price</label>
+      </div>
+      <p id="count" class="label"></p>
+      <ul id="list" class="price-list"></ul>
+    </section>
+    <section class="card">
+      <h2>Clean items</h2>
+      <p class="label">Search an item to set its clean price.</p>
+      <div class="search">
+        <input id="itemQ" type="search" placeholder="e.g. Maple Sword" autocomplete="off" />
+      </div>
+      <ul id="items" class="price-list"></ul>
+    </section>
+    <section class="card">
+      <h2>Save</h2>
+      <p class="label">Prices you type are used right away in this browser. To give them to everyone,
+        download the file and replace <code>data/prices.json</code> in the repo with it (or send it to Claude).</p>
+      <div class="add">
+        <button id="download" type="button">Download prices.json</button>
+        <button id="copy" type="button" class="add-btn" style="margin:0;width:auto">Copy</button>
+      </div>
+      <p id="saved" class="label"></p>
+    </section>
+  </main>
+  <script type="module" src="js/admin.js"></script>
+</body>
+</html>

@@ -104,3 +104,26 @@ export function parseMesos(text) {
   const mult = { "": 1, k: 1e3, m: 1e6, b: 1e9 }[m[2]];
   return Math.round(parseFloat(m[1]) * mult);
 }
+
+// The user says how many slots are left and which scrolls passed, but not which ones failed.
+// Spread the failed slots over the scroll types in the most likely way.
+// types: [{ successes, success, boom }], failed: number of failed slots -> [failed slots per type]
+export function allocateFailures(types, failed) {
+  if (!types.length || failed <= 0) return types.map(() => 0);
+  let best = null, bestLike = -1;
+  const alloc = new Array(types.length).fill(0);
+  const like = () => types.reduce((l, t, i) => {
+    const q = (1 - t.success / 100) * (1 - (t.boom || 0) / 100);
+    return l * choose(t.successes + alloc[i], alloc[i]) * q ** alloc[i];
+  }, 1);
+  (function walk(i, left) {
+    if (i === types.length - 1) {
+      alloc[i] = left;
+      const l = like();
+      if (l > bestLike) { bestLike = l; best = alloc.slice(); }
+      return;
+    }
+    for (let f = 0; f <= left; f++) { alloc[i] = f; walk(i + 1, left - f); }
+  })(0, failed);
+  return best;
+}

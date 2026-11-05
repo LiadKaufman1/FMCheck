@@ -33,3 +33,10 @@ export function setPrice(id, value) {
   else delete saved[id];
   try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch { /* storage off: keep for this visit */ }
 }
+
+// Every known price (feed, then what was typed here on top), for exporting the list.
+export function allPrices() {
+  const out = { ...feed, ...saved };
+  for (const k of Object.keys(out)) if (!Number.isFinite(out[k])) delete out[k];
+  return out;
+}

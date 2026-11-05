@@ -46,3 +46,11 @@ test("meso format and parse", () => {
   assert.equal(parseMesos("45,000"), 45000);
   assert.ok(Number.isNaN(parseMesos("abc")));
 });
+
+import { allocateFailures } from "../js/calc.js";
+test("failed slots go where failing is most likely", () => {
+  assert.deepEqual(allocateFailures([{ successes: 5, success: 60 }], 2), [2]);
+  // a 10% scroll fails far more often than a 100% one
+  assert.deepEqual(allocateFailures([{ successes: 1, success: 100 }, { successes: 1, success: 10 }], 3), [0, 3]);
+  assert.deepEqual(allocateFailures([], 3), []);
+});

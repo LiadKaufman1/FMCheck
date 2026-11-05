@@ -28,25 +28,33 @@
     <section class="card" id="rollCard" hidden>
       <h2><b>2</b> Clean stats <small>what the item had before any scroll</small></h2>
       <div id="rolls" class="rolls"></div>
-      <label class="row-inline">Rarity counts on
-        <select id="keyStat"></select>
-      </label>
     </section>
 
     <!-- 3. Scrolls -->
     <section class="card" id="scrollCard" hidden>
-      <h2><b>3</b> Scrolls <small id="slotInfo"></small></h2>
+      <h2><b>3</b> Scrolls</h2>
+      <div class="slots-left">
+        <span>Slots left</span>
+        <span class="stepper">
+          <button type="button" class="step" data-step="-1" aria-label="Fewer">−</button>
+          <input id="slotsLeft" type="number" inputmode="numeric" min="0" />
+          <button type="button" class="step" data-step="1" aria-label="More">+</button>
+        </span>
+        <small id="slotInfo"></small>
+      </div>
+      <p class="label">Scrolls that passed</p>
       <div id="scrollRows" class="scroll-rows"></div>
-      <div class="add">
-        <select id="scrollPick"></select>
-        <button id="addScroll" type="button">Add</button>
+      <button id="openPicker" type="button" class="add-btn">+ Add a scroll</button>
+      <div id="picker" class="picker" hidden>
+        <input id="pickerSearch" type="search" placeholder="Filter, e.g. ATT 60" autocomplete="off" />
+        <ul id="pickerList"></ul>
       </div>
     </section>
 
     <!-- 4. Result -->
     <section class="card result" id="resultCard" hidden>
       <h2><b>4</b> Estimate</h2>
-      <label class="price-field">Clean item price
+      <label class="price-field">Clean item price <span id="cleanFrom" class="tag"></span>
         <span class="price-input">
           <input id="cleanPrice" inputmode="decimal" placeholder="e.g. 300k" />
           <a id="cleanLink" target="_blank" rel="noopener">check ↗</a>

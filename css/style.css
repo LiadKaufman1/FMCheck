@@ -94,20 +94,41 @@ button.ghost { background: transparent; color: var(--muted); padding: 4px 8px; }
 .roll input[type=range] { width: 100%; accent-color: var(--accent); padding: 0; border: 0; background: none; }
 .roll .val { text-align: right; font-variant-numeric: tabular-nums; }
 .roll .val small { display: block; color: var(--muted); font-size: 11px; }
+.roll .note { grid-column: 2 / -1; margin-top: -6px; font-size: 12px; color: var(--accent); }
 .row-inline { display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 13px; flex-wrap: wrap; }
 
-/* scrolls */
-.scroll-rows { display: grid; gap: 10px; }
-.scroll-row { border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: grid; gap: 8px; }
-.scroll-row .head { display: flex; align-items: center; gap: 8px; }
-.scroll-row .head strong { font-size: 14px; }
-.scroll-row .head .gain { color: var(--muted); font-size: 12px; }
-.scroll-row .head .ghost { margin-left: auto; }
-.scroll-row .nums { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 8px; }
-.scroll-row label { display: grid; gap: 2px; font-size: 12px; color: var(--muted); }
-.scroll-row input { width: 100%; }
-.add { display: flex; gap: 8px; margin-top: 10px; }
-.add select { flex: 1; }
+/* slots left */
+.slots-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; font-weight: 600; }
+.slots-left small { font-weight: 400; color: var(--muted); font-size: 13px; }
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.stepper input { width: 48px; text-align: center; border: 0; border-radius: 0; padding: 6px 0; -moz-appearance: textfield; }
+.stepper input::-webkit-inner-spin-button, .stepper input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.step { background: var(--bg); color: var(--text); border-radius: 0; padding: 6px 12px; font-size: 16px; line-height: 1; }
+.stepper.small .step { padding: 4px 10px; }
+.stepper .count { min-width: 34px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+.label { margin: 0 0 8px; font-size: 13px; color: var(--muted); }
+
+/* passed scrolls */
+.scroll-rows { display: grid; gap: 8px; }
+.scroll-row, .picker li {
+  display: grid; grid-template-columns: 32px 1fr auto; gap: 10px; align-items: center;
+  border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px;
+}
+.scroll-row img, .picker img { width: 32px; height: 32px; object-fit: contain; image-rendering: pixelated; }
+.nm { display: grid; min-width: 0; }
+.nm b { font-size: 14px; }
+.nm small { color: var(--muted); font-size: 12px; }
+.nm small a { text-decoration: none; }
+.add-btn { margin-top: 10px; width: 100%; background: var(--accent-soft); color: var(--accent); }
+
+/* scroll picker */
+.picker { margin-top: 10px; border: 1px solid var(--line); border-radius: 10px; padding: 8px; }
+.picker input { width: 100%; margin-bottom: 8px; }
+.picker ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 360px; overflow-y: auto; }
+.picker li { cursor: pointer; }
+.picker li:hover, .picker li:focus { background: var(--accent-soft); outline: none; }
+.picker li.empty { display: block; color: var(--muted); cursor: default; border: 0; }
+.picker .pr { font-size: 12px; color: var(--muted); }
 .warn { color: var(--bad); font-size: 13px; }
 
 .price-input { display: flex; gap: 6px; align-items: center; }
@@ -133,7 +154,15 @@ button.ghost { background: transparent; color: var(--muted); padding: 4px 8px; }
 footer { color: var(--muted); font-size: 12px; padding-bottom: 32px; }
 
 @media (max-width: 480px) {
-  .scroll-row .nums { grid-template-columns: 1fr 1fr; }
-  .scroll-row .nums label:last-child { grid-column: 1 / -1; }
   .big { font-size: 28px; }
 }
+
+/* price list page */
+.admin-bar { display: grid; gap: 8px; margin-bottom: 8px; }
+.admin-bar input[type=search] { width: 100%; }
+.price-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.price-list li { display: grid; grid-template-columns: 32px 1fr 150px; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; }
+.price-list img { width: 32px; height: 32px; object-fit: contain; image-rendering: pixelated; }
+.price-list input { width: 100%; }
+#items { margin-top: 8px; }
+@media (max-width: 480px) { .price-list li { grid-template-columns: 32px 1fr 120px; } }

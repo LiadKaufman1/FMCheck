@@ -1,5 +1,5 @@
 import { ITEM_API, priceLink } from "./config.js";
-import { STATS, STAT_LABEL, statRange, finalStats, estimate, mesos, parseMesos } from "./calc.js";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, estimate, allocateFailures, mesos, parseMesos } from "./calc.js";
 import { initPrices, getPrice, setPrice } from "./prices.js";
 
 const $ = (id) => document.getElementById(id);
@@ -17,7 +17,8 @@ const state = {
   slots: 0,
   clean: {},         // stat -> rolled clean value
   keyStat: "",
-  rows: [],          // { scroll, used, successes }
+  left: 0,           // upgrade slots still open
+  rows: [],          // scrolls that passed: { scroll, successes }
 };
 
 // ---------- data ----------
@@ -114,8 +115,9 @@ async function pickItem(id, restore = null) {
   state.base = meta.base;
   state.slots = meta.slots;
   state.clean = { ...meta.base, ...(restore?.clean || {}) };
-  state.keyStat = restore?.keyStat ?? defaultKeyStat(id, meta.base);
+  state.keyStat = defaultKeyStat(id, meta.base);
   state.rows = restore?.rows || [];
+  state.left = Math.min(meta.slots, restore?.left ?? meta.slots);
 
   const baseText = plusList(meta.base) || "no stats";
   $("itemInfo").innerHTML = `<img src="${icon(id)}" alt="" />
@@ -123,13 +125,16 @@ async function pickItem(id, restore = null) {
     <div class="sub">Lv ${e[2]} · ${esc(e[3])} · ${meta.slots} slots · ${esc(baseText)}</div></div>`;
 
   renderRolls();
-  renderScrollPicker();
+  closePicker();
   renderRows();
   renderCleanPrice();
+  $("slotsLeft").max = state.slots;
+  $("slotsLeft").value = state.left;
   for (const id of ["rollCard", "scrollCard", "resultCard"]) $(id).hidden = false;
   update();
 }
 
+// The stat whose clean roll sets how rare the item is: attack on weapons, the main stat elsewhere.
 function defaultKeyStat(id, base) {
   const isWeapon = Math.floor(id / 10000) >= 130;
   if (isWeapon) return (base.MAD || 0) > (base.PAD || 0) ? "MAD" : (base.PAD ? "PAD" : "");
@@ -138,104 +143,140 @@ function defaultKeyStat(id, base) {
 
 // ---------- clean roll sliders ----------
 
+const rollNote = (k) => {
+  const p = rollAtLeast(k, state.base[k], state.clean[k]);
+  return p >= 0.999 ? "any roll" : `top ${Math.max(1, Math.round(p * 100))}% of drops`;
+};
+
 function renderRolls() {
   const keys = STATS.map(([k]) => k).filter((k) => state.base[k]);
   const box = $("rolls");
   if (!keys.length) {
     box.innerHTML = `<p class="hint">This item has no stats that roll.</p>`;
-  } else {
-    box.innerHTML = keys.map((k) => {
-      const [lo, hi] = statRange(k, state.base[k]);
-      return `<div class="roll">
-        <span class="lbl">${STAT_LABEL[k]}</span>
-        <input type="range" min="${lo}" max="${hi}" value="${state.clean[k]}" data-k="${k}" aria-label="${STAT_LABEL[k]}" />
-        <span class="val"><span>${state.clean[k]}</span><small>${lo}–${hi}</small></span></div>`;
-    }).join("");
+    return;
   }
+  box.innerHTML = keys.map((k) => {
+    const [lo, hi] = statRange(k, state.base[k]);
+    return `<div class="roll">
+      <span class="lbl">${STAT_LABEL[k]}</span>
+      <input type="range" min="${lo}" max="${hi}" value="${state.clean[k]}" data-k="${k}" aria-label="${STAT_LABEL[k]}" />
+      <span class="val"><span>${state.clean[k]}</span><small>${lo}–${hi}</small></span>
+      ${k === state.keyStat ? `<span class="note" id="rollNote">${rollNote(k)}</span>` : ""}</div>`;
+  }).join("");
   box.oninput = (e) => {
     const k = e.target.dataset.k;
     if (!k) return;
     state.clean[k] = +e.target.value;
     e.target.parentElement.querySelector(".val span").textContent = e.target.value;
+    if (k === state.keyStat) $("rollNote").textContent = rollNote(k);
     update();
   };
-
-  const sel = $("keyStat");
-  sel.innerHTML = `<option value="">nothing (any roll)</option>` +
-    keys.map((k) => `<option value="${k}">${STAT_LABEL[k]}</option>`).join("");
-  sel.value = state.keyStat;
-  sel.onchange = () => { state.keyStat = sel.value; update(); };
 }
 
-// ---------- scrolls ----------
+// ---------- slots left ----------
 
+function setLeft(v) {
+  state.left = Math.max(0, Math.min(state.slots, Math.floor(+v || 0)));
+  $("slotsLeft").value = state.left;
+  update();
+}
+$("slotsLeft").addEventListener("change", (e) => setLeft(e.target.value));
+$("slotsLeft").addEventListener("input", (e) => { if (e.target.value !== "") setLeft(e.target.value); });
+document.querySelector(".slots-left").addEventListener("click", (e) => {
+  const step = +e.target.dataset.step;
+  if (step) setLeft(state.left + step);
+});
+
+// ---------- scroll picker ----------
+
+const scrollIcon = (id) => `assets/scrolls/${id}.png`;
 const shortName = (s) => s.name.replace(/^(dark )?scroll for .*? for /i, (_, dark) => (dark ? "Dark " : ""));
-
-function renderScrollPicker() {
+const scrollsForItem = () => {
   const prefix = Math.floor(state.item.id / 10000);
-  const list = scrolls.filter((s) => s.target === prefix)
+  return scrolls.filter((s) => s.target === prefix)
     .sort((a, b) => shortName(a).localeCompare(shortName(b), undefined, { numeric: true }));
-  const sel = $("scrollPick");
-  sel.innerHTML = list.length
-    ? list.map((s) => `<option value="${s.id}">${esc(shortName(s))} — ${esc(plusList(s.stats))}${s.boom ? " · may boom" : ""}</option>`).join("")
-    : `<option value="">No scrolls for this item type</option>`;
-  $("addScroll").disabled = !list.length;
+};
+
+function renderPicker() {
+  const q = $("pickerSearch").value.trim().toLowerCase();
+  const list = scrollsForItem().filter((s) => !q || `${shortName(s)} ${plusList(s.stats)}`.toLowerCase().includes(q));
+  $("pickerList").innerHTML = list.length ? list.map((s) => {
+    const p = getPrice(s.id);
+    return `<li data-id="${s.id}" role="button" tabindex="0">
+      <img src="${scrollIcon(s.id)}" alt="" />
+      <span class="nm"><b>${esc(shortName(s))}</b><small>${esc(plusList(s.stats))}${s.boom ? " · may boom" : ""}</small></span>
+      <span class="pr">${p ? mesos(p.value) : ""}</span></li>`;
+  }).join("") : `<li class="empty">No scrolls for this item type.</li>`;
 }
 
-$("addScroll").addEventListener("click", () => {
-  const s = scrollById.get(+$("scrollPick").value);
-  if (!s) return;
-  const left = Math.max(1, state.slots - usedSlots());
-  state.rows.push({ scroll: s, used: left, successes: left });
+function openPicker() {
+  $("picker").hidden = false;
+  $("openPicker").hidden = true;
+  $("pickerSearch").value = "";
+  renderPicker();
+  $("pickerSearch").focus();
+}
+function closePicker() {
+  $("picker").hidden = true;
+  $("openPicker").hidden = false;
+}
+
+$("openPicker").addEventListener("click", openPicker);
+$("pickerSearch").addEventListener("input", renderPicker);
+$("pickerSearch").addEventListener("keydown", (e) => { if (e.key === "Escape") closePicker(); });
+$("pickerList").addEventListener("click", (e) => {
+  const li = e.target.closest("li[data-id]");
+  if (!li) return;
+  const s = scrollById.get(+li.dataset.id);
+  const existing = state.rows.find((r) => r.scroll.id === s.id);
+  if (existing) existing.successes++;
+  else state.rows.push({ scroll: s, successes: 1 });
+  // each passed scroll used a slot
+  state.left = Math.max(0, state.left - 1);
+  $("slotsLeft").value = state.left;
+  closePicker();
   renderRows();
   update();
 });
 
-const usedSlots = () => state.rows.reduce((n, r) => n + r.used, 0);
+// ---------- passed scrolls ----------
+
+const passedTotal = () => state.rows.reduce((n, r) => n + r.successes, 0);
 
 function renderRows() {
   const box = $("scrollRows");
   if (!state.rows.length) {
-    box.innerHTML = `<p class="hint">No scrolls yet. A clean item works too.</p>`;
+    box.innerHTML = `<p class="hint">None yet. A clean item works too.</p>`;
     return;
   }
   box.innerHTML = state.rows.map((r, i) => {
     const p = getPrice(r.scroll.id);
     return `<div class="scroll-row" data-i="${i}">
-      <div class="head"><strong>${esc(shortName(r.scroll))}</strong>
-        <span class="gain">${esc(plusList(r.scroll.stats))}${r.scroll.boom ? " · boom " + r.scroll.boom + "% on fail" : ""}</span>
-        <button class="ghost" data-act="del" type="button" aria-label="Remove">✕</button></div>
-      <div class="nums">
-        <label>Used<input type="number" min="0" max="${state.slots}" value="${r.used}" data-f="used" /></label>
-        <label>Passed<input type="number" min="0" max="${r.used}" value="${r.successes}" data-f="successes" /></label>
-        <label>Price each ${p?.from === "feed" ? '<span class="tag">live</span>' : ""}
-          <span class="price-input"><input inputmode="decimal" placeholder="e.g. 2m" value="${p ? mesos(p.value) : ""}" data-f="price" />
-          <a href="${priceLink(r.scroll.id)}" target="_blank" rel="noopener">check ↗</a></span></label>
-      </div></div>`;
+      <img src="${scrollIcon(r.scroll.id)}" alt="" />
+      <span class="nm"><b>${esc(shortName(r.scroll))}</b>
+        <small>${esc(plusList(r.scroll.stats))} · ${p ? `${mesos(p.value)} each` : `<a href="${priceLink(r.scroll.id)}" target="_blank" rel="noopener">no price yet ↗</a>`}</small></span>
+      <span class="stepper small">
+        <button type="button" class="step" data-act="minus" aria-label="One less">−</button>
+        <span class="count">×${r.successes}</span>
+        <button type="button" class="step" data-act="plus" aria-label="One more">+</button>
+      </span></div>`;
   }).join("");
 }
 
-$("scrollRows").addEventListener("input", (e) => {
-  const row = e.target.closest(".scroll-row");
-  const f = e.target.dataset.f;
-  if (!row || !f) return;
-  const r = state.rows[+row.dataset.i];
-  if (f === "price") {
-    setPrice(r.scroll.id, parseMesos(e.target.value));
-  } else {
-    const v = Math.max(0, Math.floor(+e.target.value || 0));
-    r[f] = v;
-    if (f === "used") {
-      const passed = row.querySelector('[data-f="successes"]');
-      passed.max = v;
-      if (r.successes > v) { r.successes = v; passed.value = v; }
-    } else if (r.successes > r.used) { r.successes = r.used; e.target.value = r.used; }
-  }
-  update();
-});
 $("scrollRows").addEventListener("click", (e) => {
-  if (e.target.dataset.act !== "del") return;
-  state.rows.splice(+e.target.closest(".scroll-row").dataset.i, 1);
+  const act = e.target.dataset.act;
+  const row = e.target.closest(".scroll-row");
+  if (!act || !row) return;
+  const i = +row.dataset.i, r = state.rows[i];
+  if (act === "plus") {
+    r.successes++;
+    state.left = Math.max(0, state.left - 1);
+  } else {
+    r.successes--;
+    state.left = Math.min(state.slots, state.left + 1);
+    if (r.successes <= 0) state.rows.splice(i, 1);
+  }
+  $("slotsLeft").value = state.left;
   renderRows();
   update();
 });
@@ -245,10 +286,12 @@ $("scrollRows").addEventListener("click", (e) => {
 function renderCleanPrice() {
   const p = getPrice(state.item.id);
   $("cleanPrice").value = p ? mesos(p.value) : "";
+  $("cleanFrom").textContent = p?.from === "feed" ? "· from price list" : "";
   $("cleanLink").href = priceLink(state.item.id);
 }
 $("cleanPrice").addEventListener("input", (e) => {
   setPrice(state.item.id, parseMesos(e.target.value));
+  $("cleanFrom").textContent = "";
   update();
 });
 
@@ -256,62 +299,69 @@ $("cleanPrice").addEventListener("input", (e) => {
 
 function update() {
   if (!state.item) return;
-  const used = usedSlots();
-  const over = used > state.slots;
-  $("slotInfo").innerHTML = over
-    ? `<span class="warn">${used} of ${state.slots} slots used: too many</span>`
-    : `${used} of ${state.slots} slots used · ${state.slots - used} left`;
+  const used = state.slots - state.left;
+  const passed = passedTotal();
+  const failed = used - passed;
+  $("slotInfo").innerHTML = failed < 0
+    ? `<span class="warn">more passed scrolls than used slots</span>`
+    : `${used} used · ${passed} passed · ${failed} failed`;
 
-  const groups = state.rows.map((r) => ({
-    used: r.used, successes: r.successes, success: r.scroll.success, boom: r.scroll.boom,
+  // Failed slots aren't entered; spread them over the passed scroll types in the most likely way.
+  const types = state.rows.map((r) => ({ successes: r.successes, success: r.scroll.success, boom: r.scroll.boom }));
+  const fails = allocateFailures(types, Math.max(0, failed));
+  const groups = state.rows.map((r, i) => ({
+    used: r.successes + fails[i], successes: r.successes, success: r.scroll.success, boom: r.scroll.boom,
     price: getPrice(r.scroll.id)?.value || 0, stats: r.scroll.stats,
   }));
 
-  // final stats
   const fin = finalStats(state.clean, groups);
   $("final").innerHTML = STATS.filter(([k]) => fin[k]).map(([k, lbl]) => {
     const gain = fin[k] - (state.base[k] || 0);
     return `<span class="chip">${lbl} ${fin[k]}${gain ? ` <b>(${gain > 0 ? "+" : ""}${gain})</b>` : ""}</span>`;
   }).join("") || `<span class="hint">No stats.</span>`;
 
+  saveHash();
+  const out = $("estimate");
+  if (failed < 0) { out.innerHTML = `<p class="warn">You listed more passed scrolls than used slots. Check "Slots left".</p>`; return; }
+
   const clean = getPrice(state.item.id)?.value;
-  const missing = state.rows.filter((r) => !getPrice(r.scroll.id)).length;
+  const missing = state.rows.filter((r) => !getPrice(r.scroll.id));
   const k = state.keyStat;
   const res = estimate({
     cleanPrice: clean || 0,
     roll: k ? { key: k, base: state.base[k], value: state.clean[k] } : null,
     groups,
   });
-
-  const out = $("estimate");
-  if (over) { out.innerHTML = `<p class="warn">More scrolls than the item has slots. Check the "Used" numbers.</p>`; return; }
   if (!clean && !groups.some((g) => g.price)) {
-    out.innerHTML = `<p class="hint">Add the clean item price and scroll prices to get an estimate. Tap "check ↗" to see today's prices on meso.watch.</p>`;
+    out.innerHTML = `<p class="hint">No prices yet for this item or its scrolls. Enter the clean item price above to get an estimate.</p>`;
     return;
   }
+  const failedNote = failed > 0 && state.rows.length
+    ? `<span>Failed slots</span><span>${failed} (likely ${state.rows.map((r, i) => fails[i] ? `${fails[i]}× ${esc(shortName(r.scroll))}` : "").filter(Boolean).join(", ")})</span>`
+    : "";
   const pct = (x) => (x >= 0.995 ? "100%" : x >= 0.01 ? `${(x * 100).toFixed(1)}%` : `${(x * 100).toPrecision(2)}%`);
   out.innerHTML = `
     <div class="big">≈ ${mesos(res.value)}</div>
     <div class="range">likely sells for ${mesos(res.low)} – ${mesos(res.high)}</div>
     <div class="breakdown">
       <span>One try (clean + scrolls)</span><span>${mesos(res.tryCost)}</span>
-      ${k ? `<span>Clean ${STAT_LABEL[k]} roll this good or better</span><span>${pct(res.rollChance)}</span>` : ""}
+      ${failedNote}
+      ${k ? `<span>Clean ${STAT_LABEL[k]} this good or better</span><span>${pct(res.rollChance)}</span>` : ""}
       <span>Scrolls pass like this</span><span>${pct(res.scrollChance)}</span>
       <span>Odds of making it</span><span>1 in ${res.oneIn < 1e6 ? Math.round(res.oneIn).toLocaleString("en-US") : mesos(res.oneIn)}</span>
     </div>
-    ${missing ? `<p class="warn">${missing} scroll${missing > 1 ? "s have" : " has"} no price, counted as 0.</p>` : ""}
-    ${!clean ? `<p class="warn">No clean item price, counted as 0.</p>` : ""}`;
-  saveHash();
+    ${missing.length ? `<p class="warn">No price yet for ${missing.map((r) => esc(shortName(r.scroll))).join(", ")}: counted as 0.</p>` : ""}
+    ${!clean ? `<p class="warn">No clean item price: counted as 0.</p>` : ""}`;
 }
 
-// ---------- shareable address: #i=<id>&r=PAD.50,STR.3&k=PAD&s=2043001.7.5,... ----------
+// ---------- shareable address: #i=<id>&r=PAD.50,STR.3&l=2&s=2043001.5,... ----------
 
 function saveHash() {
   const r = Object.entries(state.clean).filter(([k, v]) => v !== state.base[k]).map(([k, v]) => `${k}.${v}`).join(",");
-  const s = state.rows.map((x) => `${x.scroll.id}.${x.used}.${x.successes}`).join(",");
+  const s = state.rows.map((x) => `${x.scroll.id}.${x.successes}`).join(",");
   const q = new URLSearchParams({ i: state.item.id });
   if (r) q.set("r", r);
-  if (state.keyStat !== defaultKeyStat(state.item.id, state.base)) q.set("k", state.keyStat);
+  if (state.left !== state.slots) q.set("l", state.left);
   if (s) q.set("s", s);
   history.replaceState(null, "", `#${q}`);
 }
@@ -326,11 +376,11 @@ function readHash() {
     if (STAT_LABEL[k] && Number.isFinite(+v)) clean[k] = +v;
   }
   const rows = (q.get("s") || "").split(",").filter(Boolean).map((part) => {
-    const [sid, used, ok] = part.split(".").map(Number);
+    const [sid, ok] = part.split(".").map(Number);
     const scroll = scrollById.get(sid);
-    return scroll && { scroll, used: used || 0, successes: Math.min(ok || 0, used || 0) };
+    return scroll && ok > 0 && { scroll, successes: ok };
   }).filter(Boolean);
-  return { id, restore: { clean, rows, keyStat: q.has("k") ? q.get("k") : undefined } };
+  return { id, restore: { clean, rows, left: q.has("l") ? +q.get("l") : undefined } };
 }
 
 // ---------- start ----------
@@ -344,9 +394,9 @@ function readHash() {
   equips = eq;
   scrolls = sc;
   scrollById = new Map(sc.map((s) => [s.id, s]));
-  $("priceStatus").textContent = info.source === "feed"
-    ? `Live prices${info.updated ? ` from ${new Date(info.updated).toLocaleString()}` : ""}. Any price you type wins and is saved in this browser.`
-    : "Prices you type are saved in this browser. Live prices aren't connected yet.";
+  $("priceStatus").textContent = info.updated
+    ? `Prices updated ${new Date(info.updated).toLocaleDateString()}.`
+    : "";
   const h = readHash();
   if (h) pickItem(h.id, h.restore);
   else search.focus();

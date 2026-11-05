@@ -2,8 +2,8 @@
 
 Rough price check for scrolled MapleStory Classic items.
 
-Pick an item, set the stats it rolled clean, add the scrolls that were used (and how many passed),
-enter today's prices, and get a ballpark value.
+Pick an item, set the stats it rolled clean, say how many slots are left and which scrolls passed,
+and get a ballpark value. Prices come from the price list, so users don't type them.
 
 ## How the estimate works
 
@@ -28,18 +28,18 @@ Rolls are treated as evenly spread over that range.
 | Item base stats, slots, icons | maplestory.io | fetched by the page when an item is picked |
 | Prices | typed by the user, saved in the browser | optional live feed, see below |
 
-### Live prices
+### Prices
 
-meso.watch and meowdb.com both sit behind Cloudflare bot protection and have no public API,
-so the page can't read their prices on its own. Each price field has a "check ↗" link that opens the item on meso.watch.
+The calculator reads `data/prices.json` (item id → typical price in mesos).
+Fill it from **prices.html** (not linked from the main page): type a price per scroll and clean item,
+using "check ↗" to look each one up on meso.watch, then download the file and commit it as `data/prices.json`.
 
-To plug in live prices, set `PRICE_FEED_URL` in `js/config.js` to a JSON file shaped like:
+meso.watch and meowdb.com don't allow automated collection of their data (see meso.watch/terms),
+so the list is filled by hand until they give permission or an official feed. With a feed,
+set `PRICE_FEED_URL` in `js/config.js` to it.
 
-```json
-{ "updated": "2026-11-05T08:00:00Z", "prices": { "2043001": 1500000, "1302020": 300000 } }
-```
-
-(item id → typical sale price in mesos). Prices the user types always win over the feed.
+Failed scrolls aren't entered: the page works them out from the slots left and spreads them over
+the passed scroll types in the most likely way.
 
 ## Run locally
 
@@ -47,6 +47,7 @@ To plug in live prices, set `PRICE_FEED_URL` in `js/config.js` to a JSON file sh
 npm start          # serves on http://localhost:8000
 npm test           # unit tests for the math
 npm run data       # rebuild data/equips.json and data/scrolls.json
+python3 scripts/fetch_icons.py   # download scroll icons into assets/scrolls/
 ```
 
 It's a static site (no build step), so it can be hosted as-is on GitHub Pages, Netlify or Cloudflare Pages.
