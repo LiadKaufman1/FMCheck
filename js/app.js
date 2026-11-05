@@ -1,7 +1,7 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=9ae91d96";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, mesos, UNITS, readRange } from "./calc.js?v=9ae91d96";
-import { getPrice, setPrice } from "./prices.js?v=9ae91d96";
-import { drawCard, cardBlob } from "./card.js?v=9ae91d96";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=686976c5";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, failedItemValue, mesos, UNITS, readRange } from "./calc.js?v=686976c5";
+import { getPrice, setPrice } from "./prices.js?v=686976c5";
+import { drawCard, cardBlob } from "./card.js?v=686976c5";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -320,8 +320,9 @@ function renderRows() {
       <span class="nm"><b>${esc(shortName(r.scroll))}</b><small>${esc(scrollOdds(r.scroll))} · ${esc(plusList(r.scroll.stats))}</small></span>
       <span class="stepper small">
         <button type="button" class="step" data-act="minus" aria-label="One less">−</button>
-        <span class="count">×${r.successes}</span>
+        <span class="count" ${r.successes ? "" : 'title="Used, but every one failed"'}>×${r.successes}</span>
         <button type="button" class="step" data-act="plus" aria-label="One more">+</button>
+        <button type="button" class="step" data-act="remove" aria-label="Remove this scroll">✕</button>
       </span>
       <span class="row-price price-input">
         ${rangeFields(p, "m")}
@@ -347,10 +348,13 @@ $("scrollRows").addEventListener("click", (e) => {
   if (act === "plus") {
     r.successes++;
     state.left = Math.max(0, state.left - 1);
-  } else {
+  } else if (act === "minus" && r.successes > 0) {
+    // ×0 stays: "used, but it failed every time", so the price knows which scroll and its cost.
     r.successes--;
     state.left = Math.min(state.slots, state.left + 1);
-    if (r.successes <= 0) state.rows.splice(i, 1);
+  } else if (act === "remove" || act === "minus") {
+    state.left = Math.min(state.slots, state.left + r.successes);
+    state.rows.splice(i, 1);
   }
   $("slotsLeft").value = state.left;
   renderRows();
@@ -449,9 +453,16 @@ function renderEstimate(used) {
   })).filter((t) => Number.isFinite(t.price));
   const pointsGained = Object.values(needs).reduce((a, b) => a + b, 0);
 
+  const failed = used - passedTotal();
+
   // Worked out twice: with every "from" price, then with every "to" price.
   const run = (end) => {
     const clean = cleanPrice[end], tiers = tiersAt(end);
+    if (!pointsGained && failed > 0) {
+      // Nothing passed: a clean item that lost part of its slots (see failedItemValue).
+      const f = failedItemValue({ cleanPrice: clean, slots: state.slots, left: state.left });
+      return { cost: clean, open: 0, value: f.value, lost: clean - f.value, ratio: f.ratio, cleanItems: 1, uses: {}, tiers };
+    }
     const route = cheapestRoute({ cleanPrice: clean, slots: used, needs, tiers });
     if (!route) return null;
     // Open slots: the buyer can still scroll them. Best priced scroll, valued at this item's mesos per stat point.
@@ -476,10 +487,12 @@ function renderEstimate(used) {
   out.innerHTML = `
     <p class="label">Price breakdown${lo.value === hi.value ? "" : ` · midpoint ≈ ${mesos((lo.value + hi.value) / 2)}`}</p>
     <div class="breakdown">
-      <span>Cheapest way to make one</span><span>${rangeText(lo.cost, hi.cost)}</span>
+      ${lo.lost != null ? `<span>Clean item price</span><span>${rangeText(lo.cost, hi.cost)}</span>
+      <span>${failed} failed slot${failed > 1 ? "s" : ""} (keeps ${Math.round(lo.ratio * 100)}%)</span><span>−${rangeText(lo.lost, hi.lost)}</span>`
+      : `<span>Cheapest way to make one</span><span>${rangeText(lo.cost, hi.cost)}</span>
       ${state.left > 0 ? `<span>${state.left} open slot${state.left > 1 ? "s" : ""} (room to scroll more)</span><span>${hi.open > 0 ? "+" + rangeText(lo.open, hi.open) : "+0 (more scrolls cost about what they add)"}</span>` : ""}
       ${pointsGained ? `<span>Clean items the cheapest way uses</span><span>${items(lo.cleanItems)}</span>
-      <span>Scrolls per clean item</span><span>${plan || "–"}</span>` : ""}
+      <span>Scrolls per clean item</span><span>${plan || "–"}</span>` : ""}`}
     </div>
     ${unpriced.length ? `<p class="warn">No price for ${unpriced.join(", ")}: left out of the cheapest way.</p>` : ""}`;
   return { lo: lo.value, hi: hi.value };

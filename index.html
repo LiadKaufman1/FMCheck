@@ -30,7 +30,7 @@
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
   <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="css/style.css?v=9ae91d96" />
+  <link rel="stylesheet" href="css/style.css?v=686976c5" />
 </head>
 <body>
   <a class="skip" href="#itemSearch">Skip to the calculator</a>
@@ -119,7 +119,7 @@
         </span>
         <small id="slotInfo"></small>
       </div>
-      <p class="label">Scrolls that passed</p>
+      <p class="label">Scrolls used · how many passed (×0 = all failed)</p>
       <div id="scrollRows" class="scroll-rows"></div>
       <button id="openPicker" type="button" class="add-btn">+ Add a scroll</button>
       <div id="picker" class="picker" hidden>
@@ -192,6 +192,11 @@ scrolls = for each scroll you entered:
 
 chance = clean roll × scrolls</pre>
 
+        <p><b>When nothing passed</b> (only failed slots)</p>
+        <p>A clean item's price is mostly what its slots can still become, so each failed slot takes its share.
+          The base stats keep a small part even when every slot failed.</p>
+        <pre class="formula">value = clean price × (10% + 90% × slots left ÷ all slots)</pre>
+
         <p><b>3. Estimate</b></p>
         <pre class="formula">estimate = M + open slots</pre>
         <p>It's worked out once with every "from" price and once with every "to" price, which gives the range.</p>
@@ -233,6 +238,6 @@ chance = clean roll × scrolls</pre>
     <label><input type="checkbox" data-a11y="links" /> Underline links</label>
     <a href="terms.html#accessibility">Accessibility statement</a>
   </div>
-  <script type="module" src="js/app.js?v=9ae91d96"></script>
+  <script type="module" src="js/app.js?v=686976c5"></script>
 </body>
 </html>

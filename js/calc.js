@@ -266,3 +266,14 @@ export function cheapestRoute({ cleanPrice, slots, needs, tiers }) {
   const chance = walk(slots, start, 1, true);
   return { cost: M, chance, cleanItems: chance > 0 ? 1 / chance : Infinity, uses, first: firstPick };
 }
+
+// ---------- Items where every scroll failed: what the lost slots cost ----------
+//
+// A clean item's price is mostly what its slots can still become. With nothing gained, each failed slot takes
+// its share of that; the base stats keep a small part (10%) even when every slot failed:
+//   value = clean price × (10% + 90% × slots left ÷ all slots)
+export function failedItemValue({ cleanPrice, slots, left }) {
+  if (!(slots > 0) || left >= slots) return { value: cleanPrice, ratio: 1 };
+  const ratio = 0.1 + 0.9 * Math.max(0, left) / slots;
+  return { value: cleanPrice * ratio, ratio };
+}

@@ -113,3 +113,12 @@ test("cheapest route: nothing needed or nothing priced", () => {
   assert.equal(cheapestRoute({ cleanPrice: 100, slots: 3, needs: { A: 2 }, tiers: [] }), null);
   assert.equal(cheapestRoute({ cleanPrice: 100, slots: 1, needs: { A: 3 }, tiers: [{ ...I, price: 10 }] }), null); // can't reach
 });
+
+import { failedItemValue } from "../js/calc.js";
+test("failed slots lower a clean item's value", () => {
+  const at = (left) => failedItemValue({ cleanPrice: 1000, slots: 5, left }).value;
+  assert.equal(at(5), 1000);       // nothing failed: clean price
+  near(at(4), 820);                // one of five slots lost: 10% + 90% × 4/5
+  near(at(0), 100);                // all failed: base stats keep 10%
+  assert.ok(at(3) < at(4));
+});
