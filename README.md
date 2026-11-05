@@ -66,3 +66,11 @@ Not open source: the code may not be copied or reused without written permission
 `terms.html` holds the terms of use and privacy notice (linked in the footer). The site loads nothing from
 third parties: fonts (Fredoka, Nunito, OFL) are in `assets/fonts/`, icons in `assets/items/`.
 Visit counts come from Cloudflare Web Analytics (cookieless).
+
+## Accessibility
+
+Targets WCAG 2.1 AA (basis of Israeli Standard 5568); checked with axe-core, 0 violations in light and dark mode.
+Skip link, labelled fields, the item search is an ARIA combobox, price and chance are live regions, the item card
+canvas has a full text description, AA color contrast, visible keyboard focus. The round button at the bottom left
+offers larger text, stop animations, high contrast and underlined links (saved per browser). The accessibility
+statement is in `terms.html#accessibility`.

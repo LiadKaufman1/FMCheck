@@ -30,9 +30,10 @@
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
   <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="css/style.css?v=260cd9c8" />
+  <link rel="stylesheet" href="css/style.css?v=0d5289de" />
 </head>
 <body>
+  <a class="skip" href="#itemSearch">Skip to the calculator</a>
   <!-- Moving background: meso drops, Maple items and monsters floating up. Stars at night (dark mode). -->
   <div class="sky" aria-hidden="true">
     <span class="float" style="--x:3%;--w:30px;--d:21s;--delay:-3s"><img src="assets/float/meso-gold.png" alt="" /></span>
@@ -82,8 +83,9 @@
       <div id="cats" class="cats" role="toolbar" aria-label="Item categories"></div>
       <div class="search-row">
       <div class="search">
-        <input id="itemSearch" type="search" placeholder="Search, or pick a category above" autocomplete="off" spellcheck="false" />
-        <ul id="itemResults" class="results" hidden></ul>
+        <input id="itemSearch" type="search" placeholder="Search, or pick a category above" autocomplete="off" spellcheck="false"
+          role="combobox" aria-label="Search for an item" aria-autocomplete="list" aria-controls="itemResults" aria-expanded="false" />
+        <ul id="itemResults" class="results" role="listbox" aria-label="Matching items" hidden></ul>
       </div>
         <select id="jobFilter" aria-label="Class">
           <option value="">All classes</option><option>Beginner</option><option>Warrior</option>
@@ -112,7 +114,7 @@
         <span>Slots left</span>
         <span class="stepper">
           <button type="button" class="step" data-step="-1" aria-label="Fewer">−</button>
-          <input id="slotsLeft" type="number" inputmode="numeric" min="0" />
+          <input id="slotsLeft" type="number" inputmode="numeric" min="0" aria-label="Slots left" />
           <button type="button" class="step" data-step="1" aria-label="More">+</button>
         </span>
         <small id="slotInfo"></small>
@@ -122,7 +124,7 @@
       <button id="openPicker" type="button" class="add-btn">+ Add a scroll</button>
       <div id="picker" class="picker" hidden>
         <input id="pickerSearch" type="search" placeholder="Filter, e.g. attack" autocomplete="off" />
-        <ul id="pickerList"></ul>
+        <ul id="pickerList" aria-label="Scrolls for this item"></ul>
       </div>
     </section>
 
@@ -130,15 +132,15 @@
     <section class="card result" id="resultCard" hidden>
       <h2><b>4</b> Estimate</h2>
       <div class="card-wrap">
-        <canvas id="card" class="item-card" aria-label="Item card with the estimate"></canvas>
+        <canvas id="card" class="item-card" role="img" aria-label="Item card with the estimate"></canvas>
         <div class="card-actions">
           <button id="cardDownload" type="button">⬇ Download image</button>
           <button id="cardCopy" type="button" class="ghost-btn">Copy image</button>
           <button id="cardShare" type="button" class="ghost-btn">Share</button>
         </div>
       </div>
-      <div id="odds" class="odds"></div>
-      <div id="estimate" class="estimate"></div>
+      <div id="odds" class="odds" aria-live="polite"></div>
+      <div id="estimate" class="estimate" aria-live="polite"></div>
       <details class="how">
         <summary>How is this worked out?</summary>
         <p><b>The idea.</b> A buyer won't pay more than it would cost to make an item at least this good themselves,
@@ -214,10 +216,23 @@ chance = clean roll × scrolls</pre>
       by @ohmi, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>.
       Look up prices on <a href="https://meso.watch" target="_blank" rel="noopener">meso.watch</a>.
       Game content © Nexon. Not affiliated with Nexon.</p>
-    <p>© 2026 Liad Kaufman. All rights reserved. · <a href="terms.html">Terms & Privacy</a></p>
+    <p>© 2026 Liad Kaufman. All rights reserved. · <a href="terms.html">Terms & Privacy</a> · <a href="terms.html#accessibility">Accessibility</a></p>
   </footer>
 
   <div id="toast" class="toast" role="status" hidden></div>
-  <script type="module" src="js/app.js?v=260cd9c8"></script>
+
+  <!-- Accessibility options: saved in this browser. -->
+  <button id="a11yBtn" class="a11y-btn" type="button" aria-expanded="false" aria-controls="a11yPanel" aria-label="Accessibility options">
+    <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><circle cx="12" cy="4" r="2" fill="currentColor"/><path d="M4 8.5 12 10l8-1.5M12 10v4.5m0 0-3.5 6.5m3.5-6.5 3.5 6.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <div id="a11yPanel" class="a11y-panel" role="dialog" aria-label="Accessibility options" hidden>
+    <b>Accessibility</b>
+    <label><input type="checkbox" data-a11y="big" /> Larger text</label>
+    <label><input type="checkbox" data-a11y="still" /> Stop animations</label>
+    <label><input type="checkbox" data-a11y="contrast" /> High contrast</label>
+    <label><input type="checkbox" data-a11y="links" /> Underline links</label>
+    <a href="terms.html#accessibility">Accessibility statement</a>
+  </div>
+  <script type="module" src="js/app.js?v=0d5289de"></script>
 </body>
 </html>

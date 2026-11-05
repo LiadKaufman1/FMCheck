@@ -1,7 +1,7 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=260cd9c8";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, mesos, UNITS, readRange } from "./calc.js?v=260cd9c8";
-import { getPrice, setPrice } from "./prices.js?v=260cd9c8";
-import { drawCard, cardBlob } from "./card.js?v=260cd9c8";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=0d5289de";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, mesos, UNITS, readRange } from "./calc.js?v=0d5289de";
+import { getPrice, setPrice } from "./prices.js?v=0d5289de";
+import { drawCard, cardBlob } from "./card.js?v=0d5289de";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -76,8 +76,8 @@ const inFilter = (e) => (!filter.cat || catOf(e) === filter.cat) && jobOk(e);
 function renderCats() {
   $("cats").innerHTML = CATS.map(([key, label, id]) => {
     const n = equips.filter((e) => (!key || catOf(e) === key) && jobOk(e)).length;
-    return `<button type="button" class="cat${filter.cat === key ? " on" : ""}" data-cat="${key}" title="${label}" aria-pressed="${filter.cat === key}">
-      ${id ? `<img src="${icon(id)}" alt="" />` : `<span class="all">ALL</span>`}<small>${n}</small></button>`;
+    return `<button type="button" class="cat${filter.cat === key ? " on" : ""}" data-cat="${key}" title="${label}" aria-label="${label} ${n} items" aria-pressed="${filter.cat === key}">
+      ${id ? `<img src="${icon(id)}" alt="" />` : `<span class="all">ALL</span>`} <small>${n}</small></button>`;
   }).join("");
 }
 
@@ -102,17 +102,20 @@ function showResults() {
   matches = findItems(search.value);
   active = 0;
   results.hidden = !matches.length && !(filter.cat || filter.job || search.value.trim());
+  search.setAttribute("aria-expanded", String(!results.hidden));
+  if (matches.length) search.setAttribute("aria-activedescendant", "opt-0"); else search.removeAttribute("aria-activedescendant");
   results.innerHTML = matches.length ? matches.map((e, i) =>
-    `<li role="option" data-i="${i}" aria-selected="${i === 0}">
+    `<li role="option" id="opt-${i}" data-i="${i}" aria-selected="${i === 0}">
       <img loading="lazy" src="${icon(e[0])}" alt="" /><span>${esc(e[1])}</span>
       <span class="meta">Lv ${e[2]} · ${esc(e[3])}</span></li>`).join("")
-    : `<li class="none">No items match. Try another category or class.</li>`;
+    : `<li class="none" role="option" aria-disabled="true">No items match. Try another category or class.</li>`;
 }
 
 function moveActive(d) {
   if (!matches.length) return;
   active = (active + d + matches.length) % matches.length;
   [...results.children].forEach((li, i) => li.setAttribute("aria-selected", i === active));
+  search.setAttribute("aria-activedescendant", `opt-${active}`);
   results.children[active].scrollIntoView({ block: "nearest" });
 }
 
@@ -122,13 +125,15 @@ search.addEventListener("keydown", (e) => {
   if (e.key === "ArrowDown") { e.preventDefault(); moveActive(1); }
   else if (e.key === "ArrowUp") { e.preventDefault(); moveActive(-1); }
   else if (e.key === "Enter" && matches[active]) { e.preventDefault(); pickItem(matches[active][0]); }
-  else if (e.key === "Escape") results.hidden = true;
+  else if (e.key === "Escape") { results.hidden = true; search.setAttribute("aria-expanded", "false"); }
 });
 results.addEventListener("mousedown", (e) => {
   const li = e.target.closest("li[data-i]");
   if (li) { e.preventDefault(); pickItem(matches[+li.dataset.i][0]); }
 });
-search.addEventListener("blur", () => { hideTimer = setTimeout(() => (results.hidden = true), 150); });
+search.addEventListener("blur", () => {
+  hideTimer = setTimeout(() => { results.hidden = true; search.setAttribute("aria-expanded", "false"); }, 150);
+});
 
 // Chips keep the focus in the search box, so the list stays open while browsing.
 $("cats").addEventListener("mousedown", (e) => { if (e.target.closest(".cat")) e.preventDefault(); });
@@ -258,10 +263,10 @@ function renderPicker() {
   const list = scrollsForItem().filter((s) => !q || `${shortName(s)} ${plusList(s.stats)}`.toLowerCase().includes(q));
   $("pickerList").innerHTML = list.length ? list.map((s) => {
     const p = getPrice(s.id);
-    return `<li data-id="${s.id}" role="button" tabindex="0">
+    return `<li><button type="button" class="pick" data-id="${s.id}">
       <img src="${scrollIcon(s.id)}" alt="" />
       <span class="nm"><b>${esc(shortName(s))}</b><small>${esc(scrollOdds(s))} · ${esc(plusList(s.stats))}</small></span>
-      <span class="pr">${p ? rangeText(p.lo, p.hi) : ""}</span></li>`;
+      <span class="pr">${p ? rangeText(p.lo, p.hi) : ""}</span></button></li>`;
   }).join("") : `<li class="empty">No scrolls for this item type.</li>`;
 }
 
@@ -281,7 +286,7 @@ $("openPicker").addEventListener("click", openPicker);
 $("pickerSearch").addEventListener("input", renderPicker);
 $("pickerSearch").addEventListener("keydown", (e) => { if (e.key === "Escape") closePicker(); });
 $("pickerList").addEventListener("click", (e) => {
-  const li = e.target.closest("li[data-id]");
+  const li = e.target.closest("[data-id]");
   if (!li) return;
   const s = scrollById.get(+li.dataset.id);
   const existing = state.rows.find((r) => r.scroll.id === s.id);
@@ -494,6 +499,10 @@ const cardFmt = {
 
 function renderCard(fin, odds, price) {
   const e = equips.find((x) => x[0] === state.item.id) || [];
+  const statText = GAME_ORDER.filter((k) => fin[k]).map((k) => `${GAME_LABEL[k]} ${fin[k]}`).join(", ");
+  $("card").setAttribute("aria-label", `${state.item.name}${passedTotal() ? ` (+${passedTotal()})` : ""}: ${statText || "no stats"}, `
+    + `${state.left} slots left. Estimated price ${price ? rangeText(price.lo, price.hi) : "not available yet"}. `
+    + `Chance of an item like this ${odds ? cardFmt.pct(odds.chance) : "unknown"}.`);
   const extra = e[6] || {};
   drawCard($("card"), {
     name: state.item.name,
@@ -573,6 +582,33 @@ function readHash() {
   return { id, restore: { clean, rows, left: q.has("l") ? +q.get("l") : undefined } };
 }
 
+// ---------- accessibility options (saved in this browser) ----------
+
+const A11Y_KEY = "fmcheck-a11y";
+let a11y = {};
+try { a11y = JSON.parse(localStorage.getItem(A11Y_KEY) || "{}") || {}; } catch { a11y = {}; }
+function applyA11y() {
+  for (const k of ["big", "still", "contrast", "links"]) document.documentElement.classList.toggle(`a11y-${k}`, !!a11y[k]);
+  for (const box of document.querySelectorAll("[data-a11y]")) box.checked = !!a11y[box.dataset.a11y];
+}
+applyA11y();
+$("a11yBtn").addEventListener("click", () => {
+  const open = $("a11yPanel").hidden;
+  $("a11yPanel").hidden = !open;
+  $("a11yBtn").setAttribute("aria-expanded", String(open));
+  if (open) $("a11yPanel").querySelector("input").focus();
+});
+$("a11yPanel").addEventListener("change", (e) => {
+  const k = e.target.dataset.a11y;
+  if (!k) return;
+  a11y[k] = e.target.checked;
+  try { localStorage.setItem(A11Y_KEY, JSON.stringify(a11y)); } catch { /* not saved, still applied */ }
+  applyA11y();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("a11yPanel").hidden) { $("a11yPanel").hidden = true; $("a11yBtn").setAttribute("aria-expanded", "false"); $("a11yBtn").focus(); }
+});
+
 // ---------- start ----------
 
 for (const a of document.querySelectorAll("[data-discord]")) a.href = DISCORD_URL;
@@ -592,5 +628,4 @@ if (DONATE_URL) {
   const h = readHash();
   if (h) pickItem(h.id, h.restore);
   else if (search.value.trim()) showResults(); // typed before the list loaded
-  else search.focus();
 })();
