@@ -36,18 +36,30 @@ def get_json(url, tries=4):  # retries with backoff: 2s, 4s, 8s...
             with urllib.request.urlopen(req, timeout=60) as r:
                 return json.load(r)
         except Exception as e:  # network hiccup: back off and retry
-            if i == tries - 1:
+            if getattr(e, "code", None) == 404 or i == tries - 1:  # a missing item won't come back
                 raise
             print(f"retry {url}: {e}", file=sys.stderr)
             time.sleep(2 ** (i + 1))
 
 
+CACHE_FILE = os.path.join(ROOT, ".cache", "item-meta.json")
+cache = {}
+
+
 def item_meta(item_id):
+    """metaInfo for an item; {} when maplestory.io has no page for it, None when the request failed."""
+    key = str(item_id)
+    if key in cache:
+        return cache[key]
     try:
-        return get_json(f"{API}/item/{item_id}", tries=6).get("metaInfo", {})
+        m = get_json(f"{API}/item/{item_id}", tries=6).get("metaInfo", {})
+        cache[key] = {k: v for k, v in m.items() if k == "tuc" or k in STAT_KEYS}
     except Exception as e:
-        print(f"skip {item_id}: {e}", file=sys.stderr)
-        return None
+        if getattr(e, "code", None) != 404:
+            print(f"failed {item_id}: {e}", file=sys.stderr)
+            return None
+        cache[key] = {}
+    return cache[key]
 
 
 def build_equips(items):
@@ -62,11 +74,20 @@ def build_equips(items):
         if not name:
             continue
         out.append([it["id"], name, it.get("requiredLevel", 0), ti.get("subCategory") or ti.get("category") or ""])
+    global cache
+    try:
+        with open(CACHE_FILE) as f:
+            cache = json.load(f)
+    except (OSError, ValueError):
+        cache = {}
     with ThreadPoolExecutor(max_workers=4) as pool:
         metas = list(pool.map(lambda e: item_meta(e[0]), out))
-    missing = sum(m is None for m in metas)
-    if missing:
-        raise SystemExit(f"{missing} items failed to load; maplestory.io may be down. Try again later.")
+    os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)
+    with open(CACHE_FILE, "w") as f:
+        json.dump(cache, f)
+    failed = sum(m is None for m in metas)
+    if failed:
+        raise SystemExit(f"{failed} items failed to load; maplestory.io may be down. Run again to fetch the rest.")
     full = []
     for e, m in zip(out, metas):
         if not m.get("tuc"):
