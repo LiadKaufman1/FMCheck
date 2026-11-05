@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FMCheck · Scrolled Item Price Check</title>
+  <meta name="description" content="Rough price check for scrolled MapleStory Classic items: pick an item, set its roll and scrolls, get an estimate." />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="top">
+    <h1>FM<span>Check</span></h1>
+    <p>Rough price check for scrolled MapleStory Classic items.</p>
+  </header>
+
+  <main>
+    <!-- 1. Item -->
+    <section class="card" id="itemCard">
+      <h2><b>1</b> Item</h2>
+      <div class="search">
+        <input id="itemSearch" type="search" placeholder="Search an item, e.g. Maple Sword" autocomplete="off" spellcheck="false" />
+        <ul id="itemResults" class="results" hidden></ul>
+      </div>
+      <div id="itemInfo" class="item-info" hidden></div>
+    </section>
+
+    <!-- 2. Clean roll -->
+    <section class="card" id="rollCard" hidden>
+      <h2><b>2</b> Clean stats <small>what the item had before any scroll</small></h2>
+      <div id="rolls" class="rolls"></div>
+      <label class="row-inline">Rarity counts on
+        <select id="keyStat"></select>
+      </label>
+    </section>
+
+    <!-- 3. Scrolls -->
+    <section class="card" id="scrollCard" hidden>
+      <h2><b>3</b> Scrolls <small id="slotInfo"></small></h2>
+      <div id="scrollRows" class="scroll-rows"></div>
+      <div class="add">
+        <select id="scrollPick"></select>
+        <button id="addScroll" type="button">Add</button>
+      </div>
+    </section>
+
+    <!-- 4. Result -->
+    <section class="card result" id="resultCard" hidden>
+      <h2><b>4</b> Estimate</h2>
+      <label class="price-field">Clean item price
+        <span class="price-input">
+          <input id="cleanPrice" inputmode="decimal" placeholder="e.g. 300k" />
+          <a id="cleanLink" target="_blank" rel="noopener">check ↗</a>
+        </span>
+      </label>
+      <div id="final" class="final"></div>
+      <div id="estimate" class="estimate"></div>
+      <details class="how">
+        <summary>How is this worked out?</summary>
+        <p>The estimate is the average cost to make an item at least this good from scratch.
+          One try = a clean item plus the same scrolls. A try works only if the clean roll is at least as good
+          and the scrolls pass at least as many times (dark scrolls can also destroy the item).</p>
+        <p><code>estimate = (clean price + scroll cost) ÷ chance a try works</code></p>
+        <p>Players don't always sell at rebuild cost, so treat it as a ballpark, and check what similar items sell for.</p>
+      </details>
+    </section>
+  </main>
+
+  <footer>
+    <p id="priceStatus"></p>
+    <p>Item and scroll data: <a href="https://maplestory.io" target="_blank" rel="noopener">maplestory.io</a> (GMS v83).
+      Prices: <a href="https://meso.watch" target="_blank" rel="noopener">meso.watch</a> ·
+      <a href="https://meowdb.com/msclassic" target="_blank" rel="noopener">MeowDB</a>.
+      Not affiliated with Nexon.</p>
+  </footer>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

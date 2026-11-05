@@ -1,0 +1,48 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { statRange, rollAtLeast, groupOdds, estimate, finalStats, mesos, parseMesos } from "../js/calc.js";
+
+const close = (a, b, eps = 1e-9) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b}`);
+
+test("stat ranges", () => {
+  assert.deepEqual(statRange("PAD", 48), [43, 53]);   // capped at ±5
+  assert.deepEqual(statRange("PAD", 17), [15, 19]);   // ceil(1.7) = 2
+  assert.deepEqual(statRange("PDD", 150), [140, 160]); // DEF caps at ±10
+  assert.deepEqual(statRange("STR", 0), [0, 0]);
+});
+
+test("roll chance", () => {
+  close(rollAtLeast("PAD", 48, 43), 1);
+  close(rollAtLeast("PAD", 48, 53), 1 / 11);
+  close(rollAtLeast("PAD", 48, 54), 0);
+});
+
+test("scroll odds", () => {
+  close(groupOdds(7, 7, 100), 1);
+  close(groupOdds(1, 1, 60), 0.6);
+  close(groupOdds(2, 1, 60), 1 - 0.4 ** 2);
+  close(groupOdds(1, 0, 30, 50), 0.3 + 0.7 * 0.5); // dark scroll: half of failures boom
+  close(groupOdds(3, 0, 10), 1);
+});
+
+test("estimate", () => {
+  const r = estimate({ cleanPrice: 1e6, groups: [{ used: 1, successes: 1, success: 10, price: 1e6 }] });
+  close(r.tryCost, 2e6);
+  close(r.chance, 0.1);
+  close(r.value, 2e7);
+  const none = estimate({ cleanPrice: 5e5, groups: [] });
+  close(none.value, 5e5);
+});
+
+test("final stats", () => {
+  assert.deepEqual(finalStats({ PAD: 50 }, [{ successes: 3, stats: { PAD: 2, STR: 1 } }]), { PAD: 56, STR: 3 });
+});
+
+test("meso format and parse", () => {
+  assert.equal(mesos(1234567), "1.23m");
+  assert.equal(mesos(45000), "45k");
+  assert.equal(parseMesos("12m"), 12e6);
+  assert.equal(parseMesos("1.5b"), 1.5e9);
+  assert.equal(parseMesos("45,000"), 45000);
+  assert.ok(Number.isNaN(parseMesos("abc")));
+});
