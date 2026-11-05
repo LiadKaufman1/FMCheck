@@ -77,10 +77,6 @@ export function estimate({ cleanPrice = 0, roll = null, groups = [] }) {
     tryCost, scrollCost, rollChance, scrollChance, chance,
     oneIn: chance > 0 ? 1 / chance : Infinity,
     value,
-    // A loose band around the point estimate. Shops rarely sell at full rebuild cost,
-    // and lucky items sell above it, so show the range instead of one hard number.
-    low: value * 0.7,
-    high: value * 1.15,
   };
 }
 
@@ -144,4 +140,14 @@ export function readPrice(text, unit) {
 export function splitPrice(v) {
   const u = [...UNITS].reverse().find(([, , m]) => m > 1 && v >= m) || UNITS[0];
   return { num: String(+(v / u[2]).toPrecision(6)), unit: u[0] };
+}
+
+// "from" and "to" boxes sharing one unit -> { lo, hi } in mesos, or null when both are empty.
+// One box filled means an exact price; a reversed range is put in order.
+export function readRange(from, to, unit) {
+  let lo = readPrice(from, unit), hi = readPrice(to, unit);
+  if (!Number.isFinite(lo) && !Number.isFinite(hi)) return null;
+  if (!Number.isFinite(lo)) lo = hi;
+  if (!Number.isFinite(hi)) hi = lo;
+  return lo <= hi ? { lo, hi } : { lo: hi, hi: lo };
 }

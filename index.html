@@ -22,12 +22,9 @@
         <ul id="itemResults" class="results" hidden></ul>
       </div>
       <div id="itemInfo" class="item-info" hidden></div>
-      <label class="price-field" id="cleanField" hidden>Clean item price
+      <label class="price-field" id="cleanField" hidden>Clean item price (from – to)
         <span class="price-input">
-          <input id="cleanPrice" inputmode="decimal" placeholder="e.g. 300" />
-          <select id="cleanUnit" aria-label="Unit">
-            <option value="">mesos</option><option value="k" selected>K</option><option value="m">M</option><option value="b">B</option>
-          </select>
+          <span id="cleanPrice" class="range-fields"></span>
           <a id="cleanLink" target="_blank" rel="noopener">check price ↗</a>
         </span>
       </label>
@@ -71,6 +68,7 @@
           One try = a clean item with these stats plus the same scrolls. A try works only if the scrolls pass
           at least as many times (dark scrolls can also destroy the item). Failed slots are worked out from the slots left.</p>
         <p><code>estimate = (clean price + scroll cost) ÷ chance a try works</code></p>
+        <p>It's worked out once with every "from" price and once with every "to" price, which gives the range.</p>
         <p>Players don't always sell at rebuild cost, so treat it as a ballpark, and check what similar items sell for.</p>
       </details>
     </section>

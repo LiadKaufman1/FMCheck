@@ -65,3 +65,12 @@ test("price fields with a unit dropdown", () => {
   assert.deepEqual(splitPrice(1980000), { num: "1.98", unit: "m" });
   assert.deepEqual(splitPrice(500), { num: "500", unit: "" });
 });
+
+import { readRange } from "../js/calc.js";
+test("price ranges", () => {
+  assert.deepEqual(readRange("1.8", "2", "m"), { lo: 1.8e6, hi: 2e6 });
+  assert.deepEqual(readRange("50", "", "k"), { lo: 50000, hi: 50000 });   // one box = exact price
+  assert.deepEqual(readRange("", "60", "k"), { lo: 60000, hi: 60000 });
+  assert.deepEqual(readRange("2", "1.8", "m"), { lo: 1.8e6, hi: 2e6 });  // reversed gets sorted
+  assert.equal(readRange("", "", "m"), null);
+});

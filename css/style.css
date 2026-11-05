@@ -119,7 +119,7 @@ button.ghost { background: transparent; color: var(--muted); padding: 4px 8px; }
 .nm b { font-size: 14px; }
 .nm small { color: var(--muted); font-size: 12px; }
 .nm small a { text-decoration: none; }
-.row-price { grid-column: 2 / -1; }
+.row-price { grid-column: 1 / -1; }
 .price-field { margin-top: 12px; max-width: none; }
 .add-btn { margin-top: 10px; width: 100%; background: var(--accent-soft); color: var(--accent); }
 
@@ -135,7 +135,10 @@ button.ghost { background: transparent; color: var(--muted); padding: 4px 8px; }
 
 .price-input { display: flex; gap: 6px; align-items: center; }
 .price-input input { flex: 1; width: 100%; }
-.price-input select { flex: none; width: 80px; padding: 8px 6px; }
+.price-input select { flex: none; width: 72px; padding: 8px 4px; }
+.price-input input { min-width: 0; }
+.range-fields { display: flex; gap: 6px; align-items: center; flex: 1; min-width: 0; }
+.dash { color: var(--muted); }
 .price-input a { font-size: 12px; white-space: nowrap; text-decoration: none; }
 .price-field { display: grid; gap: 4px; font-size: 13px; color: var(--muted); max-width: 320px; }
 .tag { font-size: 11px; color: var(--muted); }

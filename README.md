@@ -15,7 +15,8 @@ estimate = (clean item price + scroll cost per try) / chance a try works
 
 A try works when every scroll type passes at least as many times and no dark scroll booms the item.
 The clean price is for a clean item with the chosen stats, so the roll's rarity isn't counted again.
-The page also shows a loose range (70%–115% of the estimate), since shops rarely sell at exactly rebuild cost.
+Prices are entered as ranges (from – to). The estimate is worked out once with every "from" price and once
+with every "to" price, which gives the range shown.
 
 Clean stat ranges use the usual pre-Big-Bang rule: base ± min(ceil(10% of base), 5), or ±10 for DEF/HP/MP.
 The slider for the main stat shows how rare the roll is, to help price the clean item.

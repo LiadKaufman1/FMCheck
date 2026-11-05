@@ -1,9 +1,29 @@
 import { iconUrl, priceLink } from "./config.js";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, estimate, allocateFailures, mesos, UNITS, readPrice, splitPrice } from "./calc.js";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, estimate, allocateFailures, mesos, UNITS, readRange } from "./calc.js";
 import { getPrice, setPrice } from "./prices.js";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
+const rangeText = (lo, hi) => (lo === hi ? mesos(lo) : `${mesos(lo)} – ${mesos(hi)}`);
+
+// Price range fields: "from" and "to" boxes sharing one unit dropdown.
+// `p` is a saved { lo, hi } to fill in, or null; `unit` is the default unit.
+function rangeFields(p, unit) {
+  let from = "", to = "";
+  if (p) {
+    const u = UNITS.slice().reverse().find(([, , m]) => m > 1 && p.hi >= m) || UNITS[0];
+    unit = u[0];
+    const num = (v) => String(+(v / u[2]).toPrecision(6));
+    from = num(p.lo);
+    to = p.hi !== p.lo ? num(p.hi) : "";
+  }
+  return `<input inputmode="decimal" placeholder="from" aria-label="Lowest price" value="${from}" data-f="from" />
+    <span class="dash">–</span>
+    <input inputmode="decimal" placeholder="to" aria-label="Highest price" value="${to}" data-f="to" />
+    ${unitSelect(unit, 'data-f="unit"')}`;
+}
+const readFields = (box) => readRange(
+  box.querySelector('[data-f="from"]').value, box.querySelector('[data-f="to"]').value, box.querySelector('[data-f="unit"]').value);
 // <select> of price units; `unit` is preselected.
 const unitSelect = (unit, attrs = "") => `<select ${attrs} aria-label="Unit">${UNITS.map(([v, label]) =>
   `<option value="${v}"${v === unit ? " selected" : ""}>${label}</option>`).join("")}</select>`;
@@ -197,7 +217,7 @@ function renderPicker() {
     return `<li data-id="${s.id}" role="button" tabindex="0">
       <img src="${scrollIcon(s.id)}" alt="" />
       <span class="nm"><b>${esc(shortName(s))}</b><small>${esc(scrollOdds(s))} · ${esc(plusList(s.stats))}</small></span>
-      <span class="pr">${p ? mesos(p.value) : ""}</span></li>`;
+      <span class="pr">${p ? rangeText(p.lo, p.hi) : ""}</span></li>`;
   }).join("") : `<li class="empty">No scrolls for this item type.</li>`;
 }
 
@@ -252,21 +272,16 @@ function renderRows() {
         <button type="button" class="step" data-act="plus" aria-label="One more">+</button>
       </span>
       <span class="row-price price-input">
-        ${(() => {
-          const sp = p ? splitPrice(p.value) : { num: "", unit: "m" };
-          return `<input inputmode="decimal" placeholder="Price each" aria-label="Price each" value="${sp.num}" data-f="price" />
-            ${unitSelect(sp.unit, 'data-f="unit"')}`;
-        })()}
+        ${rangeFields(p, "m")}
         <a href="${priceLink(r.scroll.id, r.scroll.name)}" data-name="${esc(r.scroll.name)}" target="_blank" rel="noopener">check price ↗</a></span>
       </div>`;
   }).join("");
 }
 
 function onScrollPrice(e) {
-  if (e.target.dataset.f !== "price" && e.target.dataset.f !== "unit") return;
+  if (!["from", "to", "unit"].includes(e.target.dataset.f)) return;
   const row = e.target.closest(".scroll-row");
-  const r = state.rows[+row.dataset.i];
-  setPrice(r.scroll.id, readPrice(row.querySelector('[data-f="price"]').value, row.querySelector('[data-f="unit"]').value));
+  setPrice(state.rows[+row.dataset.i].scroll.id, readFields(row));
   update();
 }
 $("scrollRows").addEventListener("input", onScrollPrice);
@@ -293,20 +308,19 @@ $("scrollRows").addEventListener("click", (e) => {
 // ---------- clean price ----------
 
 // The clean price depends on the rolled stats, so it isn't remembered between items.
-let cleanPrice = NaN;
+let cleanPrice = null; // { lo, hi } or null
 function renderCleanPrice() {
-  cleanPrice = NaN;
-  $("cleanPrice").value = "";
-  $("cleanUnit").value = "k";
+  cleanPrice = null;
+  $("cleanPrice").innerHTML = rangeFields(null, "k");
   $("cleanLink").href = priceLink(state.item.id, state.item.name);
   $("cleanLink").dataset.name = state.item.name;
 }
 function onCleanPrice() {
-  cleanPrice = readPrice($("cleanPrice").value, $("cleanUnit").value);
+  cleanPrice = readFields($("cleanPrice"));
   update();
 }
 $("cleanPrice").addEventListener("input", onCleanPrice);
-$("cleanUnit").addEventListener("change", onCleanPrice);
+$("cleanPrice").addEventListener("change", onCleanPrice);
 
 // ---------- check price: also copy the name for meso.watch's filter ----------
 
@@ -343,7 +357,7 @@ function update() {
   const fails = allocateFailures(types, Math.max(0, failed));
   const groups = state.rows.map((r, i) => ({
     used: r.successes + fails[i], successes: r.successes, success: r.scroll.success, boom: r.scroll.boom,
-    price: getPrice(r.scroll.id)?.value || 0, stats: r.scroll.stats,
+    stats: r.scroll.stats,
   }));
 
   const fin = finalStats(state.clean, groups);
@@ -356,11 +370,15 @@ function update() {
   const out = $("estimate");
   if (failed < 0) { out.innerHTML = `<p class="warn">You listed more passed scrolls than used slots. Check "Slots left".</p>`; return; }
 
-  const clean = Number.isFinite(cleanPrice) ? cleanPrice : 0;
   const missing = state.rows.filter((r) => !getPrice(r.scroll.id));
+  // Work it out twice: with every "from" price, then with every "to" price.
   // The clean price already reflects the rolled stats, so the roll's rarity isn't counted again.
-  const res = estimate({ cleanPrice: clean, roll: null, groups });
-  if (!clean) {
+  const run = (end) => estimate({
+    cleanPrice: cleanPrice ? cleanPrice[end] : 0, roll: null,
+    groups: groups.map((g, i) => ({ ...g, price: getPrice(state.rows[i].scroll.id)?.[end] || 0 })),
+  });
+  const lo = run("lo"), hi = run("hi"), res = lo;
+  if (!cleanPrice) {
     out.innerHTML = `<p class="hint">Enter the clean item price (step 1) to get an estimate.</p>`;
     return;
   }
@@ -369,10 +387,10 @@ function update() {
     : "";
   const pct = (x) => (x >= 0.995 ? "100%" : x >= 0.01 ? `${(x * 100).toFixed(1)}%` : `${(x * 100).toPrecision(2)}%`);
   out.innerHTML = `
-    <div class="big">≈ ${mesos(res.value)}</div>
-    <div class="range">likely sells for ${mesos(res.low)} – ${mesos(res.high)}</div>
+    <div class="big">${lo.value === hi.value ? "≈ " : ""}${rangeText(lo.value, hi.value)}</div>
+    <div class="range">${lo.value === hi.value ? "from the prices you entered" : `midpoint ≈ ${mesos((lo.value + hi.value) / 2)}`}</div>
     <div class="breakdown">
-      <span>One try (clean + scrolls)</span><span>${mesos(res.tryCost)}</span>
+      <span>One try (clean + scrolls)</span><span>${rangeText(lo.tryCost, hi.tryCost)}</span>
       ${failedNote}
       <span>Scrolls pass like this</span><span>${pct(res.scrollChance)}</span>
       <span>Odds of making it</span><span>1 in ${res.oneIn < 1e6 ? Math.round(res.oneIn).toLocaleString("en-US") : mesos(res.oneIn)}</span>
