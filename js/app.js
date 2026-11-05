@@ -130,7 +130,7 @@ async function pickItem(id, restore = null) {
   renderCleanPrice();
   $("slotsLeft").max = state.slots;
   $("slotsLeft").value = state.left;
-  for (const id of ["rollCard", "scrollCard", "resultCard"]) $(id).hidden = false;
+  for (const id of ["cleanField", "rollCard", "scrollCard", "resultCard"]) $(id).hidden = false;
   update();
 }
 
@@ -259,9 +259,9 @@ function renderRows() {
         <span class="count">×${r.successes}</span>
         <button type="button" class="step" data-act="plus" aria-label="One more">+</button>
       </span>
-      <label class="row-price">Price each
-        <span class="price-input"><input inputmode="decimal" placeholder="e.g. 2m" value="${p ? mesos(p.value) : ""}" data-f="price" />
-        <a href="${priceLink(r.scroll.id)}" target="_blank" rel="noopener">check ↗</a></span></label>
+      <span class="row-price price-input">
+        <input inputmode="decimal" placeholder="Price each, e.g. 2m" aria-label="Price each" value="${p ? mesos(p.value) : ""}" data-f="price" />
+        <a href="${priceLink(r.scroll.id)}" target="_blank" rel="noopener">check price ↗</a></span>
       </div>`;
   }).join("");
 }
@@ -339,7 +339,7 @@ function update() {
   // The clean price already reflects the rolled stats, so the roll's rarity isn't counted again.
   const res = estimate({ cleanPrice: clean, roll: null, groups });
   if (!clean) {
-    out.innerHTML = `<p class="hint">Enter the price of a clean item with these stats (step 2) to get an estimate.</p>`;
+    out.innerHTML = `<p class="hint">Enter the clean item price (step 1) to get an estimate.</p>`;
     return;
   }
   const failedNote = failed > 0 && state.rows.length

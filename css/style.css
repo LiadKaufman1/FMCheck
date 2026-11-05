@@ -119,9 +119,8 @@ button.ghost { background: transparent; color: var(--muted); padding: 4px 8px; }
 .nm b { font-size: 14px; }
 .nm small { color: var(--muted); font-size: 12px; }
 .nm small a { text-decoration: none; }
-.row-price { grid-column: 1 / -1; display: grid; gap: 2px; font-size: 12px; color: var(--muted); }
-.row-price input { width: 100%; }
-.price-field { margin-top: 4px; }
+.row-price { grid-column: 2 / -1; }
+.price-field { margin-top: 12px; max-width: none; }
 .add-btn { margin-top: 10px; width: 100%; background: var(--accent-soft); color: var(--accent); }
 
 /* scroll picker */
