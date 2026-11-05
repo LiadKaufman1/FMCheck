@@ -22,8 +22,11 @@ const state = {
 
 // ---------- data ----------
 
+// Stats live in data/equips.json; maplestory.io is only a fallback for an entry without them.
 const metaCache = new Map();
 async function loadMeta(id) {
+  const e = equips.find((x) => x[0] === id);
+  if (e && e[4] != null) return { slots: e[4], base: e[5] || {} };
   if (metaCache.has(id)) return metaCache.get(id);
   const r = await fetch(`${ITEM_API}/item/${id}`);
   if (!r.ok) throw new Error(`item ${id}: ${r.status}`);
@@ -34,6 +37,11 @@ async function loadMeta(id) {
   metaCache.set(id, meta);
   return meta;
 }
+
+// Icons come from maplestory.io; hide a broken one instead of showing a torn image.
+document.addEventListener("error", (e) => {
+  if (e.target.tagName === "IMG") e.target.style.visibility = "hidden";
+}, true);
 
 // ---------- item search ----------
 
@@ -98,7 +106,7 @@ async function pickItem(id, restore = null) {
   let meta;
   try { meta = await loadMeta(id); }
   catch {
-    $("itemInfo").querySelector(".sub").textContent = "Couldn't load this item's stats from maplestory.io. Try again in a moment.";
+    $("itemInfo").querySelector(".sub").textContent = "Couldn't load this item's stats. Try again in a moment.";
     return;
   }
   if (state.item?.id !== id) return; // picked something else meanwhile

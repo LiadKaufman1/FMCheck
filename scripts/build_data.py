@@ -3,11 +3,10 @@
 
 Source: maplestory.io (GMS v83 data, the closest public match to MapleStory Classic).
 
-  data/equips.json   every non-cash equip the site can value: [id, name, reqLevel, category]
+  data/equips.json   every non-cash equip that takes scrolls: [id, name, reqLevel, category, slots, {stat: base}]
   data/scrolls.json  every regular/dark scroll: id, name, success %, boom %, stat gains, target item prefix
 
-Item stats (base stats, upgrade slots) are not stored here: the page fetches them
-from maplestory.io when an item is picked.
+Stats are stored here so the page doesn't depend on maplestory.io being up.
 
 Run: python3 scripts/build_data.py
 """
@@ -30,7 +29,7 @@ STAT_KEYS = ["incSTR", "incDEX", "incINT", "incLUK", "incPAD", "incMAD", "incPDD
              "incACC", "incEVA", "incMHP", "incMMP", "incSpeed", "incJump"]
 
 
-def get_json(url, tries=4):
+def get_json(url, tries=4):  # retries with backoff: 2s, 4s, 8s...
     for i in range(tries):
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "FMCheck data builder"})
@@ -41,6 +40,14 @@ def get_json(url, tries=4):
                 raise
             print(f"retry {url}: {e}", file=sys.stderr)
             time.sleep(2 ** (i + 1))
+
+
+def item_meta(item_id):
+    try:
+        return get_json(f"{API}/item/{item_id}", tries=6).get("metaInfo", {})
+    except Exception as e:
+        print(f"skip {item_id}: {e}", file=sys.stderr)
+        return None
 
 
 def build_equips(items):
@@ -55,8 +62,19 @@ def build_equips(items):
         if not name:
             continue
         out.append([it["id"], name, it.get("requiredLevel", 0), ti.get("subCategory") or ti.get("category") or ""])
-    out.sort(key=lambda x: (x[1].lower(), x[0]))
-    return out
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        metas = list(pool.map(lambda e: item_meta(e[0]), out))
+    missing = sum(m is None for m in metas)
+    if missing:
+        raise SystemExit(f"{missing} items failed to load; maplestory.io may be down. Try again later.")
+    full = []
+    for e, m in zip(out, metas):
+        if not m.get("tuc"):
+            continue  # no upgrade slots: nothing to scroll
+        stats = {k[3:]: m[k] for k in STAT_KEYS if m.get(k)}
+        full.append(e + [m["tuc"], stats])
+    full.sort(key=lambda x: (x[1].lower(), x[0]))
+    return full
 
 
 def scroll_target(sid):
@@ -76,7 +94,7 @@ def build_scrolls(items):
 
     def meta(it):
         try:
-            return it, get_json(f"{API}/item/{it['id']}").get("metaInfo", {})
+            return it, get_json(f"{API}/item/{it['id']}", tries=6).get("metaInfo", {})
         except Exception as e:
             print(f"skip {it['id']}: {e}", file=sys.stderr)
             return it, None
