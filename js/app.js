@@ -261,7 +261,7 @@ function renderRows() {
       </span>
       <span class="row-price price-input">
         <input inputmode="decimal" placeholder="Price each, e.g. 2m" aria-label="Price each" value="${p ? mesos(p.value) : ""}" data-f="price" />
-        <a href="${priceLink(r.scroll.id)}" target="_blank" rel="noopener">check price ↗</a></span>
+        <a href="${priceLink(r.scroll.id, r.scroll.name)}" target="_blank" rel="noopener">check price ↗</a></span>
       </div>`;
   }).join("");
 }
@@ -298,7 +298,7 @@ let cleanPrice = NaN;
 function renderCleanPrice() {
   cleanPrice = NaN;
   $("cleanPrice").value = "";
-  $("cleanLink").href = priceLink(state.item.id);
+  $("cleanLink").href = priceLink(state.item.id, state.item.name);
 }
 $("cleanPrice").addEventListener("input", (e) => {
   cleanPrice = parseMesos(e.target.value);
