@@ -11,8 +11,8 @@ A buyer won't pay more than it would cost to make an item at least this good the
 so the estimate is that cost plus what the open slots are worth. The page shows the exact formulas under
 "How is this worked out?"; the code is `cheapestRoute` and `openSlotValue` in `js/calc.js`.
 
-- **Cheapest way to make one (M):** reach at least the same stat points within the same used slots, using any
-  tier of the same scroll that has a price. The maker picks the best scroll each step, stops at the goal, and
+- **Cheapest way to make one (M):** reach at least the same stat points within the same used slots, using the
+  scrolls the user entered. The maker picks the best scroll each step, stops at the goal, and
   drops an item that can't reach it (or that a Chaos scroll destroyed) and starts over with a new clean item.
   Solved as an expected-cost recursion with M on both sides, repeated until it settles.
 - **Open slots:** per slot = best scroll's (chance × gain × mesos per stat point − price − chance of losing the

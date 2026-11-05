@@ -1,6 +1,6 @@
-import { iconUrl, priceLink, DONATE_URL } from "./config.js?v=973f6d27";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, openSlotValue, cheapestRoute, mesos, UNITS, readRange } from "./calc.js?v=973f6d27";
-import { getPrice, setPrice } from "./prices.js?v=973f6d27";
+import { iconUrl, priceLink, DONATE_URL } from "./config.js?v=1ba3db86";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, openSlotValue, cheapestRoute, mesos, UNITS, readRange } from "./calc.js?v=1ba3db86";
+import { getPrice, setPrice } from "./prices.js?v=1ba3db86";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -258,34 +258,9 @@ const passedTotal = () => state.rows.reduce((n, r) => n + r.successes, 0);
 // A scroll family is one scroll in all its tiers, e.g. "Gloves Attack Scroll" (Lesser … Chaos).
 const family = (sc) => sc.name.split(":")[0].trim();
 const points = (sc) => Object.values(sc.stats).reduce((a, b) => a + b, 0);
-const familyTiers = (fam) => scrollsForItem().filter((sc) => family(sc) === fam);
-
-// Other tiers of the passed scrolls' families: their prices let us find the cheapest way to make the item.
-function renderOtherTiers() {
-  const box = $("otherTiers");
-  const fams = [...new Set(state.rows.map((r) => family(r.scroll)))];
-  const passedIds = new Set(state.rows.map((r) => r.scroll.id));
-  const others = fams.flatMap(familyTiers).filter((sc) => !passedIds.has(sc.id));
-  if (!others.length) { box.innerHTML = ""; return; }
-  box.innerHTML = `<p class="label">Other tiers (optional): their prices help find the cheapest way to make this item.</p>
-    ${others.map((sc) => `<div class="scroll-row tier-row" data-id="${sc.id}">
-      <img src="${scrollIcon(sc.id)}" alt="" />
-      <span class="nm"><b>${esc(shortName(sc))}</b><small>${esc(scrollOdds(sc))} · ${esc(plusList(sc.stats))}</small></span>
-      <span></span>
-      <span class="row-price price-input">${rangeFields(getPrice(sc.id), "m")}
-        <a href="${priceLink(sc.id, sc.name)}" data-name="${esc(sc.name)}" target="_blank" rel="noopener">check price ↗</a></span>
-    </div>`).join("")}`;
-}
-function onTierPrice(e) {
-  if (!["from", "to", "unit"].includes(e.target.dataset.f)) return;
-  const row = e.target.closest(".tier-row");
-  setPrice(+row.dataset.id, readFields(row));
-  update();
-}
 
 function renderRows() {
   const box = $("scrollRows");
-  renderOtherTiers();
   if (!state.rows.length) {
     box.innerHTML = `<p class="hint">None yet. A clean item works too.</p>`;
     return;
@@ -314,8 +289,6 @@ function onScrollPrice(e) {
   update();
 }
 $("scrollRows").addEventListener("input", onScrollPrice);
-$("otherTiers").addEventListener("input", onTierPrice);
-$("otherTiers").addEventListener("change", onTierPrice);
 $("scrollRows").addEventListener("change", onScrollPrice);
 
 $("scrollRows").addEventListener("click", (e) => {
@@ -395,10 +368,10 @@ function update() {
   if (failed < 0) { out.innerHTML = `<p class="warn">You listed more passed scrolls than used slots. Check "Slots left".</p>`; return; }
   if (!cleanPrice) { out.innerHTML = `<p class="hint">Enter the clean item price (step 1) to get an estimate.</p>`; return; }
 
-  // What the item gained, per scroll family, and every tier of those families with a price.
+  // What the item gained, per scroll family, and the scrolls the user entered (with a price).
   const needs = {};
   for (const r of state.rows) needs[family(r.scroll)] = (needs[family(r.scroll)] || 0) + r.successes * points(r.scroll);
-  const tiersAt = (end) => Object.keys(needs).flatMap(familyTiers).map((sc) => ({
+  const tiersAt = (end) => state.rows.map((r) => r.scroll).map((sc) => ({
     id: sc.id, fam: family(sc), points: points(sc), success: sc.success, boom: sc.boom, price: getPrice(sc.id)?.[end],
   })).filter((t) => Number.isFinite(t.price));
   const pointsGained = Object.values(needs).reduce((a, b) => a + b, 0);

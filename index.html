@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=973f6d27" />
+  <link rel="stylesheet" href="css/style.css?v=1ba3db86" />
 </head>
 <body>
   <!-- Moving background: meso drops, Maple items and monsters floating up. Stars at night (dark mode). -->
@@ -88,7 +88,6 @@
       </div>
       <p class="label">Scrolls that passed</p>
       <div id="scrollRows" class="scroll-rows"></div>
-      <div id="otherTiers" class="scroll-rows other-tiers"></div>
       <button id="openPicker" type="button" class="add-btn">+ Add a scroll</button>
       <div id="picker" class="picker" hidden>
         <input id="pickerSearch" type="search" placeholder="Filter, e.g. attack" autocomplete="off" />
@@ -108,7 +107,7 @@
 
         <p><b>1. Cheapest way to make one (M)</b></p>
         <p>The goal: a clean item with these stats that gains at least the same stat points, within the same number of used slots
-          (so it keeps as many open slots). Any tier of the same scroll can be used, if you entered its price.
+          (so it keeps as many open slots), using the scrolls you entered.
           The maker picks the best scroll for each step, stops once the goal is reached, and drops an item that can't reach it anymore
           (or that a Chaos scroll destroyed) and starts again with a new clean item.</p>
         <pre class="formula">M = clean price + C(used slots, points gained)
@@ -166,6 +165,6 @@ open slots = per open slot × open slots</pre>
   </footer>
 
   <div id="toast" class="toast" role="status" hidden></div>
-  <script type="module" src="js/app.js?v=973f6d27"></script>
+  <script type="module" src="js/app.js?v=1ba3db86"></script>
 </body>
 </html>
