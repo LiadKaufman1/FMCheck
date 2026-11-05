@@ -22,12 +22,17 @@ The slider for the main stat shows how rare the roll is, to help price the clean
 
 ## Data
 
-| What | Source | How |
-| --- | --- | --- |
-| Item list, scroll list | [maplestory.io](https://maplestory.io) (GMS v83) | `data/*.json`, built by `scripts/build_data.py` |
-| Item base stats, slots | maplestory.io | stored in `data/equips.json` |
-| Scroll icons | maplestory.io | stored in `assets/scrolls/`, by `scripts/fetch_icons.py` |
-| Prices | typed by the user | remembered in the browser |
+Item and scroll data comes from the [OSMS Data Explorer](https://osmsdataexplorer.com) public dataset
+for MapleStory Classic World (by @ohmi, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)),
+extracted from the game client. `scripts/build_data.py` turns it into:
+
+- `data/equips.json`: every equip with upgrade slots, with its base stats
+- `data/scrolls.json`: every scroll, with success rate, destroy rate (Chaos scrolls) and stat gains
+- `data/source.json`: the client build and date of the data
+
+Icons load from osmsdataexplorer.com. Item ids and names match meso.watch, so "check price" opens the right item there.
+
+> Data from OSMS Data Explorer (https://osmsdataexplorer.com), CC BY 4.0. Game content © Nexon.
 
 ### Prices
 
@@ -43,8 +48,7 @@ the passed scroll types in the most likely way.
 ```
 npm start          # serves on http://localhost:8000
 npm test           # unit tests for the math
-npm run data       # rebuild data/equips.json and data/scrolls.json
-python3 scripts/fetch_icons.py   # download scroll icons into assets/scrolls/
+npm run data       # rebuild data/*.json from the latest OSMS dataset
 ```
 
 It's a static site (no build step), so it can be hosted as-is on GitHub Pages, Netlify or Cloudflare Pages.

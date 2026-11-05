@@ -1,9 +1,9 @@
-import { ITEM_API, priceLink } from "./config.js";
+import { iconUrl, priceLink } from "./config.js";
 import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, estimate, allocateFailures, mesos, parseMesos } from "./calc.js";
 import { getPrice, setPrice } from "./prices.js";
 
 const $ = (id) => document.getElementById(id);
-const icon = (id) => `${ITEM_API}/item/${id}/icon`;
+const icon = iconUrl;
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const plusList = (stats) => Object.entries(stats).map(([k, v]) => `+${v} ${STAT_LABEL[k] || k}`).join(", ");
 
@@ -23,23 +23,14 @@ const state = {
 
 // ---------- data ----------
 
-// Stats live in data/equips.json; maplestory.io is only a fallback for an entry without them.
-const metaCache = new Map();
+// Stats live in data/equips.json.
 async function loadMeta(id) {
   const e = equips.find((x) => x[0] === id);
-  if (e && e[4] != null) return { slots: e[4], base: e[5] || {} };
-  if (metaCache.has(id)) return metaCache.get(id);
-  const r = await fetch(`${ITEM_API}/item/${id}`);
-  if (!r.ok) throw new Error(`item ${id}: ${r.status}`);
-  const m = (await r.json()).metaInfo || {};
-  const base = {};
-  for (const [k] of STATS) if (m[`inc${k}`]) base[k] = m[`inc${k}`];
-  const meta = { base, slots: m.tuc || 0 };
-  metaCache.set(id, meta);
-  return meta;
+  if (!e) throw new Error(`unknown item ${id}`);
+  return { slots: e[4], base: e[5] || {} };
 }
 
-// Icons come from maplestory.io; hide a broken one instead of showing a torn image.
+// Hide a broken icon instead of showing a torn image.
 document.addEventListener("error", (e) => {
   if (e.target.tagName === "IMG") e.target.style.visibility = "hidden";
 }, true);
@@ -189,13 +180,11 @@ document.querySelector(".slots-left").addEventListener("click", (e) => {
 
 // ---------- scroll picker ----------
 
-const scrollIcon = (id) => `assets/scrolls/${id}.png`;
-const shortName = (s) => s.name.replace(/^(dark )?scroll for .*? for /i, (_, dark) => (dark ? "Dark " : ""));
-const scrollsForItem = () => {
-  const prefix = Math.floor(state.item.id / 10000);
-  return scrolls.filter((s) => s.target === prefix)
-    .sort((a, b) => shortName(a).localeCompare(shortName(b), undefined, { numeric: true }));
-};
+const scrollIcon = iconUrl;
+// Full names match meso.watch ("Gloves Attack Scroll: Intermediate"), so users can find them there.
+const shortName = (s) => s.name;
+const scrollOdds = (s) => `${s.success}%${s.boom ? `, ${s.boom}% boom on fail` : ""}`;
+const scrollsForItem = () => scrolls.filter((s) => s.target === Math.floor(state.item.id / 10000));
 
 function renderPicker() {
   const q = $("pickerSearch").value.trim().toLowerCase();
@@ -204,7 +193,7 @@ function renderPicker() {
     const p = getPrice(s.id);
     return `<li data-id="${s.id}" role="button" tabindex="0">
       <img src="${scrollIcon(s.id)}" alt="" />
-      <span class="nm"><b>${esc(shortName(s))}</b><small>${esc(plusList(s.stats))}${s.boom ? " · may boom" : ""}</small></span>
+      <span class="nm"><b>${esc(shortName(s))}</b><small>${esc(scrollOdds(s))} · ${esc(plusList(s.stats))}</small></span>
       <span class="pr">${p ? mesos(p.value) : ""}</span></li>`;
   }).join("") : `<li class="empty">No scrolls for this item type.</li>`;
 }
@@ -253,7 +242,7 @@ function renderRows() {
     const p = getPrice(r.scroll.id);
     return `<div class="scroll-row" data-i="${i}">
       <img src="${scrollIcon(r.scroll.id)}" alt="" />
-      <span class="nm"><b>${esc(shortName(r.scroll))}</b><small>${esc(plusList(r.scroll.stats))}</small></span>
+      <span class="nm"><b>${esc(shortName(r.scroll))}</b><small>${esc(scrollOdds(r.scroll))} · ${esc(plusList(r.scroll.stats))}</small></span>
       <span class="stepper small">
         <button type="button" class="step" data-act="minus" aria-label="One less">−</button>
         <span class="count">×${r.successes}</span>

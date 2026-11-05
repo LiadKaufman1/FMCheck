@@ -1,5 +1,5 @@
 // Scroll prices the user typed, remembered in this browser so they don't retype them next time.
-const KEY = "fmcheck-prices-v1";
+const KEY = "fmcheck-prices-v2"; // v2: Classic item ids (v1 used GMS v83 ids)
 let saved = {};
 try { saved = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch { saved = {}; }
 

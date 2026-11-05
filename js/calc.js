@@ -1,11 +1,11 @@
 // Pure math for FMCheck: stat roll ranges, scroll odds and the value estimate.
 // No DOM here, so it can be tested with `node --test`.
 
-// Item stat keys as maplestory.io names them (metaInfo.inc*), with display labels.
+// Item stat keys (WZ inc* names without "inc"), with display labels.
 export const STATS = [
   ["PAD", "ATT"], ["MAD", "M.ATT"], ["STR", "STR"], ["DEX", "DEX"], ["INT", "INT"], ["LUK", "LUK"],
   ["ACC", "ACC"], ["EVA", "AVOID"], ["Speed", "Speed"], ["Jump", "Jump"],
-  ["MHP", "HP"], ["MMP", "MP"], ["PDD", "W.DEF"], ["MDD", "M.DEF"],
+  ["MHP", "HP"], ["MMP", "MP"], ["PDD", "W.DEF"], ["MDD", "M.DEF"], ["CRT", "Crit"], ["CRD", "Crit DMG"],
 ];
 export const STAT_LABEL = Object.fromEntries(STATS);
 
