@@ -1,6 +1,6 @@
-import { iconUrl, priceLink, DONATE_URL } from "./config.js?v=dd34fafe";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, estimate, allocateFailures, mesos, UNITS, readRange } from "./calc.js?v=dd34fafe";
-import { getPrice, setPrice } from "./prices.js?v=dd34fafe";
+import { iconUrl, priceLink, DONATE_URL } from "./config.js?v=992a6641";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, estimate, allocateFailures, mesos, UNITS, readRange } from "./calc.js?v=992a6641";
+import { getPrice, setPrice } from "./prices.js?v=992a6641";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -63,17 +63,18 @@ document.addEventListener("error", (e) => {
 const search = $("itemSearch"), results = $("itemResults");
 let matches = [], active = 0;
 
+// Best matches first: name starts with it, then a word in the name starts with it, then anywhere.
 function findItems(q) {
   q = q.trim().toLowerCase();
-  if (q.length < 2) return [];
-  const starts = [], has = [];
+  if (!q) return [];
+  const starts = [], word = [], has = [];
   for (const e of equips) {
     const n = e[1].toLowerCase();
     if (n.startsWith(q)) starts.push(e);
-    else if (n.includes(q)) has.push(e);
-    if (starts.length >= 30) break;
+    else if (n.includes(" " + q) || n.includes("-" + q)) word.push(e);
+    else if (q.length > 1 && n.includes(q)) has.push(e);
   }
-  return starts.concat(has).slice(0, 30);
+  return starts.concat(word, has).slice(0, 30);
 }
 
 function showResults() {
