@@ -10,4 +10,4 @@ export const priceLink = (id, name = "") =>
   `https://meso.watch/?${new URLSearchParams(name ? { item: pad(id), q: name } : { item: pad(id) })}`;
 
 // Donate button (PayPal), e.g. "https://www.paypal.com/paypalme/yourname". Empty hides the buttons.
-export const DONATE_URL = "";
+export const DONATE_URL = "https://paypal.me/FMCheck";

@@ -1,6 +1,6 @@
-import { iconUrl, priceLink, DONATE_URL } from "./config.js?v=951c5bff";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, estimate, allocateFailures, mesos, UNITS, readRange } from "./calc.js?v=951c5bff";
-import { getPrice, setPrice } from "./prices.js?v=951c5bff";
+import { iconUrl, priceLink, DONATE_URL } from "./config.js?v=dd34fafe";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, estimate, allocateFailures, mesos, UNITS, readRange } from "./calc.js?v=dd34fafe";
+import { getPrice, setPrice } from "./prices.js?v=dd34fafe";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
