@@ -2,6 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
+  <!-- Old addresses (GitHub Pages, workers.dev) move to the real domain, keeping the saved calculation in the link. -->
+  <script>
+    if (/(\.github\.io|\.workers\.dev)$/.test(location.hostname)) location.replace("https://fmcheck.org/" + location.search + location.hash);
+  </script>
+  <link rel="canonical" href="https://fmcheck.org/" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>FMCheck · Scrolled Item Price Check</title>
   <meta name="description" content="Rough price check for scrolled MapleStory Classic items: pick an item, set its roll and scrolls, get an estimate." />
