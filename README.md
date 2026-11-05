@@ -50,6 +50,7 @@ the passed scroll types in the most likely way.
 npm start          # serves on http://localhost:8000
 npm test           # unit tests for the math
 npm run data       # rebuild data/*.json from the latest OSMS dataset
+python3 scripts/stamp.py   # after changing css/ or js/: new ?v= so browsers don't mix old and new files
 ```
 
 It's a static site (no build step), so it can be hosted as-is on GitHub Pages, Netlify or Cloudflare Pages.

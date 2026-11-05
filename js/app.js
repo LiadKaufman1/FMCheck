@@ -1,6 +1,6 @@
-import { iconUrl, priceLink } from "./config.js";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, estimate, allocateFailures, mesos, UNITS, readRange } from "./calc.js";
-import { getPrice, setPrice } from "./prices.js";
+import { iconUrl, priceLink } from "./config.js?v=edc28e0f";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, estimate, allocateFailures, mesos, UNITS, readRange } from "./calc.js?v=edc28e0f";
+import { getPrice, setPrice } from "./prices.js?v=edc28e0f";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -439,5 +439,6 @@ function readHash() {
   scrollById = new Map(sc.map((s) => [s.id, s]));
   const h = readHash();
   if (h) pickItem(h.id, h.restore);
+  else if (search.value.trim()) showResults(); // typed before the list loaded
   else search.focus();
 })();
