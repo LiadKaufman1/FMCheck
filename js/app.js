@@ -1,6 +1,6 @@
-import { iconUrl, priceLink, DONATE_URL } from "./config.js?v=33a0b101";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, mesos, UNITS, readRange } from "./calc.js?v=33a0b101";
-import { getPrice, setPrice } from "./prices.js?v=33a0b101";
+import { iconUrl, priceLink, DONATE_URL } from "./config.js?v=f012693d";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, mesos, UNITS, readRange } from "./calc.js?v=f012693d";
+import { getPrice, setPrice } from "./prices.js?v=f012693d";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -381,7 +381,7 @@ function update() {
   const groups = state.rows.map((r) => ({ successes: r.successes, stats: r.scroll.stats }));
   const fin = finalStats(state.clean, groups);
   $("final").innerHTML = STATS.filter(([k]) => fin[k]).map(([k, lbl]) => {
-    const gain = fin[k] - (state.base[k] || 0);
+    const gain = fin[k] - (state.clean[k] || 0); // what the scrolls added
     return `<span class="chip">${lbl} ${fin[k]}${gain ? ` <b>(${gain > 0 ? "+" : ""}${gain})</b>` : ""}</span>`;
   }).join("") || `<span class="hint">No stats.</span>`;
 
