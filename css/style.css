@@ -310,3 +310,12 @@ footer { color: var(--text); opacity: .8; font-size: 12px; padding-bottom: 32px;
 }
 @media (max-width: 560px) { .formula { font-size: 11px; padding: 8px; } }
 .how p { margin: 8px 0; }
+
+/* chance of an item like this */
+.odds { margin: 4px 0 14px; padding: 12px; border-radius: 12px; background: var(--accent-soft); }
+.odds:empty { display: none; }
+.odds-main { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.odds-main span { font-weight: 700; }
+.odds-main b { font: 700 22px "Fredoka", sans-serif; color: var(--accent); margin-left: auto; }
+.odds-main small { color: var(--muted); }
+.odds .breakdown { margin-top: 6px; font-size: 13px; color: var(--muted); }

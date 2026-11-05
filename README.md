@@ -19,7 +19,7 @@ so the estimate is that cost plus what the open slots are worth. The page shows 
   item × M), never below 0; mesos per stat point = (M − clean price) ÷ points gained.
 - **Estimate** = M + open slots, worked out with all "from" prices and all "to" prices for the range.
 
-Assumes a failed scroll uses up its slot (what community simulators assume; the game data doesn't say).
+A failed scroll uses up its slot (checked in game).
 
 ## Data
 

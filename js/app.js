@@ -1,6 +1,6 @@
-import { iconUrl, priceLink, DONATE_URL } from "./config.js?v=1ba3db86";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, openSlotValue, cheapestRoute, mesos, UNITS, readRange } from "./calc.js?v=1ba3db86";
-import { getPrice, setPrice } from "./prices.js?v=1ba3db86";
+import { iconUrl, priceLink, DONATE_URL } from "./config.js?v=33a0b101";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, mesos, UNITS, readRange } from "./calc.js?v=33a0b101";
+import { getPrice, setPrice } from "./prices.js?v=33a0b101";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -347,6 +347,28 @@ document.addEventListener("click", (e) => {
 
 // ---------- result ----------
 
+// Chance of an item like this: a clean drop rolls the main stat this high, and the scrolls pass like this.
+function renderOdds(failed) {
+  const box = $("odds");
+  if (failed < 0) { box.innerHTML = ""; return; }
+  const k = state.keyStat;
+  const roll = k ? rollAtLeast(k, state.base[k], state.clean[k]) : 1;
+  // Failed slots aren't entered: spread them over the passed scrolls in the most likely way.
+  const types = state.rows.map((r) => ({ successes: r.successes, success: r.scroll.success, boom: r.scroll.boom }));
+  const fails = allocateFailures(types, Math.max(0, failed));
+  const scroll = state.rows.reduce((c, r, i) => c * groupOdds(r.successes + fails[i], r.successes, r.scroll.success, r.scroll.boom), 1);
+  const chance = roll * scroll;
+  const pct = (x) => (x >= 0.995 ? "100%" : x >= 0.01 ? `${(x * 100).toFixed(1)}%` : `${(x * 100).toPrecision(2)}%`);
+  const oneIn = chance > 0 ? 1 / chance : Infinity;
+  const oneInText = oneIn < 1.05 ? "almost every try" : `1 in ${oneIn < 1e6 ? Math.round(oneIn).toLocaleString("en-US") : mesos(oneIn)}`;
+  box.innerHTML = `
+    <div class="odds-main"><span>Chance of an item like this</span><b>${pct(chance)}</b><small>${oneInText}</small></div>
+    <div class="breakdown">
+      ${k ? `<span>Clean ${STAT_LABEL[k]} ${state.clean[k]} or better</span><span>${pct(roll)}</span>` : ""}
+      <span>Scrolls pass like this${failed > 0 && state.rows.length ? ` (${failed} failed)` : ""}</span><span>${pct(scroll)}</span>
+    </div>`;
+}
+
 function update() {
   if (!state.item) return;
   const used = state.slots - state.left;
@@ -363,6 +385,7 @@ function update() {
     return `<span class="chip">${lbl} ${fin[k]}${gain ? ` <b>(${gain > 0 ? "+" : ""}${gain})</b>` : ""}</span>`;
   }).join("") || `<span class="hint">No stats.</span>`;
 
+  renderOdds(failed);
   saveHash();
   const out = $("estimate");
   if (failed < 0) { out.innerHTML = `<p class="warn">You listed more passed scrolls than used slots. Check "Slots left".</p>`; return; }
@@ -406,7 +429,7 @@ function update() {
     <div class="breakdown">
       <span>Cheapest way to make one</span><span>${rangeText(lo.cost, hi.cost)}</span>
       ${state.left > 0 ? `<span>${state.left} open slot${state.left > 1 ? "s" : ""} (room to scroll more)</span><span>${hi.open > 0 ? "+" + rangeText(lo.open, hi.open) : "+0 (more scrolls cost about what they add)"}</span>` : ""}
-      ${pointsGained ? `<span>Clean items it takes, on average</span><span>${items(lo.cleanItems)}</span>
+      ${pointsGained ? `<span>Clean items the cheapest way uses</span><span>${items(lo.cleanItems)}</span>
       <span>Scrolls per clean item</span><span>${plan || "–"}</span>` : ""}
     </div>
     ${unpriced.length ? `<p class="warn">No price for ${unpriced.join(", ")}: left out of the cheapest way.</p>` : ""}`;

@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=1ba3db86" />
+  <link rel="stylesheet" href="css/style.css?v=33a0b101" />
 </head>
 <body>
   <!-- Moving background: meso drops, Maple items and monsters floating up. Stars at night (dark mode). -->
@@ -99,6 +99,7 @@
     <section class="card result" id="resultCard" hidden>
       <h2><b>4</b> Estimate</h2>
       <div id="final" class="final"></div>
+      <div id="odds" class="odds"></div>
       <div id="estimate" class="estimate"></div>
       <details class="how">
         <summary>How is this worked out?</summary>
@@ -140,13 +141,24 @@ per open slot = the best scroll's
 
 open slots = per open slot × open slots</pre>
 
+        <p><b>Chance of an item like this</b> (doesn't need prices)</p>
+        <pre class="formula">clean roll = (max − value + 1) ÷ (max − min + 1)
+  for the main stat; range = base ± min(ceil(10% of base), 5)
+
+scrolls = for each scroll you entered:
+  sum over k ≥ passed of
+    C(used, k) × p^k × ((1 − p) × (1 − boom))^(used − k)
+  failed slots go to the scrolls most likely to have failed
+
+chance = clean roll × scrolls</pre>
+
         <p><b>3. Estimate</b></p>
         <pre class="formula">estimate = M + open slots</pre>
         <p>It's worked out once with every "from" price and once with every "to" price, which gives the range.</p>
 
         <p><b>Scroll rates in MapleStory Classic</b>: Lesser 100% (+1), Intermediate 60% (+2), Greater 10% (+3; +4 weapon attack),
           Chaos 10% (+4; +5 weapon attack) and half of Chaos failures destroy the item. Exact gains per scroll come from the game data.</p>
-        <p><b>Assumptions.</b> A failed scroll uses up its slot (what the community's simulators assume; the game data doesn't say).
+        <p><b>Assumptions.</b> A failed scroll uses up its slot (checked in game).
           Dropped or destroyed items count as worth nothing, so the estimate leans a little high.
           The clean price you enter already covers how good the clean roll is.
           Real sales can land above or below this: treat it as a ballpark and check what similar items sold for.</p>
@@ -165,6 +177,6 @@ open slots = per open slot × open slots</pre>
   </footer>
 
   <div id="toast" class="toast" role="status" hidden></div>
-  <script type="module" src="js/app.js?v=1ba3db86"></script>
+  <script type="module" src="js/app.js?v=33a0b101"></script>
 </body>
 </html>
