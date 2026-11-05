@@ -1,7 +1,8 @@
 // Item and scroll data: OSMS Data Explorer (https://osmsdataexplorer.com, CC BY 4.0, by @ohmi),
-// built into data/*.json by scripts/build_data.py. Icons load from the same site.
+// built into data/*.json by scripts/build_data.py. Icons are copied into assets/items/ by scripts/fetch_icons.py,
+// so the site doesn't load them from osmsdataexplorer.com on every visit.
 const pad = (id) => String(id).padStart(8, "0");
-export const iconUrl = (id) => `https://osmsdataexplorer.com/data/current/images/items/${pad(id)}.png`;
+export const iconUrl = (id) => `assets/items/${pad(id)}.png`;
 
 // Where each "check price" link goes. Users look prices up there and type them in;
 // the site itself reads nothing from meso.watch. meso.watch writes ids as 8 digits (01082000).

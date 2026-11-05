@@ -31,7 +31,7 @@ extracted from the game client. `scripts/build_data.py` turns it into:
 - `data/scrolls.json`: every scroll, with success rate, destroy rate (Chaos scrolls) and stat gains
 - `data/source.json`: the client build and date of the data
 
-Icons load from osmsdataexplorer.com. Item ids and names match meso.watch, so "check price" opens the right item there.
+Icons are copied into `assets/items/` by `scripts/fetch_icons.py`, so visits don't load them from osmsdataexplorer.com. Item ids and names match meso.watch, so "check price" opens the right item there.
 
 > Data from OSMS Data Explorer (https://osmsdataexplorer.com), CC BY 4.0. Game content © Nexon.
 
@@ -50,6 +50,7 @@ the passed scroll types in the most likely way.
 npm start          # serves on http://localhost:8000
 npm test           # unit tests for the math
 npm run data       # rebuild data/*.json from the latest OSMS dataset
+python3 scripts/fetch_icons.py   # copy any new item/scroll icons into assets/items/
 python3 scripts/stamp.py   # after changing css/ or js/: new ?v= so browsers don't mix old and new files
 ```
 

@@ -1,0 +1,10 @@
+# Cloudflare Pages caching (GitHub Pages ignores this file).
+# css/js links carry ?v=<version> (scripts/stamp.py), so a new version is a new address.
+/assets/*
+  Cache-Control: public, max-age=604800
+/css/*
+  Cache-Control: public, max-age=86400
+/js/*
+  Cache-Control: public, max-age=86400
+/data/*
+  Cache-Control: public, max-age=3600
