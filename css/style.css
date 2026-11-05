@@ -320,3 +320,9 @@ footer { color: var(--text); opacity: .8; font-size: 12px; padding-bottom: 32px;
 .odds-main b { font: 700 22px "Fredoka", sans-serif; color: var(--accent); margin-left: auto; }
 .odds-main small { color: var(--muted); }
 .odds .breakdown { margin-top: 6px; font-size: 13px; color: var(--muted); }
+
+/* result card */
+.card-wrap { display: grid; justify-items: center; gap: 10px; margin: 4px 0 16px; }
+.item-card { width: 100%; max-width: 360px; height: auto; border-radius: 12px; box-shadow: 0 10px 28px rgba(20, 27, 68, .35); }
+.card-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.ghost-btn { background: var(--accent-soft); color: var(--accent); }

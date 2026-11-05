@@ -1,6 +1,7 @@
-import { iconUrl, priceLink, DONATE_URL } from "./config.js?v=57278a73";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, mesos, UNITS, readRange } from "./calc.js?v=57278a73";
-import { getPrice, setPrice } from "./prices.js?v=57278a73";
+import { iconUrl, priceLink, DONATE_URL } from "./config.js?v=b3dfb403";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, mesos, UNITS, readRange } from "./calc.js?v=b3dfb403";
+import { getPrice, setPrice } from "./prices.js?v=b3dfb403";
+import { drawCard, cardBlob } from "./card.js?v=b3dfb403";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -351,7 +352,7 @@ document.addEventListener("click", (e) => {
 // Chance of an item like this: a clean drop rolls the main stat this high, and the scrolls pass like this.
 function renderOdds(failed) {
   const box = $("odds");
-  if (failed < 0) { box.innerHTML = ""; return; }
+  if (failed < 0) { box.innerHTML = ""; return null; }
   const k = state.keyStat;
   const roll = k ? rollAtLeast(k, state.base[k], state.clean[k]) : 1;
   // Failed slots aren't entered: spread them over the passed scrolls in the most likely way.
@@ -368,6 +369,7 @@ function renderOdds(failed) {
       ${k ? `<span>Clean ${STAT_LABEL[k]} ${state.clean[k]} or better</span><span>${pct(roll)}</span>` : ""}
       <span>Scrolls pass like this${failed > 0 && state.rows.length ? ` (${failed} failed)` : ""}</span><span>${pct(scroll)}</span>
     </div>`;
+  return { chance, oneIn };
 }
 
 function update() {
@@ -381,16 +383,17 @@ function update() {
 
   const groups = state.rows.map((r) => ({ successes: r.successes, stats: r.scroll.stats }));
   const fin = finalStats(state.clean, groups);
-  $("final").innerHTML = STATS.filter(([k]) => fin[k]).map(([k, lbl]) => {
-    const gain = fin[k] - (state.clean[k] || 0); // what the scrolls added
-    return `<span class="chip">${lbl} ${fin[k]}${gain ? ` <b>(${gain > 0 ? "+" : ""}${gain})</b>` : ""}</span>`;
-  }).join("") || `<span class="hint">No stats.</span>`;
 
-  renderOdds(failed);
+  const odds = renderOdds(failed);
   saveHash();
+  const price = failed < 0 ? null : renderEstimate(used);
+  renderCard(fin, odds, price);
+}
+
+// The price estimate; returns { lo, hi } or null when it can't be worked out yet.
+function renderEstimate(used) {
   const out = $("estimate");
-  if (failed < 0) { out.innerHTML = `<p class="warn">You listed more passed scrolls than used slots. Check "Slots left".</p>`; return; }
-  if (!cleanPrice) { out.innerHTML = `<p class="hint">Enter the clean item price (step 1) to get an estimate.</p>`; return; }
+  if (!cleanPrice) { out.innerHTML = `<p class="hint">Enter the clean item price (step 1) to get an estimate.</p>`; return null; }
 
   // What the item gained, per scroll family, and the scrolls the user entered (with a price).
   const needs = {};
@@ -416,7 +419,7 @@ function update() {
   const unpriced = state.rows.filter((r) => !getPrice(r.scroll.id)).map((r) => esc(shortName(r.scroll)));
   if (!lo || !hi) {
     out.innerHTML = `<p class="hint">${unpriced.length ? `Enter a price for ${unpriced.join(", ")} to get an estimate.` : "Enter the scroll prices to get an estimate."}</p>`;
-    return;
+    return null;
   }
 
   const byId = new Map(scrolls.map((sc) => [sc.id, sc]));
@@ -425,8 +428,7 @@ function update() {
   const pct = (x) => (x >= 0.995 ? "100%" : x >= 0.01 ? `${(x * 100).toFixed(1)}%` : `${(x * 100).toPrecision(2)}%`);
   const items = (n) => (n < 1e6 ? (n < 10 ? n.toFixed(1) : Math.round(n).toLocaleString("en-US")) : mesos(n));
   out.innerHTML = `
-    <div class="big">${lo.value === hi.value ? "≈ " : ""}${rangeText(lo.value, hi.value)}</div>
-    <div class="range">${lo.value === hi.value ? "from the prices you entered" : `midpoint ≈ ${mesos((lo.value + hi.value) / 2)}`}</div>
+    <p class="label">Price breakdown${lo.value === hi.value ? "" : ` · midpoint ≈ ${mesos((lo.value + hi.value) / 2)}`}</p>
     <div class="breakdown">
       <span>Cheapest way to make one</span><span>${rangeText(lo.cost, hi.cost)}</span>
       ${state.left > 0 ? `<span>${state.left} open slot${state.left > 1 ? "s" : ""} (room to scroll more)</span><span>${hi.open > 0 ? "+" + rangeText(lo.open, hi.open) : "+0 (more scrolls cost about what they add)"}</span>` : ""}
@@ -434,7 +436,68 @@ function update() {
       <span>Scrolls per clean item</span><span>${plan || "–"}</span>` : ""}
     </div>
     ${unpriced.length ? `<p class="warn">No price for ${unpriced.join(", ")}: left out of the cheapest way.</p>` : ""}`;
+  return { lo: lo.value, hi: hi.value };
 }
+
+// ---------- result card (in-game tooltip style) ----------
+
+const GAME_LABEL = { STR: "STR", DEX: "DEX", INT: "INT", LUK: "LUK", MHP: "MaxHP", MMP: "MaxMP", PAD: "Weapon Att.",
+  MAD: "Magic Att.", PDD: "Weapon Def.", MDD: "Magic Def.", ACC: "Accuracy", EVA: "Avoidability", Speed: "Speed",
+  Jump: "Jump", CRT: "Critical Rate", CRD: "Critical Damage" };
+const GAME_ORDER = ["STR", "DEX", "INT", "LUK", "MHP", "MMP", "PAD", "MAD", "PDD", "MDD", "ACC", "EVA", "Speed", "Jump", "CRT", "CRD"];
+const cardFmt = {
+  range: (lo, hi) => rangeText(lo, hi),
+  pct: (x) => (x >= 0.995 ? "100%" : x >= 0.01 ? `${(x * 100).toFixed(1)}%` : `${(x * 100).toPrecision(2)}%`),
+  oneIn: (n) => (n < 1.05 ? "almost every try" : `1 in ${n < 1e6 ? Math.round(n).toLocaleString("en-US") : mesos(n)}`),
+};
+
+function renderCard(fin, odds, price) {
+  const e = equips.find((x) => x[0] === state.item.id) || [];
+  const extra = e[6] || {};
+  drawCard($("card"), {
+    name: state.item.name,
+    upgrades: passedTotal(),
+    icon: icon(state.item.id),
+    level: state.item.level || 0,
+    req: extra.req || [0, 0, 0, 0],
+    jobs: extra.jobs || null,
+    type: state.item.cat,
+    stats: GAME_ORDER.filter((k) => fin[k]).map((k) => ({
+      label: GAME_LABEL[k], total: fin[k], base: state.clean[k] || 0, gain: fin[k] - (state.clean[k] || 0),
+    })),
+    left: state.left,
+    price,
+    chance: odds ? odds.chance : 1,
+    oneIn: odds ? odds.oneIn : 1,
+    scrolls: state.rows.map((r) => ({ n: r.successes, name: shortName(r.scroll) })),
+    footer: "Estimate · not a guaranteed price",
+  }, cardFmt);
+}
+
+const cardFile = async () => {
+  const blob = await cardBlob($("card"));
+  return new File([blob], `fmcheck-${state.item.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.png`, { type: "image/png" });
+};
+$("cardDownload").addEventListener("click", async () => {
+  const f = await cardFile();
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(f);
+  a.download = f.name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+});
+$("cardCopy").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.write([new ClipboardItem({ "image/png": cardBlob($("card")) })]);
+    toast("Image copied. Paste it in Discord or anywhere.");
+  } catch { toast("Couldn't copy here. Use Download instead."); }
+});
+$("cardShare").addEventListener("click", async () => {
+  const f = await cardFile();
+  try { await navigator.share({ files: [f], title: `${state.item.name} · FMCheck`, url: location.href }); }
+  catch { /* closed or not supported */ }
+});
+if (!(navigator.canShare && navigator.canShare({ files: [new File([""], "x.png", { type: "image/png" })] }))) $("cardShare").hidden = true;
 
 // ---------- shareable address: #i=<id>&r=PAD.50,STR.3&l=2&s=2043001.5,... ----------
 

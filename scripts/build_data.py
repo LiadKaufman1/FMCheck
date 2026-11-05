@@ -4,7 +4,8 @@
 Source: OSMS Data Explorer public dataset, https://osmsdataexplorer.com (CC BY 4.0, credit @ohmi).
 Docs: https://osmsdataexplorer.com/data/api/v1/README.md
 
-  data/equips.json   equips that take scrolls: [id, name, reqLevel, type, slots, {stat: base}]
+  data/equips.json   equips that take scrolls: [id, name, reqLevel, type, slots, {stat: base}, extra]
+                     extra: {"req": [STR, DEX, INT, LUK], "jobs": ["Thief", ...]}; jobs left out = every class
   data/scrolls.json  scrolls: id, name, tier, success %, boom %, stat gains, target item prefix
   data/source.json   which client build and dataset date the files came from
 
@@ -60,7 +61,13 @@ def main():
         if it.get("category") != "Equipment" or not st.get("tuc"):
             continue
         kind = (it.get("weapon") or {}).get("type") or it.get("sub_category") or ""
-        equips.append([it["id"], it["name"].strip(), st.get("reqLevel", 0), kind, st["tuc"], stats_of(st)])
+        extra = {}
+        req = [int(st.get(k) or 0) for k in ("reqSTR", "reqDEX", "reqINT", "reqLUK")]
+        if any(req):
+            extra["req"] = req
+        if it.get("req_classes"):
+            extra["jobs"] = it["req_classes"]
+        equips.append([it["id"], it["name"].strip(), st.get("reqLevel", 0), kind, st["tuc"], stats_of(st), extra])
     equips.sort(key=lambda e: (e[1].lower(), e[0]))
 
     prefixes = {e[0] // 10000 for e in equips}

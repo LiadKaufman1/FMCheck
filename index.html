@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=57278a73" />
+  <link rel="stylesheet" href="css/style.css?v=b3dfb403" />
 </head>
 <body>
   <!-- Moving background: meso drops, Maple items and monsters floating up. Stars at night (dark mode). -->
@@ -98,7 +98,14 @@
     <!-- 4. Result -->
     <section class="card result" id="resultCard" hidden>
       <h2><b>4</b> Estimate</h2>
-      <div id="final" class="final"></div>
+      <div class="card-wrap">
+        <canvas id="card" class="item-card" aria-label="Item card with the estimate"></canvas>
+        <div class="card-actions">
+          <button id="cardDownload" type="button">⬇ Download image</button>
+          <button id="cardCopy" type="button" class="ghost-btn">Copy image</button>
+          <button id="cardShare" type="button" class="ghost-btn">Share</button>
+        </div>
+      </div>
       <div id="odds" class="odds"></div>
       <div id="estimate" class="estimate"></div>
       <details class="how">
@@ -177,6 +184,6 @@ chance = clean roll × scrolls</pre>
   </footer>
 
   <div id="toast" class="toast" role="status" hidden></div>
-  <script type="module" src="js/app.js?v=57278a73"></script>
+  <script type="module" src="js/app.js?v=b3dfb403"></script>
 </body>
 </html>
