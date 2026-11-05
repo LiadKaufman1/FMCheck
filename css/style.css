@@ -409,3 +409,11 @@ html.a11y-contrast .card { box-shadow: none; }
   html.a11y-contrast { --text: #fff; --muted: #e5e5e5; --line: #bbb; --accent-text: #ffc285; --card: #000; --bg: #111; --card-edge: #fff; }
   html.a11y-contrast .sky { background: #000; }
 }
+
+/* Bigger on computer screens: the whole page content (not the background) is scaled up. */
+@media (min-width: 900px) {
+  .top, main, footer { zoom: 1.2; }
+}
+@media (min-width: 1400px) {
+  .top, main, footer { zoom: 1.32; }
+}
