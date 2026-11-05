@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=ecf88295" />
+  <link rel="stylesheet" href="css/style.css?v=55f48da3" />
 </head>
 <body>
   <!-- Moving background: meso drops, Maple items and monsters floating up. Stars at night (dark mode). -->
@@ -106,6 +106,8 @@
           One try = a clean item with these stats plus the same scrolls. A try works only if the scrolls pass
           at least as many times (dark scrolls can also destroy the item). Failed slots are worked out from the slots left.</p>
         <p><code>estimate = (clean price + scroll cost) ÷ chance a try works</code></p>
+        <p>Open slots add value: the buyer can still scroll them. Each one is counted as one more scroll of the type
+          that passed most: chance it passes × what it adds × what a stat point is worth on this item − the scroll's price.</p>
         <p>It's worked out once with every "from" price and once with every "to" price, which gives the range.</p>
         <p>Players don't always sell at rebuild cost, so treat it as a ballpark, and check what similar items sell for.</p>
       </details>
@@ -123,6 +125,6 @@
   </footer>
 
   <div id="toast" class="toast" role="status" hidden></div>
-  <script type="module" src="js/app.js?v=ecf88295"></script>
+  <script type="module" src="js/app.js?v=55f48da3"></script>
 </body>
 </html>

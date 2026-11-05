@@ -151,3 +151,17 @@ export function readRange(from, to, unit) {
   if (!Number.isFinite(hi)) hi = lo;
   return lo <= hi ? { lo, hi } : { lo: hi, hi: lo };
 }
+
+// What the open slots add: the buyer can still scroll them.
+// Each open slot is valued as one more scroll of the reference type (the passed scroll used most):
+//   per slot = chance it passes × stat it adds × mesos per stat point − scroll price   (never below 0)
+// Mesos per stat point comes from this item's own estimate: (estimate − clean price) ÷ stat points gained.
+// ref: { success, boom, points (stat points one pass adds), price }
+export function openSlotValue({ value, cleanPrice, pointsGained, slotsLeft, ref }) {
+  if (!ref || slotsLeft <= 0 || pointsGained <= 0 || !Number.isFinite(value)) return { perPoint: 0, perSlot: 0, total: 0 };
+  const perPoint = Math.max(0, (value - cleanPrice) / pointsGained);
+  // A Chaos scroll that booms loses the whole item, so count that loss too.
+  const boomLoss = (1 - ref.success / 100) * ((ref.boom || 0) / 100) * value;
+  const perSlot = Math.max(0, (ref.success / 100) * ref.points * perPoint - ref.price - boomLoss);
+  return { perPoint, perSlot, total: perSlot * slotsLeft };
+}

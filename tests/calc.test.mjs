@@ -74,3 +74,16 @@ test("price ranges", () => {
   assert.deepEqual(readRange("2", "1.8", "m"), { lo: 1.8e6, hi: 2e6 });  // reversed gets sorted
   assert.equal(readRange("", "", "m"), null);
 });
+
+import { openSlotValue } from "../js/calc.js";
+test("open slots add value", () => {
+  // 10m item from a 2m clean, +8 gained -> 1m per point. Intermediate: 60% × 2 points × 1m − 0.4m = 0.8m per slot.
+  const r = openSlotValue({ value: 10e6, cleanPrice: 2e6, pointsGained: 8, slotsLeft: 2, ref: { success: 60, points: 2, price: 4e5 } });
+  assert.equal(Math.round(r.perSlot), 800000);
+  assert.equal(Math.round(r.total), 1600000);
+  // no open slots or nothing passed: nothing added
+  assert.equal(openSlotValue({ value: 10e6, cleanPrice: 2e6, pointsGained: 8, slotsLeft: 0, ref: { success: 60, points: 2, price: 4e5 } }).total, 0);
+  assert.equal(openSlotValue({ value: 2e6, cleanPrice: 2e6, pointsGained: 0, slotsLeft: 3, ref: null }).total, 0);
+  // a scroll too pricey for what it adds is worth 0, not negative
+  assert.equal(openSlotValue({ value: 3e6, cleanPrice: 2e6, pointsGained: 8, slotsLeft: 1, ref: { success: 60, points: 2, price: 5e6 } }).total, 0);
+});

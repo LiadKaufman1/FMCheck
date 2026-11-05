@@ -1,6 +1,6 @@
-import { iconUrl, priceLink, DONATE_URL } from "./config.js?v=ecf88295";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, estimate, allocateFailures, mesos, UNITS, readRange } from "./calc.js?v=ecf88295";
-import { getPrice, setPrice } from "./prices.js?v=ecf88295";
+import { iconUrl, priceLink, DONATE_URL } from "./config.js?v=55f48da3";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, estimate, allocateFailures, openSlotValue, mesos, UNITS, readRange } from "./calc.js?v=55f48da3";
+import { getPrice, setPrice } from "./prices.js?v=55f48da3";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -374,10 +374,22 @@ function update() {
   const missing = state.rows.filter((r) => !getPrice(r.scroll.id));
   // Work it out twice: with every "from" price, then with every "to" price.
   // The clean price already reflects the rolled stats, so the roll's rarity isn't counted again.
-  const run = (end) => estimate({
-    cleanPrice: cleanPrice ? cleanPrice[end] : 0, roll: null,
-    groups: groups.map((g, i) => ({ ...g, price: getPrice(state.rows[i].scroll.id)?.[end] || 0 })),
-  });
+  // Open slots: valued as more scrolls of the type that passed most (see openSlotValue).
+  const points = (sc) => Object.values(sc.stats).reduce((a, b) => a + b, 0);
+  const pointsGained = state.rows.reduce((n, r) => n + r.successes * points(r.scroll), 0);
+  const refRow = state.rows.slice().sort((a, b) => b.successes - a.successes)[0];
+  const run = (end) => {
+    const base = estimate({
+      cleanPrice: cleanPrice ? cleanPrice[end] : 0, roll: null,
+      groups: groups.map((g, i) => ({ ...g, price: getPrice(state.rows[i].scroll.id)?.[end] || 0 })),
+    });
+    const open = openSlotValue({
+      value: base.value, cleanPrice: cleanPrice ? cleanPrice[end] : 0, pointsGained, slotsLeft: state.left,
+      ref: refRow && { success: refRow.scroll.success, boom: refRow.scroll.boom, points: points(refRow.scroll),
+        price: getPrice(refRow.scroll.id)?.[end] || 0 },
+    });
+    return { ...base, made: base.value, open: open.total, value: base.value + open.total };
+  };
   const lo = run("lo"), hi = run("hi"), res = lo;
   if (!cleanPrice) {
     out.innerHTML = `<p class="hint">Enter the clean item price (step 1) to get an estimate.</p>`;
@@ -391,6 +403,8 @@ function update() {
     <div class="big">${lo.value === hi.value ? "≈ " : ""}${rangeText(lo.value, hi.value)}</div>
     <div class="range">${lo.value === hi.value ? "from the prices you entered" : `midpoint ≈ ${mesos((lo.value + hi.value) / 2)}`}</div>
     <div class="breakdown">
+      <span>Cost to make it</span><span>${rangeText(lo.made, hi.made)}</span>
+      ${state.left > 0 ? `<span>${state.left} open slot${state.left > 1 ? "s" : ""} (room to scroll more)</span><span>${hi.open > 0 ? "+" + rangeText(lo.open, hi.open) : refRow ? "+0" : "add a passed scroll to value"}</span>` : ""}
       <span>One try (clean + scrolls)</span><span>${rangeText(lo.tryCost, hi.tryCost)}</span>
       ${failedNote}
       <span>Scrolls pass like this</span><span>${pct(res.scrollChance)}</span>
