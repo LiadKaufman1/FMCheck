@@ -5,4 +5,6 @@ export const iconUrl = (id) => `https://osmsdataexplorer.com/data/current/images
 
 // Where each "check price" link goes. Users look prices up there and type them in;
 // the site itself reads nothing from meso.watch. meso.watch writes ids as 8 digits (01082000).
-export const priceLink = (id) => `https://meso.watch/?item=${pad(id)}`;
+// q asks meso.watch to filter its list by name; it may ignore it, so the page also copies the name.
+export const priceLink = (id, name = "") =>
+  `https://meso.watch/?${new URLSearchParams(name ? { item: pad(id), q: name } : { item: pad(id) })}`;

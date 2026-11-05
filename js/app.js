@@ -250,7 +250,7 @@ function renderRows() {
       </span>
       <span class="row-price price-input">
         <input inputmode="decimal" placeholder="Price each, e.g. 2m" aria-label="Price each" value="${p ? mesos(p.value) : ""}" data-f="price" />
-        <a href="${priceLink(r.scroll.id, r.scroll.name)}" target="_blank" rel="noopener">check price ↗</a></span>
+        <a href="${priceLink(r.scroll.id, r.scroll.name)}" data-name="${esc(r.scroll.name)}" target="_blank" rel="noopener">check price ↗</a></span>
       </div>`;
   }).join("");
 }
@@ -288,10 +288,30 @@ function renderCleanPrice() {
   cleanPrice = NaN;
   $("cleanPrice").value = "";
   $("cleanLink").href = priceLink(state.item.id, state.item.name);
+  $("cleanLink").dataset.name = state.item.name;
 }
 $("cleanPrice").addEventListener("input", (e) => {
   cleanPrice = parseMesos(e.target.value);
   update();
+});
+
+// ---------- check price: also copy the name for meso.watch's filter ----------
+
+let toastTimer;
+function toast(text) {
+  const t = $("toast");
+  t.textContent = text;
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => (t.hidden = true), 6000);
+}
+document.addEventListener("click", (e) => {
+  const a = e.target.closest("a[data-name]");
+  if (!a) return;
+  // The link still opens; copying runs alongside it.
+  navigator.clipboard?.writeText(a.dataset.name)
+    .then(() => toast(`"${a.dataset.name}" copied. On meso.watch press / and paste.`))
+    .catch(() => {});
 });
 
 // ---------- result ----------

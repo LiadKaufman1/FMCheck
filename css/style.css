@@ -153,6 +153,11 @@ button.ghost { background: transparent; color: var(--muted); padding: 4px 8px; }
 .how summary { cursor: pointer; }
 .how code { background: var(--bg); padding: 2px 6px; border-radius: 4px; }
 
+.toast {
+  position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 20;
+  max-width: calc(100% - 32px); padding: 10px 14px; border-radius: 10px;
+  background: var(--text); color: var(--bg); font-size: 14px; box-shadow: 0 8px 24px rgba(0, 0, 0, .2);
+}
 footer { color: var(--muted); font-size: 12px; padding-bottom: 32px; }
 
 @media (max-width: 480px) {
