@@ -35,6 +35,7 @@
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
+html, body { overflow-x: hidden; }
 body {
   margin: 0;
   min-height: 100vh;
@@ -281,3 +282,24 @@ footer { color: var(--text); opacity: .8; font-size: 12px; padding-bottom: 32px;
 .donate:active { translate: 0 2px; box-shadow: 0 1px 0 #d9a21b; }
 .top .donate { position: absolute; right: 16px; top: 36px; }
 @media (max-width: 480px) { .top .donate { position: static; margin-top: 12px; } }
+
+/* ---------- phones ---------- */
+@media (max-width: 560px) {
+  /* 16px keeps iPhone Safari from zooming in when a box is tapped (and then needing a sideways scroll). */
+  input, select, button { font-size: 16px; }
+  .top, main, footer { padding: 0 12px; }
+  .top { padding-top: 20px; }
+  .card { padding: 14px; margin: 12px 0; }
+  .price-input { flex-wrap: wrap; }
+  .price-input .range-fields { flex: 1 1 100%; }
+  .row-price { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .row-price input { flex: 1 1 0; }
+  .price-input > a { flex: 1 1 100%; text-align: right; }
+  .scroll-row { grid-template-columns: 32px 1fr auto; padding: 8px; }
+  .roll { grid-template-columns: 54px 1fr 48px; gap: 8px; }
+  .results .meta { display: none; }
+  .breakdown { font-size: 14px; grid-template-columns: max-content minmax(0, 1fr); }
+  .breakdown span:nth-child(even) { overflow-wrap: anywhere; }
+  .float:nth-of-type(2n) { display: none; } /* fewer floaters on a small screen */
+  .float { opacity: .6; }
+}
