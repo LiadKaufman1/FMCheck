@@ -28,10 +28,9 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="64x64" href="assets/favicon-64.png" />
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=aab8d501" />
+  <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="css/style.css?v=757e2e3f" />
 </head>
 <body>
   <!-- Moving background: meso drops, Maple items and monsters floating up. Stars at night (dark mode). -->
@@ -72,7 +71,7 @@
       <a class="discord" data-discord href="https://discord.gg/hWYs9vxhRv" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M5 5.5C7 4.4 9 4 9 4l.6 1.2a15 15 0 0 1 4.8 0L15 4s2 .4 4 1.5c2 3 2.6 6.4 2.4 10.5-1.6 1.3-3.3 2-5 2.5l-1-1.7c.7-.3 1.3-.6 1.9-1-3.8 1.8-8.8 1.8-12.6 0 .6.4 1.2.7 1.9 1l-1 1.7c-1.7-.5-3.4-1.2-5-2.5C2.4 11.9 3 8.5 5 5.5Z"/><circle cx="9" cy="12" r="1.6" fill="#5865f2"/><circle cx="15" cy="12" r="1.6" fill="#5865f2"/></svg>
         Discord</a>
-      <a class="donate" data-donate hidden target="_blank" rel="noopener">☕ Support FMCheck</a>
+      <a class="donate" data-donate hidden target="_blank" rel="noopener" title="Voluntary, helps cover the site's running costs">☕ Support FMCheck</a>
     </div>
   </header>
 
@@ -203,15 +202,15 @@ chance = clean roll × scrolls</pre>
     <p class="community">💬 Ideas or bugs? <a data-discord href="https://discord.gg/hWYs9vxhRv" target="_blank" rel="noopener">Join the FMCheck Discord</a>
       to suggest a feature or report a bug.</p>
     <p>Prices you type are remembered in this browser.
-      <a data-donate hidden target="_blank" rel="noopener">Enjoying FMCheck? Support it on PayPal.</a></p>
+      <a data-donate hidden target="_blank" rel="noopener">Enjoying FMCheck? Help cover its running costs on PayPal.</a></p>
     <p>Item and scroll data and icons from <a href="https://osmsdataexplorer.com" target="_blank" rel="noopener">OSMS Data Explorer</a>
       by @ohmi, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>.
       Look up prices on <a href="https://meso.watch" target="_blank" rel="noopener">meso.watch</a>.
       Game content © Nexon. Not affiliated with Nexon.</p>
-    <p>© 2026 Liad Kaufman. All rights reserved.</p>
+    <p>© 2026 Liad Kaufman. All rights reserved. · <a href="terms.html">Terms & Privacy</a></p>
   </footer>
 
   <div id="toast" class="toast" role="status" hidden></div>
-  <script type="module" src="js/app.js?v=aab8d501"></script>
+  <script type="module" src="js/app.js?v=757e2e3f"></script>
 </body>
 </html>

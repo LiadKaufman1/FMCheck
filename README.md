@@ -60,3 +60,9 @@ It's a static site (no build step), so it can be hosted as-is on GitHub Pages, N
 
 © 2026 Liad Kaufman. All rights reserved. See `LICENSE`.
 Not open source: the code may not be copied or reused without written permission.
+
+## Terms, privacy and third-party content
+
+`terms.html` holds the terms of use and privacy notice (linked in the footer). The site loads nothing from
+third parties: fonts (Fredoka, Nunito, OFL) are in `assets/fonts/`, icons in `assets/items/`.
+Visit counts come from Cloudflare Web Analytics (cookieless).

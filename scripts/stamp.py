@@ -24,7 +24,7 @@ for f in files:  # hash without stamps, so stamping doesn't change the hash
     h.update(unstamped(open(f).read()).encode())
 v = h.hexdigest()[:8]
 
-for f in [os.path.join(ROOT, "index.html")] + glob.glob(os.path.join(ROOT, "js", "*.js")):
+for f in glob.glob(os.path.join(ROOT, "*.html")) + glob.glob(os.path.join(ROOT, "js", "*.js")):
     text = open(f).read()
     if f.endswith(".js"):  # only rewrite import lines in modules
         new = re.sub(r'^(import .* from "\./[\w-]+)\.js(?:\?v=[0-9a-f]+)?(";)$', rf'\1.js?v={v}\2', text, flags=re.M)
