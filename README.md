@@ -54,3 +54,8 @@ python3 scripts/stamp.py   # after changing css/ or js/: new ?v= so browsers don
 ```
 
 It's a static site (no build step), so it can be hosted as-is on GitHub Pages, Netlify or Cloudflare Pages.
+
+## License
+
+© 2026 Liad Kaufman. All rights reserved. See `LICENSE`.
+Not open source: the code may not be copied or reused without written permission.
