@@ -11,13 +11,27 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=697b4b65" />
+  <link rel="stylesheet" href="css/style.css?v=645a0538" />
 </head>
 <body>
-  <!-- Moving sky behind the page: clouds drift by; stars at night (dark mode). -->
+  <!-- Moving background: bubbles, mesos and Maple monsters floating up. Stars at night (dark mode). -->
   <div class="sky" aria-hidden="true">
-    <span class="cloud c1"></span><span class="cloud c2"></span><span class="cloud c3"></span>
-    <span class="cloud c4"></span><span class="cloud c5"></span>
+    <span class="float bubble" style="--x:4%;--w:26px;--d:19s;--delay:-3s"></span>
+    <span class="float" style="--x:11%;--w:30px;--d:23s;--delay:-14s"><img src="assets/float/coin.svg" alt="" /></span>
+    <span class="float" style="--x:19%;--w:56px;--d:31s;--delay:-6s"><img src="assets/float/orange-mushroom.png" alt="" /></span>
+    <span class="float bubble" style="--x:27%;--w:16px;--d:16s;--delay:-9s"></span>
+    <span class="float" style="--x:34%;--w:50px;--d:27s;--delay:-20s"><img src="assets/float/bill.svg" alt="" /></span>
+    <span class="float" style="--x:43%;--w:58px;--d:34s;--delay:-25s"><img src="assets/float/slime.png" alt="" /></span>
+    <span class="float bubble" style="--x:51%;--w:34px;--d:22s;--delay:-1s"></span>
+    <span class="float" style="--x:58%;--w:24px;--d:20s;--delay:-8s"><img src="assets/float/coin.svg" alt="" /></span>
+    <span class="float" style="--x:66%;--w:40px;--d:29s;--delay:-17s"><img src="assets/float/bag.svg" alt="" /></span>
+    <span class="float bubble" style="--x:73%;--w:20px;--d:18s;--delay:-12s"></span>
+    <span class="float" style="--x:80%;--w:56px;--d:36s;--delay:-2s"><img src="assets/float/pig.png" alt="" /></span>
+    <span class="float" style="--x:88%;--w:34px;--d:25s;--delay:-22s"><img src="assets/float/coin.svg" alt="" /></span>
+    <span class="float" style="--x:94%;--w:48px;--d:33s;--delay:-29s"><img src="assets/float/green-mushroom.png" alt="" /></span>
+    <span class="float bubble" style="--x:62%;--w:12px;--d:15s;--delay:-5s"></span>
+    <span class="float" style="--x:23%;--w:34px;--d:28s;--delay:-30s"><img src="assets/float/blue-snail.png" alt="" /></span>
+    <span class="float" style="--x:86%;--w:42px;--d:30s;--delay:-11s"><img src="assets/float/bill.svg" alt="" /></span>
     <span class="stars"></span>
   </div>
 
@@ -100,6 +114,6 @@
   </footer>
 
   <div id="toast" class="toast" role="status" hidden></div>
-  <script type="module" src="js/app.js?v=697b4b65"></script>
+  <script type="module" src="js/app.js?v=645a0538"></script>
 </body>
 </html>
