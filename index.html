@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <!-- Old addresses (GitHub Pages, workers.dev) move to the real domain, keeping the saved calculation in the link. -->
+  <!-- Old addresses (GitHub Pages, workers.dev) and www move to fmcheck.org, keeping the saved calculation in the link. -->
   <script>
-    if (/(\.github\.io|\.workers\.dev)$/.test(location.hostname)) location.replace("https://fmcheck.org/" + location.search + location.hash);
+    if (/(\.github\.io|\.workers\.dev)$/.test(location.hostname) || location.hostname === "www.fmcheck.org") location.replace("https://fmcheck.org/" + location.search + location.hash);
   </script>
   <link rel="canonical" href="https://fmcheck.org/" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
