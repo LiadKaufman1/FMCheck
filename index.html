@@ -28,6 +28,12 @@
     <section class="card" id="rollCard" hidden>
       <h2><b>2</b> Clean stats <small>what the item had before any scroll</small></h2>
       <div id="rolls" class="rolls"></div>
+      <label class="price-field">Price of a clean item with these stats
+        <span class="price-input">
+          <input id="cleanPrice" inputmode="decimal" placeholder="e.g. 300k" />
+          <a id="cleanLink" target="_blank" rel="noopener">check ↗</a>
+        </span>
+      </label>
     </section>
 
     <!-- 3. Scrolls -->
@@ -54,19 +60,13 @@
     <!-- 4. Result -->
     <section class="card result" id="resultCard" hidden>
       <h2><b>4</b> Estimate</h2>
-      <label class="price-field">Clean item price <span id="cleanFrom" class="tag"></span>
-        <span class="price-input">
-          <input id="cleanPrice" inputmode="decimal" placeholder="e.g. 300k" />
-          <a id="cleanLink" target="_blank" rel="noopener">check ↗</a>
-        </span>
-      </label>
       <div id="final" class="final"></div>
       <div id="estimate" class="estimate"></div>
       <details class="how">
         <summary>How is this worked out?</summary>
-        <p>The estimate is the average cost to make an item at least this good from scratch.
-          One try = a clean item plus the same scrolls. A try works only if the clean roll is at least as good
-          and the scrolls pass at least as many times (dark scrolls can also destroy the item).</p>
+        <p>The estimate is the average cost to make this item from scratch.
+          One try = a clean item with these stats plus the same scrolls. A try works only if the scrolls pass
+          at least as many times (dark scrolls can also destroy the item). Failed slots are worked out from the slots left.</p>
         <p><code>estimate = (clean price + scroll cost) ÷ chance a try works</code></p>
         <p>Players don't always sell at rebuild cost, so treat it as a ballpark, and check what similar items sell for.</p>
       </details>
@@ -74,10 +74,9 @@
   </main>
 
   <footer>
-    <p id="priceStatus"></p>
+    <p>Prices you type are remembered in this browser.</p>
     <p>Item and scroll data: <a href="https://maplestory.io" target="_blank" rel="noopener">maplestory.io</a> (GMS v83).
-      Prices: <a href="https://meso.watch" target="_blank" rel="noopener">meso.watch</a> ·
-      <a href="https://meowdb.com/msclassic" target="_blank" rel="noopener">MeowDB</a>.
+      Look up prices on <a href="https://meso.watch" target="_blank" rel="noopener">meso.watch</a>.
       Not affiliated with Nexon.</p>
   </footer>
 

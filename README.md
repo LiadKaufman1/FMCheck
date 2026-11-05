@@ -2,23 +2,23 @@
 
 Rough price check for scrolled MapleStory Classic items.
 
-Pick an item, set the stats it rolled clean, say how many slots are left and which scrolls passed,
-and get a ballpark value. Prices come from the price list, so users don't type them.
+Pick an item, set the stats it rolled clean and what such a clean item costs, say how many slots are left,
+add the scrolls that passed with today's price for each, and get a ballpark value.
 
 ## How the estimate works
 
-The estimate is the average cost to make an item at least this good from scratch:
+The estimate is the average cost to make this item from scratch:
 
 ```
 estimate = (clean item price + scroll cost per try) / chance a try works
 ```
 
-A try works when the clean roll of the chosen stat (ATT on most weapons) is at least as high,
-every scroll group passes at least as many times, and no dark scroll booms the item.
+A try works when every scroll type passes at least as many times and no dark scroll booms the item.
+The clean price is for a clean item with the chosen stats, so the roll's rarity isn't counted again.
 The page also shows a loose range (70%–115% of the estimate), since shops rarely sell at exactly rebuild cost.
 
 Clean stat ranges use the usual pre-Big-Bang rule: base ± min(ceil(10% of base), 5), or ±10 for DEF/HP/MP.
-Rolls are treated as evenly spread over that range.
+The slider for the main stat shows how rare the roll is, to help price the clean item.
 
 ## Data
 
@@ -27,17 +27,13 @@ Rolls are treated as evenly spread over that range.
 | Item list, scroll list | [maplestory.io](https://maplestory.io) (GMS v83) | `data/*.json`, built by `scripts/build_data.py` |
 | Item base stats, slots | maplestory.io | stored in `data/equips.json` |
 | Scroll icons | maplestory.io | stored in `assets/scrolls/`, by `scripts/fetch_icons.py` |
-| Prices | price list filled from `prices.html` | `data/prices.json`, see below |
+| Prices | typed by the user | remembered in the browser |
 
 ### Prices
 
-The calculator reads `data/prices.json` (item id → typical price in mesos).
-Fill it from **prices.html** (not linked from the main page): type a price per scroll and clean item,
-using "check ↗" to look each one up on meso.watch, then download the file and commit it as `data/prices.json`.
-
-meso.watch and meowdb.com don't allow automated collection of their data (see meso.watch/terms),
-so the list is filled by hand until they give permission or an official feed. With a feed,
-set `PRICE_FEED_URL` in `js/config.js` to it.
+Users type the clean item price and each scroll's price. The site reads nothing from meso.watch or meowdb;
+each price field only links to the item on meso.watch so it's easy to look up.
+Scroll prices are remembered in the browser; the clean price isn't, since it depends on the stats.
 
 Failed scrolls aren't entered: the page works them out from the slots left and spreads them over
 the passed scroll types in the most likely way.

@@ -1,6 +1,6 @@
 import { ITEM_API, priceLink } from "./config.js";
 import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, estimate, allocateFailures, mesos, parseMesos } from "./calc.js";
-import { initPrices, getPrice, setPrice } from "./prices.js";
+import { getPrice, setPrice } from "./prices.js";
 
 const $ = (id) => document.getElementById(id);
 const icon = (id) => `${ITEM_API}/item/${id}/icon`;
@@ -253,15 +253,25 @@ function renderRows() {
     const p = getPrice(r.scroll.id);
     return `<div class="scroll-row" data-i="${i}">
       <img src="${scrollIcon(r.scroll.id)}" alt="" />
-      <span class="nm"><b>${esc(shortName(r.scroll))}</b>
-        <small>${esc(plusList(r.scroll.stats))} · ${p ? `${mesos(p.value)} each` : `<a href="${priceLink(r.scroll.id)}" target="_blank" rel="noopener">no price yet ↗</a>`}</small></span>
+      <span class="nm"><b>${esc(shortName(r.scroll))}</b><small>${esc(plusList(r.scroll.stats))}</small></span>
       <span class="stepper small">
         <button type="button" class="step" data-act="minus" aria-label="One less">−</button>
         <span class="count">×${r.successes}</span>
         <button type="button" class="step" data-act="plus" aria-label="One more">+</button>
-      </span></div>`;
+      </span>
+      <label class="row-price">Price each
+        <span class="price-input"><input inputmode="decimal" placeholder="e.g. 2m" value="${p ? mesos(p.value) : ""}" data-f="price" />
+        <a href="${priceLink(r.scroll.id)}" target="_blank" rel="noopener">check ↗</a></span></label>
+      </div>`;
   }).join("");
 }
+
+$("scrollRows").addEventListener("input", (e) => {
+  if (e.target.dataset.f !== "price") return;
+  const r = state.rows[+e.target.closest(".scroll-row").dataset.i];
+  setPrice(r.scroll.id, parseMesos(e.target.value));
+  update();
+});
 
 $("scrollRows").addEventListener("click", (e) => {
   const act = e.target.dataset.act;
@@ -283,15 +293,15 @@ $("scrollRows").addEventListener("click", (e) => {
 
 // ---------- clean price ----------
 
+// The clean price depends on the rolled stats, so it isn't remembered between items.
+let cleanPrice = NaN;
 function renderCleanPrice() {
-  const p = getPrice(state.item.id);
-  $("cleanPrice").value = p ? mesos(p.value) : "";
-  $("cleanFrom").textContent = p?.from === "feed" ? "· from price list" : "";
+  cleanPrice = NaN;
+  $("cleanPrice").value = "";
   $("cleanLink").href = priceLink(state.item.id);
 }
 $("cleanPrice").addEventListener("input", (e) => {
-  setPrice(state.item.id, parseMesos(e.target.value));
-  $("cleanFrom").textContent = "";
+  cleanPrice = parseMesos(e.target.value);
   update();
 });
 
@@ -324,16 +334,12 @@ function update() {
   const out = $("estimate");
   if (failed < 0) { out.innerHTML = `<p class="warn">You listed more passed scrolls than used slots. Check "Slots left".</p>`; return; }
 
-  const clean = getPrice(state.item.id)?.value;
+  const clean = Number.isFinite(cleanPrice) ? cleanPrice : 0;
   const missing = state.rows.filter((r) => !getPrice(r.scroll.id));
-  const k = state.keyStat;
-  const res = estimate({
-    cleanPrice: clean || 0,
-    roll: k ? { key: k, base: state.base[k], value: state.clean[k] } : null,
-    groups,
-  });
-  if (!clean && !groups.some((g) => g.price)) {
-    out.innerHTML = `<p class="hint">No prices yet for this item or its scrolls. Enter the clean item price above to get an estimate.</p>`;
+  // The clean price already reflects the rolled stats, so the roll's rarity isn't counted again.
+  const res = estimate({ cleanPrice: clean, roll: null, groups });
+  if (!clean) {
+    out.innerHTML = `<p class="hint">Enter the price of a clean item with these stats (step 2) to get an estimate.</p>`;
     return;
   }
   const failedNote = failed > 0 && state.rows.length
@@ -346,12 +352,10 @@ function update() {
     <div class="breakdown">
       <span>One try (clean + scrolls)</span><span>${mesos(res.tryCost)}</span>
       ${failedNote}
-      ${k ? `<span>Clean ${STAT_LABEL[k]} this good or better</span><span>${pct(res.rollChance)}</span>` : ""}
       <span>Scrolls pass like this</span><span>${pct(res.scrollChance)}</span>
       <span>Odds of making it</span><span>1 in ${res.oneIn < 1e6 ? Math.round(res.oneIn).toLocaleString("en-US") : mesos(res.oneIn)}</span>
     </div>
-    ${missing.length ? `<p class="warn">No price yet for ${missing.map((r) => esc(shortName(r.scroll))).join(", ")}: counted as 0.</p>` : ""}
-    ${!clean ? `<p class="warn">No clean item price: counted as 0.</p>` : ""}`;
+    ${missing.length ? `<p class="warn">Enter a price for ${missing.map((r) => esc(shortName(r.scroll))).join(", ")}: counted as 0 for now.</p>` : ""}`;
 }
 
 // ---------- shareable address: #i=<id>&r=PAD.50,STR.3&l=2&s=2043001.5,... ----------
@@ -386,17 +390,13 @@ function readHash() {
 // ---------- start ----------
 
 (async function start() {
-  const [eq, sc, info] = await Promise.all([
+  const [eq, sc] = await Promise.all([
     fetch("data/equips.json").then((r) => r.json()),
     fetch("data/scrolls.json").then((r) => r.json()),
-    initPrices(),
   ]);
   equips = eq;
   scrolls = sc;
   scrollById = new Map(sc.map((s) => [s.id, s]));
-  $("priceStatus").textContent = info.updated
-    ? `Prices updated ${new Date(info.updated).toLocaleDateString()}.`
-    : "";
   const h = readHash();
   if (h) pickItem(h.id, h.restore);
   else search.focus();
