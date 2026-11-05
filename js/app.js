@@ -1,7 +1,7 @@
-import { iconUrl, priceLink, DONATE_URL } from "./config.js?v=b3dfb403";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, mesos, UNITS, readRange } from "./calc.js?v=b3dfb403";
-import { getPrice, setPrice } from "./prices.js?v=b3dfb403";
-import { drawCard, cardBlob } from "./card.js?v=b3dfb403";
+import { iconUrl, priceLink, DONATE_URL } from "./config.js?v=a4708a00";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, mesos, UNITS, readRange } from "./calc.js?v=a4708a00";
+import { getPrice, setPrice } from "./prices.js?v=a4708a00";
+import { drawCard, cardBlob } from "./card.js?v=a4708a00";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -467,10 +467,14 @@ function renderCard(fin, odds, price) {
     })),
     left: state.left,
     price,
+    priceHint: !cleanPrice ? "Enter the clean item price"
+      : state.rows.some((r) => !getPrice(r.scroll.id)) ? `Enter a price for ${shortName(state.rows.find((r) => !getPrice(r.scroll.id)).scroll).split(":").pop().trim()} scrolls`
+      : "Check the prices you entered",
+    date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
     chance: odds ? odds.chance : 1,
     oneIn: odds ? odds.oneIn : 1,
     scrolls: state.rows.map((r) => ({ n: r.successes, name: shortName(r.scroll) })),
-    footer: "Estimate · not a guaranteed price",
+    footer: "From that day's prices · not a guarantee",
   }, cardFmt);
 }
 

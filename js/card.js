@@ -25,7 +25,7 @@ function loadIcon(url, onload) {
 }
 
 // d: { name, upgrades, icon, level, req: [STR, DEX, INT, LUK], jobs, type, stats: [{ label, total, base, gain }],
-//      left, price: { lo, hi } | null, chance, oneIn, scrolls: [{ n, name }], footer }
+//      left, price: { lo, hi } | null, priceHint, date, chance, oneIn, scrolls: [{ n, name }], footer }
 export function drawCard(canvas, d, fmt) {
   const img = loadIcon(d.icon, () => drawCard(canvas, d, fmt));
   const ctx = canvas.getContext("2d");
@@ -108,12 +108,13 @@ function layout(ctx, d, fmt, img, draw) {
 
   // FMCheck section
   y += 2; hr(y); y += 24;
-  if (d.price) {
-    text("ESTIMATED PRICE", PAD, y, { size: 11, weight: 800, color: C.muted });
-    y += 28;
-    text(fmt.range(d.price.lo, d.price.hi), PAD, y, { size: 26, weight: 700, color: C.price, font: TITLE_FONT });
-    y += 24;
-  }
+  // Price, always shown: the range, or what's still missing. Dated, since prices change day to day.
+  const lw = text("ESTIMATED PRICE", PAD, y, { size: 11, weight: 800, color: C.muted });
+  text(`· AS OF ${d.date.toUpperCase()}`, PAD + lw + 6, y, { size: 11, weight: 800, color: C.title });
+  y += 28;
+  if (d.price) text(fmt.range(d.price.lo, d.price.hi), PAD, y, { size: 26, weight: 700, color: C.price, font: TITLE_FONT });
+  else text(d.priceHint || "Enter the prices to see it", PAD, y - 6, { size: 14, weight: 700, color: C.muted });
+  y += d.price ? 24 : 16;
   text("CHANCE OF AN ITEM LIKE THIS", PAD, y, { size: 11, weight: 800, color: C.muted });
   y += 20;
   const cw = text(fmt.pct(d.chance), PAD, y, { size: 17, weight: 800, color: C.title });
