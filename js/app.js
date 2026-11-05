@@ -1,6 +1,6 @@
-import { iconUrl, priceLink, DONATE_URL } from "./config.js?v=f012693d";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, mesos, UNITS, readRange } from "./calc.js?v=f012693d";
-import { getPrice, setPrice } from "./prices.js?v=f012693d";
+import { iconUrl, priceLink, DONATE_URL } from "./config.js?v=57278a73";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, mesos, UNITS, readRange } from "./calc.js?v=57278a73";
+import { getPrice, setPrice } from "./prices.js?v=57278a73";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -153,7 +153,8 @@ async function pickItem(id, restore = null) {
 function defaultKeyStat(id, base) {
   const isWeapon = Math.floor(id / 10000) >= 130;
   if (isWeapon) return (base.MAD || 0) > (base.PAD || 0) ? "MAD" : (base.PAD ? "PAD" : "");
-  return ["PAD", "MAD", "STR", "DEX", "INT", "LUK", "ACC", "EVA", "Speed", "Jump"].find((k) => base[k]) || "";
+  return ["PAD", "MAD", "STR", "DEX", "INT", "LUK", "ACC", "EVA", "Speed", "Jump"].find((k) => base[k])
+    || STATS.map(([k]) => k).find((k) => base[k]) || ""; // e.g. gloves with only W.DEF
 }
 
 // ---------- clean roll sliders ----------
@@ -176,14 +177,14 @@ function renderRolls() {
       <span class="lbl">${STAT_LABEL[k]}</span>
       <input type="range" min="${lo}" max="${hi}" value="${state.clean[k]}" data-k="${k}" aria-label="${STAT_LABEL[k]}" />
       <span class="val"><span>${state.clean[k]}</span><small>${lo}–${hi}</small></span>
-      ${k === state.keyStat ? `<span class="note" id="rollNote">${rollNote(k)}</span>` : ""}</div>`;
+      <span class="note${k === state.keyStat ? " key" : ""}" data-note="${k}">${rollNote(k)}${k === state.keyStat ? " · counts for the chance" : ""}</span></div>`;
   }).join("");
   box.oninput = (e) => {
     const k = e.target.dataset.k;
     if (!k) return;
     state.clean[k] = +e.target.value;
     e.target.parentElement.querySelector(".val span").textContent = e.target.value;
-    if (k === state.keyStat) $("rollNote").textContent = rollNote(k);
+    box.querySelector(`[data-note="${k}"]`).textContent = rollNote(k) + (k === state.keyStat ? " · counts for the chance" : "");
     update();
   };
 }
