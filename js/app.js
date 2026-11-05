@@ -1,6 +1,6 @@
-import { iconUrl, priceLink } from "./config.js?v=edc28e0f";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, estimate, allocateFailures, mesos, UNITS, readRange } from "./calc.js?v=edc28e0f";
-import { getPrice, setPrice } from "./prices.js?v=edc28e0f";
+import { iconUrl, priceLink, DONATE_URL } from "./config.js?v=697b4b65";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, estimate, allocateFailures, mesos, UNITS, readRange } from "./calc.js?v=697b4b65";
+import { getPrice, setPrice } from "./prices.js?v=697b4b65";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -428,6 +428,10 @@ function readHash() {
 }
 
 // ---------- start ----------
+
+if (DONATE_URL) {
+  for (const a of document.querySelectorAll("[data-donate]")) { a.href = DONATE_URL; a.hidden = false; }
+}
 
 (async function start() {
   const [eq, sc] = await Promise.all([

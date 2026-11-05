@@ -5,12 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>FMCheck · Scrolled Item Price Check</title>
   <meta name="description" content="Rough price check for scrolled MapleStory Classic items: pick an item, set its roll and scrolls, get an estimate." />
-  <link rel="stylesheet" href="css/style.css?v=edc28e0f" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="64x64" href="assets/favicon-64.png" />
+  <link rel="apple-touch-icon" href="assets/favicon-180.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css?v=697b4b65" />
 </head>
 <body>
+  <!-- Moving sky behind the page: clouds drift by; stars at night (dark mode). -->
+  <div class="sky" aria-hidden="true">
+    <span class="cloud c1"></span><span class="cloud c2"></span><span class="cloud c3"></span>
+    <span class="cloud c4"></span><span class="cloud c5"></span>
+    <span class="stars"></span>
+  </div>
+
   <header class="top">
-    <h1>FM<span>Check</span></h1>
-    <p>Rough price check for scrolled MapleStory Classic items.</p>
+    <h1 class="logo" aria-label="FMCheck">
+      <span class="word" data-text="FM">FM</span><img class="logo-scroll" src="assets/scroll.png" alt="" /><span class="word" data-text="Check">Check</span>
+    </h1>
+    <p class="tagline">Know what your scrolled item is worth.</p>
+    <a class="donate" data-donate hidden target="_blank" rel="noopener">☕ Support FMCheck</a>
   </header>
 
   <main>
@@ -75,7 +91,8 @@
   </main>
 
   <footer>
-    <p>Prices you type are remembered in this browser.</p>
+    <p>Prices you type are remembered in this browser.
+      <a data-donate hidden target="_blank" rel="noopener">Enjoying FMCheck? Support it on PayPal.</a></p>
     <p>Item and scroll data from <a href="https://osmsdataexplorer.com" target="_blank" rel="noopener">OSMS Data Explorer</a>
       by @ohmi, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>.
       Look up prices on <a href="https://meso.watch" target="_blank" rel="noopener">meso.watch</a>.
@@ -83,6 +100,6 @@
   </footer>
 
   <div id="toast" class="toast" role="status" hidden></div>
-  <script type="module" src="js/app.js?v=edc28e0f"></script>
+  <script type="module" src="js/app.js?v=697b4b65"></script>
 </body>
 </html>

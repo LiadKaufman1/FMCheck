@@ -8,3 +8,6 @@ export const iconUrl = (id) => `https://osmsdataexplorer.com/data/current/images
 // q asks meso.watch to filter its list by name; it may ignore it, so the page also copies the name.
 export const priceLink = (id, name = "") =>
   `https://meso.watch/?${new URLSearchParams(name ? { item: pad(id), q: name } : { item: pad(id) })}`;
+
+// Donate button (PayPal), e.g. "https://www.paypal.com/paypalme/yourname". Empty hides the buttons.
+export const DONATE_URL = "";
