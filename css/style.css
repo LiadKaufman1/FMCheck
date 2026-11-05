@@ -135,6 +135,7 @@ button.ghost { background: transparent; color: var(--muted); padding: 4px 8px; }
 
 .price-input { display: flex; gap: 6px; align-items: center; }
 .price-input input { flex: 1; width: 100%; }
+.price-input select { flex: none; width: 80px; padding: 8px 6px; }
 .price-input a { font-size: 12px; white-space: nowrap; text-decoration: none; }
 .price-field { display: grid; gap: 4px; font-size: 13px; color: var(--muted); max-width: 320px; }
 .tag { font-size: 11px; color: var(--muted); }

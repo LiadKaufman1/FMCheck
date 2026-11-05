@@ -127,3 +127,21 @@ export function allocateFailures(types, failed) {
   })(0, failed);
   return best;
 }
+
+// Price fields: a number box plus a unit dropdown (mesos, k, m, b).
+export const UNITS = [["", "mesos", 1], ["k", "K", 1e3], ["m", "M", 1e6], ["b", "B", 1e9]];
+
+// Number box text + chosen unit -> mesos. A unit typed in the box ("2m") wins over the dropdown.
+export function readPrice(text, unit) {
+  const t = String(text ?? "").trim().toLowerCase().replace(/,/g, "");
+  if (/[kmb]$/.test(t)) return parseMesos(t);
+  const n = /^\d+(\.\d+)?$/.test(t) ? parseFloat(t) : NaN;
+  const mult = (UNITS.find((u) => u[0] === unit) || UNITS[0])[2];
+  return Number.isFinite(n) ? Math.round(n * mult) : NaN;
+}
+
+// mesos -> { num, unit } for filling a field back in, e.g. 1980000 -> { num: "1.98", unit: "m" }
+export function splitPrice(v) {
+  const u = [...UNITS].reverse().find(([, , m]) => m > 1 && v >= m) || UNITS[0];
+  return { num: String(+(v / u[2]).toPrecision(6)), unit: u[0] };
+}

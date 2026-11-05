@@ -54,3 +54,14 @@ test("failed slots go where failing is most likely", () => {
   assert.deepEqual(allocateFailures([{ successes: 1, success: 100 }, { successes: 1, success: 10 }], 3), [0, 3]);
   assert.deepEqual(allocateFailures([], 3), []);
 });
+
+import { readPrice, splitPrice } from "../js/calc.js";
+test("price fields with a unit dropdown", () => {
+  assert.equal(readPrice("1.98", "m"), 1980000);
+  assert.equal(readPrice("50", "k"), 50000);
+  assert.equal(readPrice("750", ""), 750);
+  assert.equal(readPrice("2m", "k"), 2e6); // typed unit wins
+  assert.ok(Number.isNaN(readPrice("", "m")));
+  assert.deepEqual(splitPrice(1980000), { num: "1.98", unit: "m" });
+  assert.deepEqual(splitPrice(500), { num: "500", unit: "" });
+});

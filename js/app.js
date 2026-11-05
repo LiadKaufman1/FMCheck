@@ -1,9 +1,12 @@
 import { iconUrl, priceLink } from "./config.js";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, estimate, allocateFailures, mesos, parseMesos } from "./calc.js";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, estimate, allocateFailures, mesos, UNITS, readPrice, splitPrice } from "./calc.js";
 import { getPrice, setPrice } from "./prices.js";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
+// <select> of price units; `unit` is preselected.
+const unitSelect = (unit, attrs = "") => `<select ${attrs} aria-label="Unit">${UNITS.map(([v, label]) =>
+  `<option value="${v}"${v === unit ? " selected" : ""}>${label}</option>`).join("")}</select>`;
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const plusList = (stats) => Object.entries(stats).map(([k, v]) => `+${v} ${STAT_LABEL[k] || k}`).join(", ");
 
@@ -249,18 +252,25 @@ function renderRows() {
         <button type="button" class="step" data-act="plus" aria-label="One more">+</button>
       </span>
       <span class="row-price price-input">
-        <input inputmode="decimal" placeholder="Price each, e.g. 2m" aria-label="Price each" value="${p ? mesos(p.value) : ""}" data-f="price" />
+        ${(() => {
+          const sp = p ? splitPrice(p.value) : { num: "", unit: "m" };
+          return `<input inputmode="decimal" placeholder="Price each" aria-label="Price each" value="${sp.num}" data-f="price" />
+            ${unitSelect(sp.unit, 'data-f="unit"')}`;
+        })()}
         <a href="${priceLink(r.scroll.id, r.scroll.name)}" data-name="${esc(r.scroll.name)}" target="_blank" rel="noopener">check price ↗</a></span>
       </div>`;
   }).join("");
 }
 
-$("scrollRows").addEventListener("input", (e) => {
-  if (e.target.dataset.f !== "price") return;
-  const r = state.rows[+e.target.closest(".scroll-row").dataset.i];
-  setPrice(r.scroll.id, parseMesos(e.target.value));
+function onScrollPrice(e) {
+  if (e.target.dataset.f !== "price" && e.target.dataset.f !== "unit") return;
+  const row = e.target.closest(".scroll-row");
+  const r = state.rows[+row.dataset.i];
+  setPrice(r.scroll.id, readPrice(row.querySelector('[data-f="price"]').value, row.querySelector('[data-f="unit"]').value));
   update();
-});
+}
+$("scrollRows").addEventListener("input", onScrollPrice);
+$("scrollRows").addEventListener("change", onScrollPrice);
 
 $("scrollRows").addEventListener("click", (e) => {
   const act = e.target.dataset.act;
@@ -287,13 +297,16 @@ let cleanPrice = NaN;
 function renderCleanPrice() {
   cleanPrice = NaN;
   $("cleanPrice").value = "";
+  $("cleanUnit").value = "k";
   $("cleanLink").href = priceLink(state.item.id, state.item.name);
   $("cleanLink").dataset.name = state.item.name;
 }
-$("cleanPrice").addEventListener("input", (e) => {
-  cleanPrice = parseMesos(e.target.value);
+function onCleanPrice() {
+  cleanPrice = readPrice($("cleanPrice").value, $("cleanUnit").value);
   update();
-});
+}
+$("cleanPrice").addEventListener("input", onCleanPrice);
+$("cleanUnit").addEventListener("change", onCleanPrice);
 
 // ---------- check price: also copy the name for meso.watch's filter ----------
 

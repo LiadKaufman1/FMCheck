@@ -24,7 +24,10 @@
       <div id="itemInfo" class="item-info" hidden></div>
       <label class="price-field" id="cleanField" hidden>Clean item price
         <span class="price-input">
-          <input id="cleanPrice" inputmode="decimal" placeholder="e.g. 300k" />
+          <input id="cleanPrice" inputmode="decimal" placeholder="e.g. 300" />
+          <select id="cleanUnit" aria-label="Unit">
+            <option value="">mesos</option><option value="k" selected>K</option><option value="m">M</option><option value="b">B</option>
+          </select>
           <a id="cleanLink" target="_blank" rel="noopener">check price ↗</a>
         </span>
       </label>
