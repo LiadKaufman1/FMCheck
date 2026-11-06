@@ -8,7 +8,7 @@
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"]
-  }
-  // Sale reports need a KV namespace. Once it exists in the Cloudflare dashboard, add its id:
-  // "kv_namespaces": [{ "binding": "SALES", "id": "<namespace id>" }]
+  },
+  // Sale reports are stored in this KV namespace (fmcheck-sales)
+  "kv_namespaces": [{ "binding": "SALES", "id": "1ee0771d2f294f979e571a65aa37c295" }]
 }
