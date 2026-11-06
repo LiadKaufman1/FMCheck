@@ -1,8 +1,8 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=d04d4cb4";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, inferScrolls, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, failedItemValue, mesos, UNITS, readRange } from "./calc.js?v=d04d4cb4";
-import { getPrice, setPrice } from "./prices.js?v=d04d4cb4";
-import { parseTooltip, readImage } from "./reader.js?v=d04d4cb4";
-import { drawCard, cardBlob } from "./card.js?v=d04d4cb4";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=1e2658a2";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, inferScrolls, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, failedItemValue, mesos, UNITS, readRange } from "./calc.js?v=1e2658a2";
+import { getPrice, setPrice } from "./prices.js?v=1e2658a2";
+import { parseTooltip, readImage } from "./reader.js?v=1e2658a2";
+import { drawCard, cardBlob } from "./card.js?v=1e2658a2";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -438,6 +438,8 @@ function update() {
   const odds = renderOdds(failed);
   saveHash();
   const price = failed < 0 ? null : renderEstimate(used);
+  lastPrice = price;
+  renderVerdict();
   renderCard(fin, odds, price);
 }
 
@@ -704,6 +706,27 @@ function finScrollList() {
   return o ? o.rows.map((x) => scrollById.get(x.scroll.id)) : [];
 }
 
+// ---------- "Is it worth it?": the shop's asking price against the estimate ----------
+let lastPrice = null;
+const finAsk = { value: null };
+
+// Below 90% of the low end: good deal. Inside the range (±10%): fair. Above 110% of the high end: overpriced.
+function verdictFor(ask, est) {
+  if (!ask || !est) return null;
+  if (ask < est.lo * 0.9) return { cls: "good", icon: "✅", text: "Good deal", note: `${Math.round((1 - ask / est.lo) * 100)}% below the estimate` };
+  if (ask > est.hi * 1.1) return { cls: "bad", icon: "❌", text: "Overpriced", note: `${Math.round((ask / est.hi - 1) * 100)}% above the estimate` };
+  return { cls: "fair", icon: "👍", text: "Fair price", note: "within the estimate" };
+}
+
+function renderVerdict() {
+  const box = $("finVerdict");
+  if (!box) return;
+  const v = mode === "f" ? verdictFor(finAsk.value, lastPrice) : null;
+  box.className = "verdict" + (v ? " " + v.cls : "");
+  box.innerHTML = v ? `<b>${v.icon} ${v.text}</b> <span>Asking ${mesos(finAsk.value)}: ${v.note} (${rangeText(lastPrice.lo, lastPrice.hi)}).</span>`
+    : finAsk.value && !lastPrice ? `<span>Enter the prices above to compare.</span>` : "";
+}
+
 function renderFinPrices() {
   const box = $("finPrices");
   if (!fin.options.length) { box.innerHTML = ""; return; }
@@ -720,7 +743,18 @@ function renderFinPrices() {
       <span class="nm"><b>${esc(sc.name)}</b><small>${esc(scrollOdds(sc))} · ${esc(plusList(sc.stats))}</small></span><span></span>
       <span class="row-price price-input">${rangeFields(getPrice(sc.id), "m")}
         <a href="${priceLink(sc.id, sc.name)}" data-name="${esc(sc.name)}" target="_blank" rel="noopener">check price ↗</a></span>
-    </div>`).join("")}`;
+    </div>`).join("")}
+    <label class="ask-field">Shop asking price <small>(optional: is it worth it?)</small>
+      <span class="price-input"><input id="finAsk" inputmode="decimal" placeholder="e.g. 5" aria-label="Shop asking price" value="${finAsk.raw || ""}" />
+        ${unitSelect(finAsk.unit || "m", 'id="finAskUnit"')}</span></label>
+    <div id="finVerdict" class="verdict" role="status"></div>`;
+  renderVerdict();
+}
+function onAsk() {
+  finAsk.raw = $("finAsk").value; finAsk.unit = $("finAskUnit").value;
+  const v = readRange(finAsk.raw, "", finAsk.unit);
+  finAsk.value = v ? v.lo : null;
+  renderVerdict();
 }
 
 // Fill the calculator from the tooltip and show the estimate.
@@ -745,6 +779,7 @@ $("finScrolls").addEventListener("change", (e) => {
   applyFin();
 });
 function onFinPrice(e) {
+  if (e.target.id === "finAsk" || e.target.id === "finAskUnit") { onAsk(); return; }
   if (!["from", "to", "unit"].includes(e.target.dataset.f)) return;
   const row = e.target.closest(".price-row");
   if (row.dataset.clean) { fin.clean = readFields(row); cleanPrice = fin.clean; }

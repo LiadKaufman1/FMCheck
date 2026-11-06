@@ -472,3 +472,18 @@ html.mode-f #itemCard, html.mode-f #rollCard, html.mode-f #scrollCard { display:
 /* note shown only on the backup addresses */
 .moved { display: none; margin: 0; padding: 8px 16px; text-align: center; font-weight: 700; background: var(--card); color: var(--text); }
 html.old-address .moved { display: block; }
+
+/* shop asking price verdict */
+.ask-field { display: grid; gap: 4px; margin-top: 6px; font-weight: 700; }
+.ask-field small { color: var(--muted); font-weight: 600; }
+.verdict:empty { display: none; }
+.verdict { padding: 12px 14px; border-radius: 12px; border: 2px solid var(--line); background: var(--card); }
+.verdict b { font: 700 18px "Fredoka", sans-serif; margin-right: 6px; }
+.verdict.good { border-color: #1f8a4c; background: #e7f6ec; color: #11512b; }
+.verdict.fair { border-color: #b45309; background: #fdf3e3; color: #6b3507; }
+.verdict.bad { border-color: #b91c1c; background: #fdeaea; color: #7f1414; }
+@media (prefers-color-scheme: dark) {
+  .verdict.good { background: #0f2a1a; color: #a7f3c4; }
+  .verdict.fair { background: #2a1d0b; color: #fcd9a6; }
+  .verdict.bad { background: #2c0f0f; color: #fecaca; }
+}
