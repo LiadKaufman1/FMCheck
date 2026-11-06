@@ -152,19 +152,6 @@ export function readRange(from, to, unit) {
   return lo <= hi ? { lo, hi } : { lo: hi, hi: lo };
 }
 
-// What the open slots add: the buyer can still scroll them.
-// Each open slot is valued as one more scroll of the reference type (the passed scroll used most):
-//   per slot = chance it passes × stat it adds × mesos per stat point − scroll price   (never below 0)
-// Mesos per stat point comes from this item's own estimate: (estimate − clean price) ÷ stat points gained.
-// ref: { success, boom, points (stat points one pass adds), price }
-export function openSlotValue({ value, cleanPrice, pointsGained, slotsLeft, ref }) {
-  if (!ref || slotsLeft <= 0 || pointsGained <= 0 || !Number.isFinite(value)) return { perPoint: 0, perSlot: 0, total: 0 };
-  const perPoint = Math.max(0, (value - cleanPrice) / pointsGained);
-  // A Chaos scroll that booms loses the whole item, so count that loss too.
-  const boomLoss = (1 - ref.success / 100) * ((ref.boom || 0) / 100) * value;
-  const perSlot = Math.max(0, (ref.success / 100) * ref.points * perPoint - ref.price - boomLoss);
-  return { perPoint, perSlot, total: perSlot * slotsLeft };
-}
 
 // ---------- Cheapest way to make an item at least this good ----------
 //
@@ -276,4 +263,45 @@ export function failedItemValue({ cleanPrice, slots, left }) {
   if (!(slots > 0) || left >= slots) return { value: cleanPrice, ratio: 1 };
   const ratio = 0.1 + 0.9 * Math.max(0, left) / slots;
   return { value: cleanPrice * ratio, ratio };
+}
+
+// ---------- Open slots: what the chance to scroll them is worth ----------
+//
+// A buyer can still scroll the open slots, stop whenever it pays, and keep whatever the item becomes.
+// A finished result is worth what it costs to make one (worth(g, L) = cheapest way to gain g with L slots left).
+//   best(g, L) = the larger of: stop now, worth(g, L)
+//                or scroll t: p·best(g + gain_t, L − 1) + (1 − p)(1 − boom)·best(g, L − 1) − price_t   (a boom leaves 0)
+//   open slots add: best(G, L) − worth(G, L)
+// fam: the scroll family, gained: points gained so far (G), slots: all slots, left: slots left (L).
+export function openSlotsBonus({ cleanPrice, slots, left, fam, gained, tiers }) {
+  const usable = tiers.filter((t) => t.fam === fam && Number.isFinite(t.price) && t.points > 0);
+  if (!usable.length || left <= 0) return 0;
+  const L0 = Math.min(left, 6); // look ahead at most 6 slots (keeps it quick)
+  const worthMemo = new Map();
+  const worth = (g, L) => {
+    const k = g + ":" + L;
+    if (!worthMemo.has(k)) {
+      const r = g > 0 ? cheapestRoute({ cleanPrice, slots: slots - L, needs: { [fam]: g }, tiers: usable }) : { cost: cleanPrice };
+      worthMemo.set(k, r ? r.cost : NaN);
+    }
+    return worthMemo.get(k);
+  };
+  const memo = new Map();
+  const best = (g, L) => {
+    const k = g + ":" + L;
+    if (memo.has(k)) return memo.get(k);
+    let v = worth(g, L);
+    if (!Number.isFinite(v)) v = 0;
+    if (L > 0) {
+      for (const t of usable) {
+        const p = t.success / 100, b = (t.boom || 0) / 100;
+        const go = p * best(g + t.points, L - 1) + (1 - p) * (1 - b) * best(g, L - 1) - t.price;
+        if (go > v) v = go;
+      }
+    }
+    memo.set(k, v);
+    return v;
+  };
+  const now = worth(gained, left);
+  return Number.isFinite(now) ? Math.max(0, best(gained, L0) - (L0 === left ? now : worth(gained, L0))) : 0;
 }

@@ -75,19 +75,6 @@ test("price ranges", () => {
   assert.equal(readRange("", "", "m"), null);
 });
 
-import { openSlotValue } from "../js/calc.js";
-test("open slots add value", () => {
-  // 10m item from a 2m clean, +8 gained -> 1m per point. Intermediate: 60% × 2 points × 1m − 0.4m = 0.8m per slot.
-  const r = openSlotValue({ value: 10e6, cleanPrice: 2e6, pointsGained: 8, slotsLeft: 2, ref: { success: 60, points: 2, price: 4e5 } });
-  assert.equal(Math.round(r.perSlot), 800000);
-  assert.equal(Math.round(r.total), 1600000);
-  // no open slots or nothing passed: nothing added
-  assert.equal(openSlotValue({ value: 10e6, cleanPrice: 2e6, pointsGained: 8, slotsLeft: 0, ref: { success: 60, points: 2, price: 4e5 } }).total, 0);
-  assert.equal(openSlotValue({ value: 2e6, cleanPrice: 2e6, pointsGained: 0, slotsLeft: 3, ref: null }).total, 0);
-  // a scroll too pricey for what it adds is worth 0, not negative
-  assert.equal(openSlotValue({ value: 3e6, cleanPrice: 2e6, pointsGained: 8, slotsLeft: 1, ref: { success: 60, points: 2, price: 5e6 } }).total, 0);
-});
-
 import { cheapestRoute } from "../js/calc.js";
 const L = { fam: "A", points: 1, success: 100, boom: 0, id: 1 };
 const I = { fam: "A", points: 2, success: 60, boom: 0, id: 2 };
@@ -121,4 +108,15 @@ test("failed slots lower a clean item's value", () => {
   near(at(4), 820);                // one of five slots lost: 10% + 90% × 4/5
   near(at(0), 100);                // all failed: base stats keep 10%
   assert.ok(at(3) < at(4));
+});
+
+
+import { openSlotsBonus } from "../js/calc.js";
+test("open slots are worth the chance to scroll them", () => {
+  const T = [{ fam: "A", points: 1, success: 100, boom: 0, price: 40000, id: 1 }, { fam: "A", points: 2, success: 60, boom: 0, price: 425000, id: 2 }];
+  const at = (g, left) => openSlotsBonus({ cleanPrice: 30000, slots: 7, left, fam: "A", gained: g, tiers: T });
+  assert.equal(at(4, 0), 0);          // no open slots
+  assert.ok(at(4, 3) > 0);            // +4 with 3 left beats +4 with none
+  assert.ok(at(2, 5) > at(4, 3));     // more open slots, more chance
+  assert.equal(at(0, 7), 0);          // a clean item stays at its clean price
 });

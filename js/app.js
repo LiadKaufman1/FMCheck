@@ -1,7 +1,7 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=03bf43d4";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, failedItemValue, mesos, UNITS, readRange } from "./calc.js?v=03bf43d4";
-import { getPrice, setPrice } from "./prices.js?v=03bf43d4";
-import { drawCard, cardBlob } from "./card.js?v=03bf43d4";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=2638b7e8";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readRange } from "./calc.js?v=2638b7e8";
+import { getPrice, setPrice } from "./prices.js?v=2638b7e8";
+import { drawCard, cardBlob } from "./card.js?v=2638b7e8";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -494,12 +494,10 @@ function renderEstimate(used) {
     }
     const route = cheapestRoute({ cleanPrice: clean, slots: used, needs, tiers });
     if (!route) return null;
-    // Open slots: the buyer can still scroll them. Best priced scroll, valued at this item's mesos per stat point.
-    let perSlot = 0;
-    for (const t of tiers) {
-      perSlot = Math.max(perSlot, openSlotValue({ value: route.cost, cleanPrice: clean, pointsGained, slotsLeft: 1, ref: t }).perSlot);
-    }
-    return { ...route, open: perSlot * state.left, value: route.cost + perSlot * state.left, tiers };
+    // Open slots: the chance to scroll them further (see openSlotsBonus), for the main scroll on the item.
+    const fam = Object.keys(needs).sort((a, b) => needs[b] - needs[a])[0];
+    const open = fam ? openSlotsBonus({ cleanPrice: clean, slots: state.slots, left: state.left, fam, gained: needs[fam], tiers }) : 0;
+    return { ...route, open, value: route.cost + open, tiers };
   };
   const lo = run("lo"), hi = run("hi");
   const unpriced = state.rows.filter((r) => !getPrice(r.scroll.id)).map((r) => esc(shortName(r.scroll)));
@@ -520,7 +518,7 @@ function renderEstimate(used) {
       ${lo.lost != null ? `<span>Clean item price</span><span>${rangeText(lo.cost, hi.cost)}</span>
       <span>${failed} failed slot${failed > 1 ? "s" : ""} (keeps ${Math.round(lo.ratio * 100)}%)</span><span>−${rangeText(lo.lost, hi.lost)}</span>`
       : `<span>Cheapest way to make one</span><span>${rangeText(lo.cost, hi.cost)}</span>
-      ${state.left > 0 ? `<span>${state.left} open slot${state.left > 1 ? "s" : ""} (room to scroll more)</span><span>${hi.open > 0 ? "+" + rangeText(lo.open, hi.open) : "+0 (more scrolls cost about what they add)"}</span>` : ""}
+      ${state.left > 0 ? `<span>${state.left} open slot${state.left > 1 ? "s" : ""} (chance to scroll more)</span><span>${hi.open > 0 ? "+" + rangeText(lo.open, hi.open) : "+0 (scrolling them wouldn't pay off at these prices)"}</span>` : ""}
       ${pointsGained ? `<span>Clean items the cheapest way uses</span><span>${items(lo.cleanItems)}</span>
       <span>Scrolls per clean item</span><span>${plan || "–"}</span>` : ""}`}
     </div>
