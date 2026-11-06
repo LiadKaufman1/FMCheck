@@ -38,21 +38,19 @@ export function parseTooltip(text, equips) {
   }
   let confidence = item ? 1 : 0;
   if (!item) {
-    const title = lines.find((l) => /\(\s*\+\s*\d+\s*\)/.test(l)) || lines[0] || "";
-    const t = norm(title.replace(/\(.*$/, ""));
-    for (const e of equips) {
-      const s = similar(t, norm(e[1]));
-      if (s > confidence) { confidence = s; item = e; }
+    const titled = lines.filter((l) => /\(\s*\+\s*\d+\s*\)/.test(l));
+    for (const title of (titled.length ? titled : lines.slice(0, 4))) {
+      const t = norm(title.replace(/\(.*$/, ""));
+      if (t.length < 4) continue;
+      for (const e of equips) {
+        const sc = similar(t, norm(e[1]));
+        if (sc > confidence) { confidence = sc; item = e; }
+      }
     }
-    if (confidence < 0.45) item = null;
+    if (confidence < 0.45) { item = null; confidence = 0; }
   }
 
-  const upgrades = (() => { const m = lines.join(" ").match(/\(\s*\+\s*(\d{1,2})\s*\)/); return m ? +m[1] : null; })();
-  const left = (() => {
-    const m = lines.join(" ").match(/(?:remaining\s*enhance\w*|upgrades?\s*avail\w*|slots?\s*left)\D{0,6}(\d{1,2})/i);
-    return m ? +m[1] : null;
-  })();
-
+  // Stats first (needed below to guess the item when its name can't be read).
   const stats = {};
   for (const line of lines) {
     if (/^req|remaining|type\s*:/i.test(line)) continue;
@@ -66,7 +64,39 @@ export function parseTooltip(text, equips) {
     const gain = m[3] != null ? +m[3] : 0;
     stats[label[1]] = { total, base, gain };
   }
-  return { item, upgrades, left, stats, confidence };
+
+  // No name: rank the items whose own stats fit the clean values read. Pick one only when it's clear
+  // (two or more stats fit and the text names its type, e.g. "Type: Gloves"); otherwise offer suggestions.
+  let suggestions = [];
+  if (!item && Object.keys(stats).length) {
+    const own = Object.entries(stats).filter(([k]) => !["ACC", "EVA", "Speed", "Jump", "MAD"].includes(k) || stats[k].base);
+    const fits = [];
+    for (const e of equips) {
+      const base = e[5] || {};
+      let fit = 0, ok = true;
+      for (const [k, v] of own) {
+        if (!base[k]) { if (v.base) { ok = false; break; } continue; }
+        const range = Math.min(Math.ceil(base[k] * 0.1), ["PDD", "MDD", "MHP", "MMP"].includes(k) ? 10 : 5);
+        if (Math.abs(v.base - base[k]) > range) { ok = false; break; }
+        fit += 2 - Math.abs(v.base - base[k]) / (range || 1);
+      }
+      if (!ok || !fit) continue;
+      const typed = !!(e[3] && flat.includes(norm(e[3]))); // e.g. "Type: Glove"
+      fits.push({ e, fit: fit + (typed ? 3 : 0), typed });
+    }
+    fits.sort((a, b) => b.fit - a.fit);
+    const top = fits[0];
+    if (top && top.typed && own.length >= 2 && (!fits[1] || fits[1].fit < top.fit)) { item = top.e; confidence = 0.6; }
+    else suggestions = fits.slice(0, 6).map((f) => f.e);
+  }
+
+  const upgrades = (() => { const m = lines.join(" ").match(/\(\s*\+\s*(\d{1,2})\s*\)/); return m ? +m[1] : null; })();
+  const left = (() => {
+    const m = lines.join(" ").match(/(?:remaining\s*enhance\w*|upgrades?\s*avail\w*|slots?\s*left)\D{0,6}(\d{1,2})/i);
+    return m ? +m[1] : null;
+  })();
+
+  return { item, upgrades, left, stats, confidence, suggestions };
 }
 
 // ---------- text recognition in the browser ----------
@@ -88,8 +118,8 @@ function loadTesseract() {
 }
 
 // Game tooltips are light text on a dark panel; recognition reads dark text on light best.
-// Scale up, turn grey, flip to dark-on-light when the picture is mostly dark, and stretch the contrast.
-async function prepare(file) {
+// Each pass prepares the picture differently: "auto" flips dark pictures, "flip"/"keep" force it, "sharp" adds a hard threshold.
+async function prepare(file, how = "auto") {
   const img = await createImageBitmap(file);
   const scale = Math.min(3, Math.max(1, 1600 / img.width));
   const c = document.createElement("canvas");
@@ -101,28 +131,43 @@ async function prepare(file) {
   const d = ctx.getImageData(0, 0, c.width, c.height), px = d.data;
   let sum = 0;
   for (let i = 0; i < px.length; i += 4) sum += 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
-  const dark = sum / (px.length / 4) < 128;
+  const mean = sum / (px.length / 4);
+  const flip = how === "flip" || how === "sharp" ? true : how === "keep" ? false : mean < 128;
   for (let i = 0; i < px.length; i += 4) {
     let g = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
-    if (dark) g = 255 - g;
-    g = Math.max(0, Math.min(255, (g - 60) * 1.6));
+    if (flip) g = 255 - g;
+    g = how === "sharp" ? (g > 150 ? 255 : 0) : Math.max(0, Math.min(255, (g - 60) * 1.6));
     px[i] = px[i + 1] = px[i + 2] = g;
   }
   ctx.putImageData(d, 0, 0);
   return c;
 }
 
-// file: an image the user picked or took. onProgress(0..1, label). -> recognized text
-export async function readImage(file, onProgress = () => {}) {
+// How much a reading found (used to keep the best of several passes).
+export function richness(p) {
+  return (p.item ? 6 * (p.confidence || 1) : 0) + (p.upgrades != null ? 1 : 0) + (p.left != null ? 1 : 0) + Object.keys(p.stats).length;
+}
+
+// file: an image the user picked or took. parse(text) -> parsed reading. onProgress(0..1, label).
+// Tries up to three ways of preparing the picture and returns the richest reading: { text, parsed }.
+export async function readImage(file, parse, onProgress = () => {}) {
   onProgress(0.02, "Loading the text reader…");
   const T = await loadTesseract();
-  const canvas = await prepare(file);
-  const res = await T.recognize(canvas, "eng", {
-    logger: (m) => {
-      if (m.status === "recognizing text") onProgress(0.3 + 0.7 * m.progress, "Reading the item…");
-      else if (typeof m.progress === "number") onProgress(0.05 + 0.25 * m.progress, "Loading the text reader…");
-    },
-  });
+  const passes = ["auto", "sharp", "keep"];
+  let best = null;
+  for (let i = 0; i < passes.length; i++) {
+    const canvas = await prepare(file, passes[i]);
+    const res = await T.recognize(canvas, "eng", {
+      logger: (m) => {
+        if (m.status === "recognizing text") onProgress((i + m.progress) / passes.length, i ? "Trying again for a clearer read…" : "Reading the item…");
+        else if (!i && typeof m.progress === "number") onProgress(0.02 + 0.1 * m.progress, "Loading the text reader…");
+      },
+    });
+    const text = res.data.text || "";
+    const parsed = parse(text);
+    if (!best || richness(parsed) > richness(best.parsed)) best = { text, parsed };
+    if (best.parsed.item && best.parsed.confidence >= 0.8 && Object.keys(best.parsed.stats).length && best.parsed.left != null) break; // good enough
+  }
   onProgress(1, "Done");
-  return res.data.text || "";
+  return best;
 }

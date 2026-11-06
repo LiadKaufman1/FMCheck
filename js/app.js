@@ -1,8 +1,8 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=1e2658a2";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, inferScrolls, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, failedItemValue, mesos, UNITS, readRange } from "./calc.js?v=1e2658a2";
-import { getPrice, setPrice } from "./prices.js?v=1e2658a2";
-import { parseTooltip, readImage } from "./reader.js?v=1e2658a2";
-import { drawCard, cardBlob } from "./card.js?v=1e2658a2";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=fb79aca4";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, inferScrolls, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, failedItemValue, mesos, UNITS, readRange } from "./calc.js?v=fb79aca4";
+import { getPrice, setPrice } from "./prices.js?v=fb79aca4";
+import { parseTooltip, readImage } from "./reader.js?v=fb79aca4";
+import { drawCard, cardBlob } from "./card.js?v=fb79aca4";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -446,7 +446,7 @@ function update() {
 // The price estimate; returns { lo, hi } or null when it can't be worked out yet.
 function renderEstimate(used) {
   const out = $("estimate");
-  if (!cleanPrice) { out.innerHTML = `<p class="hint">Enter the clean item price (step 1) to get an estimate.</p>`; return null; }
+  if (!cleanPrice) { out.innerHTML = `<p class="hint">Enter the clean item price ${mode === "f" ? "above" : "(step 1)"} to get an estimate.</p>`; return null; }
 
   // What the item gained, per scroll family, and the scrolls the user entered (with a price).
   const needs = {};
@@ -645,6 +645,30 @@ function renderFinItem() {
   </div>`).join("");
 }
 
+// "Did you mean…" when the picture's item name couldn't be read.
+function renderSuggestions(list) {
+  const box = $("finSuggest");
+  box.innerHTML = list && list.length ? `<span class="label">Did you mean:</span> ${list.map((e) =>
+    `<button type="button" class="suggest" data-name="${esc(e[1])}"><img src="${icon(e[0])}" alt="" /> ${esc(e[1])}</button>`).join("")}` : "";
+}
+$("finSuggest").addEventListener("click", (e) => {
+  const b = e.target.closest(".suggest");
+  if (!b) return;
+  $("finName").value = b.dataset.name;
+  renderSuggestions([]);
+  onFinInput({ target: $("finName") });
+});
+
+// Put read values into the tooltip lines (those that exist for the current item).
+function fillFinStats(stats) {
+  for (const [k, v] of Object.entries(stats || {})) {
+    const line = $("finStats").querySelector(`.tt-line[data-k="${k}"]`);
+    if (!line) continue;
+    line.querySelector('[data-f="total"]').value = v.total;
+    line.querySelector('[data-f="gain"]').value = v.gain || "";
+  }
+}
+
 function readFin() {
   const num = (el) => (el && el.value !== "" ? Math.max(0, Math.floor(+el.value)) : null);
   const e = fin.item;
@@ -665,6 +689,8 @@ function onFinInput(e) {
     if (it === fin.item) return;
     fin.item = it;
     renderFinItem();
+    if (it) renderSuggestions([]);
+    if (it && fin.pending) { fillFinStats(fin.pending); fin.pending = null; } // stats read from a picture before the item was known
   }
   if (!fin.item) {
     $("finScrolls").innerHTML = `<p class="hint">Type the item's name as it shows in the game, then its stats.</p>`;
@@ -798,23 +824,23 @@ $("finFile").addEventListener("change", async (e) => {
   const st = $("finStatus"), prog = $("finProg");
   prog.hidden = false; prog.value = 0; st.textContent = "Reading your item…";
   try {
-    const text = await readImage(file, (v, label) => { prog.value = v; st.textContent = label; });
-    const p = parseTooltip(text, equips);
+    const { parsed: p } = await readImage(file, (text) => parseTooltip(text, equips), (v, label) => { prog.value = v; st.textContent = label; });
     if (p.item) { $("finName").value = p.item[1]; fin.item = p.item; renderFinItem(); }
     $("finUp").value = p.upgrades ?? "";
     $("finLeft").value = p.left ?? "";
-    for (const [k, v] of Object.entries(p.stats)) {
-      const line = $("finStats").querySelector(`.tt-line[data-k="${k}"]`);
-      if (!line) continue;
-      line.querySelector('[data-f="total"]').value = v.total;
-      line.querySelector('[data-f="gain"]').value = v.gain || "";
-    }
-    const got = [p.item ? "the item" : null, p.upgrades != null ? "(+N)" : null, p.left != null ? "slots left" : null,
-      Object.keys(p.stats).length ? `${Object.keys(p.stats).length} stats` : null].filter(Boolean);
-    st.textContent = got.length ? `Read ${got.join(", ")}. Check the numbers below and fix anything that's off.`
-      : "Couldn't read much from this picture. A straight screenshot works best; you can also type it in.";
+    fin.pending = p.item ? null : p.stats; // filled in once the item is picked
+    fillFinStats(p.stats);
+    const n = Object.keys(p.stats).length;
+    const got = [p.upgrades != null ? "(+N)" : null, p.left != null ? "slots left" : null, n ? `${n} stat${n > 1 ? "s" : ""}` : null].filter(Boolean);
+    renderSuggestions(p.item ? [] : p.suggestions);
+    st.textContent = !p.item && n ? `Read ${got.join(", ")}, but not the item's name. Pick it${p.suggestions.length ? " below" : " above"} and we'll fill in the rest.`
+      : p.item && p.confidence < 0.8 ? `We think it's ${p.item[1]} (from its stats). Check it and fix anything that's off.`
+      : got.length || p.item ? `Read ${[p.item ? "the item" : null, ...got].filter(Boolean).join(", ")}. Check the numbers and fix anything that's off.`
+      : "Couldn't read this picture. A straight screenshot of the item's window works best; you can also type it in.";
     onFinInput();
-  } catch {
+    if (!p.item) $("finName").focus();
+  } catch (err) {
+    console.error("FMCheck reader:", err);
     st.textContent = "Couldn't read the picture here. You can type the numbers in instead.";
   } finally { prog.hidden = true; }
 });

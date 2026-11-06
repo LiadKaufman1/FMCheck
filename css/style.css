@@ -383,12 +383,13 @@ footer .community { font-weight: 800; }
 .skip { position: absolute; left: 12px; top: -60px; z-index: 50; padding: 10px 14px; border-radius: 8px;
   background: var(--btn-bg); color: var(--btn-text); font-weight: 800; text-decoration: none; }
 .skip:focus { top: 12px; }
+.a11y-wrap { position: relative; display: inline-flex; }
 .a11y-btn {
-  position: fixed; left: 14px; bottom: 14px; z-index: 30; width: 48px; height: 48px; padding: 0; border-radius: 50%;
-  display: grid; place-items: center; background: #1d4ed8; color: #fff; box-shadow: 0 4px 14px rgba(0,0,0,.25);
+  width: 40px; height: 40px; padding: 0; border-radius: 50%;
+  display: grid; place-items: center; background: #1d4ed8; color: #fff; box-shadow: 0 3px 0 #1e3a8a;
 }
 .a11y-panel {
-  position: fixed; left: 14px; bottom: 72px; z-index: 30; width: 230px; padding: 14px;
+  position: absolute; right: 0; top: 48px; z-index: 40; width: 230px; padding: 14px;
   display: grid; gap: 10px; border-radius: 12px; background: var(--card); color: var(--text);
   border: 2px solid var(--card-edge); box-shadow: 0 10px 30px rgba(0,0,0,.25);
 }
@@ -487,3 +488,18 @@ html.old-address .moved { display: block; }
   .verdict.fair { background: #2a1d0b; color: #fcd9a6; }
   .verdict.bad { background: #2c0f0f; color: #fecaca; }
 }
+
+/* phones: tabs side by side, compact */
+@media (max-width: 560px) {
+  .tabs { flex-wrap: nowrap; gap: 6px; }
+  .tabs button { flex: 1 1 0; padding: 9px 6px; font-size: 14px; }
+  .tt-box { padding: 12px; }
+  .tt-title #finName { font-size: 17px; }
+  .a11y-panel { right: auto; left: 0; }
+}
+
+.suggestions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
+.suggestions:empty { display: none; }
+.suggest { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--card); color: var(--text);
+  border: 2px solid var(--card-edge); border-radius: 999px; font-weight: 700; }
+.suggest img { width: 22px; height: 22px; object-fit: contain; image-rendering: pixelated; }

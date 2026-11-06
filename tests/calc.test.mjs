@@ -162,3 +162,10 @@ Remaining Enhancements: 4`;
   assert.equal(r2.item[0], 1472018);
   assert.deepEqual(r2.stats.PAD, { total: 42, base: 34, gain: 8 });
 });
+
+test("tooltip without a readable name: item found from its stats", () => {
+  const equips = [[1082000, "Work Gloves", 10, "Glove", 5, { PDD: 6, CRT: 1 }, {}], [1472018, "Steel Slain", 50, "Claw", 7, { PAD: 34 }, {}]];
+  const r = parseTooltip("W@rk Glo\nType: Glove\nWeapon Def.: +6\nCritical Rate: +5 (1 +4)\nRemaining Enhancements: 4", equips);
+  assert.equal(r.item[0], 1082000);
+  assert.deepEqual(r.stats.CRT, { total: 5, base: 1, gain: 4 });
+});
