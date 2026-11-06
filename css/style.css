@@ -503,3 +503,6 @@ html.old-address .moved { display: block; }
 .suggest { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--card); color: var(--text);
   border: 2px solid var(--card-edge); border-radius: 999px; font-weight: 700; }
 .suggest img { width: 22px; height: 22px; object-fit: contain; image-rendering: pixelated; }
+
+.tt-paren .tt-clean { color: #7dffa8; }
+.fin-actions .tip { flex-basis: 100%; font-size: 12px; }

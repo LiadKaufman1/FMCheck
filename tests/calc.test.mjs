@@ -169,3 +169,35 @@ test("tooltip without a readable name: item found from its stats", () => {
   assert.equal(r.item[0], 1082000);
   assert.deepEqual(r.stats.CRT, { total: 5, base: 1, gain: 4 });
 });
+
+test("the game's brackets are default ± (roll + scrolls)", () => {
+  const S = (id, stats, success, tier) => ({ id, stats, success, tier });
+  const overall = [S(1, { PDD: 2 }, 100, "Lesser"), S(2, { PDD: 4, MDD: 2 }, 60, "Intermediate"), S(3, { PDD: 6, MDD: 4 }, 10, "Greater"),
+    S(4, { STR: 1 }, 100, "Lesser")];
+  // Dark Crusader Chainmail (+1): W.DEF 117 (115 +2), M.DEF 14 (10 +4): one Intermediate (+4/+2) with rolls -2/+2
+  const r = inferScrolls({ gains: { PDD: 2, MDD: 4, STR: 0 }, tol: { PDD: 11, MDD: 2, STR: 2 }, passes: 1, used: 5, scrolls: overall });
+  // Intermediate (+4/+2, rolls -2/+2) and Greater (+6/+4, rolls -4/0) both fit; both are offered
+  assert.deepEqual(r.map((o) => o.rows[0].scroll.id).sort(), [2, 3]);
+  // exact numbers still work with no tolerance
+  const g = inferScrolls({ gains: { CRT: 4 }, passes: 1, used: 1, scrolls: [S(9, { CRT: 4 }, 10, "Chaos"), S(8, { CRT: 1 }, 100, "Lesser")] });
+  assert.equal(g[0].rows[0].scroll.id, 9);
+});
+
+test("small stats: a roll past the usual range is rare, so Chaos +4 beats Intermediate +2 on Crit (1 +4)", () => {
+  const S = (id, v, success, tier) => ({ id, stats: { CRT: v }, success, tier });
+  const crit = [S(1, 1, 100, "Lesser"), S(2, 2, 60, "Intermediate"), S(3, 3, 10, "Greater"), S(4, 4, 10, "Chaos")];
+  const r = inferScrolls({ gains: { CRT: 4 }, tol: { CRT: 2 }, passes: 1, used: 1, scrolls: crit });
+  assert.equal(r[0].rows[0].scroll.id, 4);
+});
+
+import { mergeReadings } from "../js/reader.js";
+test("several readings vote", () => {
+  const A = { item: null, confidence: 0, upgrades: 1, left: 3, stats: { PDD: { total: 117, base: 115, gain: 2 } }, suggestions: [] };
+  const B = { item: [1, "Dark Crusader Chainmail"], confidence: 1, upgrades: 1, left: 5, stats: { PDD: { total: 117, base: 115, gain: 2 }, MDD: { total: 14, base: 10, gain: 4 } } };
+  const C = { item: null, confidence: 0, upgrades: null, left: 5, stats: {} };
+  const m = mergeReadings([A, B, C]);
+  assert.equal(m.item[1], "Dark Crusader Chainmail");
+  assert.equal(m.left, 5);         // 5 twice, 3 once
+  assert.equal(m.upgrades, 1);
+  assert.deepEqual(m.stats.MDD, { total: 14, base: 10, gain: 4 });
+});

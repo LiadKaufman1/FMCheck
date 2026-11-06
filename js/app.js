@@ -1,8 +1,8 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=fb79aca4";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, inferScrolls, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, failedItemValue, mesos, UNITS, readRange } from "./calc.js?v=fb79aca4";
-import { getPrice, setPrice } from "./prices.js?v=fb79aca4";
-import { parseTooltip, readImage } from "./reader.js?v=fb79aca4";
-import { drawCard, cardBlob } from "./card.js?v=fb79aca4";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=dc6b89ff";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, inferScrolls, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, failedItemValue, mesos, UNITS, readRange } from "./calc.js?v=dc6b89ff";
+import { getPrice, setPrice } from "./prices.js?v=dc6b89ff";
+import { parseTooltip, readImage } from "./reader.js?v=dc6b89ff";
+import { drawCard, cardBlob } from "./card.js?v=dc6b89ff";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -641,7 +641,7 @@ function renderFinItem() {
   $("finStats").innerHTML = finStatKeys(e).map((k) => `<div class="tt-line" data-k="${k}">
     <span class="tt-dot">•</span> ${GAME_LABEL[k]}:
     +<input data-f="total" type="number" min="0" inputmode="numeric" placeholder="${e[5][k] || ""}" aria-label="${GAME_LABEL[k]} total" />
-    <span class="tt-paren">( <span class="tt-clean" data-clean>${e[5][k] || 0}</span> + <input data-f="gain" type="number" min="0" inputmode="numeric" placeholder="0" aria-label="${GAME_LABEL[k]} from scrolls, the number after + in brackets" /> )</span>
+    <span class="tt-paren">( <span class="tt-clean">${e[5][k] || 0}</span> <input data-f="gain" type="text" inputmode="text" placeholder="+0" aria-label="${GAME_LABEL[k]}: the + or − number in brackets" /> )</span>
   </div>`).join("");
 }
 
@@ -665,23 +665,29 @@ function fillFinStats(stats) {
     const line = $("finStats").querySelector(`.tt-line[data-k="${k}"]`);
     if (!line) continue;
     line.querySelector('[data-f="total"]').value = v.total;
-    line.querySelector('[data-f="gain"]').value = v.gain || "";
+    line.querySelector('[data-f="gain"]').value = v.gain ? (v.gain > 0 ? "+" : "−") + Math.abs(v.gain) : "";
   }
 }
 
+// Each line: "+total (default ±difference)". The difference is the clean roll plus what scrolls added.
 function readFin() {
   const num = (el) => (el && el.value !== "" ? Math.max(0, Math.floor(+el.value)) : null);
+  const signed = (el) => { const m = String(el?.value || "").replace(/[−–]/g, "-").match(/^\s*([+-]?)\s*(\d+)/); return m ? (m[1] === "-" ? -1 : 1) * +m[2] : null; };
   const e = fin.item;
   const stats = {};
   for (const line of $("finStats").querySelectorAll(".tt-line[data-k]")) {
-    const total = num(line.querySelector('[data-f="total"]')), gain = num(line.querySelector('[data-f="gain"]')) || 0;
-    if (total == null && !gain) continue;
-    const t = total ?? (e[5][line.dataset.k] || 0) + gain;
-    stats[line.dataset.k] = { base: Math.max(0, t - gain), gain };
-    line.querySelector("[data-clean]").textContent = Math.max(0, t - gain); // the game's "(clean +gain)"
+    const k = line.dataset.k, def = e[5][k] || 0;
+    const total = num(line.querySelector('[data-f="total"]')), diff = signed(line.querySelector('[data-f="gain"]'));
+    if (total == null && diff == null) continue;
+    const t = total ?? def + (diff || 0);
+    stats[k] = { total: t, base: def, gain: diff ?? t - def };
   }
   return { upgrades: num($("finUp")), left: num($("finLeft")), stats };
 }
+
+// How far a clean roll can land from the default, for matching the difference to scrolls.
+// The usual roll range plus one point, which only counts as a rare outlier (see inferScrolls).
+const rollTolerance = (k, def) => (def ? statRange(k, def)[1] - def + 1 : 0);
 
 function onFinInput(e) {
   if (e && e.target.id === "finName") {
@@ -700,9 +706,10 @@ function onFinInput(e) {
   const r = readFin(), it = fin.item;
   const used = r.left != null ? it[4] - r.left : null;
   const gains = Object.fromEntries(Object.entries(r.stats).map(([k, v]) => [k, v.gain]));
+  const tol = Object.fromEntries(Object.keys(gains).map((k) => [k, rollTolerance(k, it[5][k] || 0)]));
   const prefix = Math.floor(it[0] / 10000);
-  const passes = r.upgrades ?? (Object.values(gains).some(Boolean) ? null : 0);
-  fin.options = inferScrolls({ gains, passes, used, scrolls: scrolls.filter((s) => s.target === prefix) });
+  const passes = r.upgrades ?? null;
+  fin.options = inferScrolls({ gains, tol, passes, used, scrolls: scrolls.filter((s) => s.target === prefix) });
   fin.choice = 0;
   fin.read = r;
   renderFinScrolls();
@@ -787,8 +794,9 @@ function onAsk() {
 async function applyFin() {
   const it = fin.item, o = fin.options[fin.choice], r = fin.read;
   if (!it || !o || !r) { $("resultCard").hidden = true; return; }
+  // clean roll = what the game shows − what these scrolls added
   const clean = { ...it[5] };
-  for (const [k, v] of Object.entries(r.stats)) clean[k] = v.base;
+  for (const [k, v] of Object.entries(r.stats)) clean[k] = Math.max(0, v.total - ((o.got && o.got[k]) || 0));
   const rows = o.rows.map((x) => ({ scroll: scrollById.get(x.scroll.id), successes: x.n }));
   const passed = rows.reduce((a, x) => a + x.successes, 0);
   await pickItem(it[0], { clean, rows, left: r.left ?? Math.max(0, it[4] - passed) });

@@ -57,11 +57,12 @@ export function parseTooltip(text, equips) {
     const label = LABELS.find(([re]) => re.test(line));
     if (!label) continue;
     // "+5 (1 +4)" or "+6"
-    const m = line.match(/[:;]?\s*\+\s*(\d{1,4})\s*(?:\(\s*(\d{1,4})\s*\+\s*(\d{1,4})\s*\))?/);
+    // "+5 (1 +4)", "+113 (115 -2)" or "+6". In brackets: the item's default value and the difference from it.
+    const m = line.match(/[:;]?\s*\+\s*(\d{1,4})\s*(?:\(\s*(\d{1,4})\s*([+\-−–])\s*(\d{1,4})\s*\))?/);
     if (!m) continue;
     const total = +m[1];
     const base = m[2] != null ? +m[2] : total;
-    const gain = m[3] != null ? +m[3] : 0;
+    const gain = m[4] != null ? (m[3] === "+" ? 1 : -1) * +m[4] : 0;
     stats[label[1]] = { total, base, gain };
   }
 
@@ -118,10 +119,11 @@ function loadTesseract() {
 }
 
 // Game tooltips are light text on a dark panel; recognition reads dark text on light best.
-// Each pass prepares the picture differently: "auto" flips dark pictures, "flip"/"keep" force it, "sharp" adds a hard threshold.
+// Each pass prepares the picture differently: "auto" flips dark pictures, "flip"/"keep" force it, "sharp" adds a hard
+// threshold, and "text" keeps only the tooltip's bright text (white and yellow) so a busy game map behind it disappears.
 async function prepare(file, how = "auto") {
   const img = await createImageBitmap(file);
-  const scale = Math.min(3, Math.max(1, 1600 / img.width));
+  const scale = Math.min(3, Math.max(2000 / img.width, Math.min(1, 2400 / img.width)));
   const c = document.createElement("canvas");
   c.width = Math.round(img.width * scale);
   c.height = Math.round(img.height * scale);
@@ -133,6 +135,15 @@ async function prepare(file, how = "auto") {
   for (let i = 0; i < px.length; i += 4) sum += 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
   const mean = sum / (px.length / 4);
   const flip = how === "flip" || how === "sharp" ? true : how === "keep" ? false : mean < 128;
+  if (how === "text") {
+    for (let i = 0; i < px.length; i += 4) {
+      const r = px[i], gr = px[i + 1], b = px[i + 2];
+      const white = r > 175 && gr > 175 && b > 175, yellow = r > 190 && gr > 150 && b < 120;
+      px[i] = px[i + 1] = px[i + 2] = white || yellow ? 0 : 255;
+    }
+    ctx.putImageData(d, 0, 0);
+    return c;
+  }
   for (let i = 0; i < px.length; i += 4) {
     let g = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
     if (flip) g = 255 - g;
@@ -148,13 +159,41 @@ export function richness(p) {
   return (p.item ? 6 * (p.confidence || 1) : 0) + (p.upgrades != null ? 1 : 0) + (p.left != null ? 1 : 0) + Object.keys(p.stats).length;
 }
 
+// Combine several readings: the item from the surest one, each number by vote (ties go to the richest reading).
+export function mergeReadings(list) {
+  if (!list.length) return null;
+  const byRich = list.slice().sort((a, b) => richness(b) - richness(a));
+  const vote = (vals) => {
+    const n = new Map();
+    for (const v of vals) if (v != null) n.set(v, (n.get(v) || 0) + 1);
+    let best = null, most = 0;
+    for (const v of vals) if (v != null && n.get(v) > most) { best = v; most = n.get(v); }
+    return best;
+  };
+  const named = list.filter((p) => p.item).sort((a, b) => (b.confidence || 0) - (a.confidence || 0))[0];
+  const out = { ...byRich[0], item: named ? named.item : null, confidence: named ? named.confidence : 0,
+    suggestions: named ? [] : byRich[0].suggestions || [] };
+  out.upgrades = vote(byRich.map((p) => p.upgrades));
+  out.left = vote(byRich.map((p) => p.left));
+  const keys = new Set(list.flatMap((p) => Object.keys(p.stats)));
+  out.stats = {};
+  for (const k of keys) {
+    const seen = byRich.map((p) => p.stats[k]).filter(Boolean);
+    const key = vote(seen.map((v) => `${v.total}|${v.base}|${v.gain}`));
+    const [total, base, gain] = key.split("|").map(Number);
+    out.stats[k] = { total, base, gain };
+  }
+  return out;
+}
+
 // file: an image the user picked or took. parse(text) -> parsed reading. onProgress(0..1, label).
-// Tries up to three ways of preparing the picture and returns the richest reading: { text, parsed }.
+// Reads the picture up to three ways and combines the readings: { text, parsed }.
 export async function readImage(file, parse, onProgress = () => {}) {
   onProgress(0.02, "Loading the text reader…");
   const T = await loadTesseract();
-  const passes = ["auto", "sharp", "keep"];
+  const passes = ["auto", "text", "sharp"];
   let best = null;
+  const readings = [];
   for (let i = 0; i < passes.length; i++) {
     const canvas = await prepare(file, passes[i]);
     const res = await T.recognize(canvas, "eng", {
@@ -165,9 +204,11 @@ export async function readImage(file, parse, onProgress = () => {}) {
     });
     const text = res.data.text || "";
     const parsed = parse(text);
+    readings.push(parsed);
     if (!best || richness(parsed) > richness(best.parsed)) best = { text, parsed };
-    if (best.parsed.item && best.parsed.confidence >= 0.8 && Object.keys(best.parsed.stats).length && best.parsed.left != null) break; // good enough
+    // a clean read on the first pass: stop early; otherwise read all three ways and let them vote
+    if (i === 0 && parsed.item && parsed.confidence >= 0.95 && Object.keys(parsed.stats).length && parsed.left != null && parsed.upgrades != null) break;
   }
   onProgress(1, "Done");
-  return best;
+  return { text: best.text, parsed: mergeReadings(readings) };
 }

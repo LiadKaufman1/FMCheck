@@ -78,8 +78,13 @@ statement is in `terms.html#accessibility`.
 ## Price my finished item
 
 The "Price my finished item" tab is a box that looks like the game's item tooltip: type the name, the (+N),
-each stat as the game shows it ("+total" and the number after + in brackets) and Remaining Enhancements,
+each stat as the game shows it ("+total (default ±difference)") and Remaining Enhancements,
 or fill it from a screenshot. `inferScrolls` in `js/calc.js` finds the scroll combinations whose gains add up
 exactly, ranked by success chance × how common the tier is; the tab then asks only for today's prices and shows
 the estimate and card (it fills the same calculator underneath). Screenshots are read in the browser by
 `js/reader.js` (Tesseract.js, loaded on first use; the image is never uploaded).
+
+Note: in the game's brackets the first number is the item's default stat (from the data), and the ± number is the
+difference from it: the clean item's random roll plus what the scrolls added. `inferScrolls` takes a roll tolerance
+per stat (the usual range plus one rare point) and ranks fits by how likely each roll is. A picture is read up to
+three ways (as-is, bright-text-only, high-contrast) and the readings vote (`mergeReadings`).
