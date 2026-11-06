@@ -297,12 +297,21 @@ footer { color: var(--text); font-size: 12px; padding-bottom: 32px; }
 }
 .donate:hover { filter: brightness(1.05); }
 .donate:active { translate: 0 2px; box-shadow: 0 1px 0 #d9a21b; }
-/* Header: the buttons get their own row above the logo (right side), so they never cover it.
-   On phones they sit under the tagline. */
-.top { display: flex; flex-direction: column; align-items: flex-start; }
-.top-actions { order: -1; align-self: stretch; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; margin-bottom: 6px; }
-.top .moved { order: -2; align-self: stretch; }
-@media (max-width: 640px) { .top-actions { order: 0; justify-content: flex-start; margin: 12px 0 0; } }
+/* Header: logo on the left, the three small buttons beside it on the right edge, tagline underneath.
+   When there's no room beside the logo (phones), the buttons go on one row under the tagline. */
+.top { display: grid; grid-template-columns: auto 1fr; grid-template-areas: "moved moved" "logo actions" "tag tag"; align-items: center; column-gap: 12px; }
+.top .moved { grid-area: moved; }
+.top .logo { grid-area: logo; }
+.top .tagline { grid-area: tag; justify-self: start; }
+.top-actions { grid-area: actions; justify-self: end; display: flex; gap: 6px; flex-wrap: nowrap; }
+.top-actions .guide-btn, .top-actions .discord, .top-actions .donate {
+  padding: 5px 10px; font-size: 12.5px; gap: 4px; white-space: nowrap; box-shadow: 0 2px 0 rgba(0, 0, 0, .18);
+}
+.top-actions .discord svg { width: 14px; height: 14px; }
+@media (max-width: 720px) {
+  .top { grid-template-areas: "moved" "logo" "tag" "actions"; grid-template-columns: 1fr; }
+  .top-actions { justify-self: start; margin-top: 10px; flex-wrap: wrap; }
+}
 .discord {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 14px; border-radius: 999px;
@@ -449,3 +458,7 @@ html.a11y-still .guide-stage img.play { animation: none; }
 
 .main-tiers:not(:empty) { margin-top: 14px; }
 .tier-row { background: var(--bg); border-style: dashed; }
+@media (max-width: 380px) {
+  .top-actions { gap: 4px; }
+  .top-actions .guide-btn, .top-actions .discord, .top-actions .donate { padding: 4px 7px; font-size: 11.5px; }
+}

@@ -1,7 +1,7 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=2638b7e8";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readRange } from "./calc.js?v=2638b7e8";
-import { getPrice, setPrice } from "./prices.js?v=2638b7e8";
-import { drawCard, cardBlob } from "./card.js?v=2638b7e8";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=df1c1fee";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readRange } from "./calc.js?v=df1c1fee";
+import { getPrice, setPrice } from "./prices.js?v=df1c1fee";
+import { drawCard, cardBlob } from "./card.js?v=df1c1fee";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
