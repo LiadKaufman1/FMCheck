@@ -413,10 +413,10 @@ html.a11y-contrast .card { box-shadow: none; }
 
 /* Bigger on computer screens: the whole page content (not the background) is scaled up. */
 @media (min-width: 900px) {
-  .top, main, footer { zoom: 1.08; }
+  .top, main, footer { zoom: 1; }
 }
 @media (min-width: 1400px) {
-  .top, main, footer { zoom: 1.15; }
+  .top, main, footer { zoom: 1.05; }
 }
 
 /* tabs */
