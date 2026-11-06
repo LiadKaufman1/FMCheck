@@ -1,7 +1,7 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=97fa4302";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, failedItemValue, mesos, UNITS, readRange } from "./calc.js?v=97fa4302";
-import { getPrice, setPrice } from "./prices.js?v=97fa4302";
-import { drawCard, cardBlob } from "./card.js?v=97fa4302";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=5b785f1d";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, failedItemValue, mesos, UNITS, readRange } from "./calc.js?v=5b785f1d";
+import { getPrice, setPrice } from "./prices.js?v=5b785f1d";
+import { drawCard, cardBlob } from "./card.js?v=5b785f1d";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -599,8 +599,8 @@ function readHash() {
 
 const GUIDE = [
   ["assets/guide/1.webp", "1. Pick your item: search it, or tap a category and a class to browse."],
-  ["assets/guide/2.webp", "2. Enter what a clean one costs today (from – to), and set its clean stats."],
-  ["assets/guide/3.webp", "3. Set the slots left, add the scrolls that passed and their price. Failed ones are worked out for you."],
+  ["assets/guide/2.webp", "2. Enter what a clean one costs today (from – to), and set its clean stats. Tip: tap \"check price\" to see it on meso.watch."],
+  ["assets/guide/3.webp", "3. Set the slots left, add the scrolls that passed and their price. Failed ones are worked out for you. Tip: check each scroll's price on meso.watch (\"check price\") before you enter the range."],
   ["assets/guide/4.webp", "4. Get the price range and the odds, and save the item card to share it."],
 ];
 const GUIDE_KEY = "fmcheck-guide-seen";
