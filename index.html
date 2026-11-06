@@ -32,7 +32,7 @@
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
   <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="css/style.css?v=8f83cf90" />
+  <link rel="stylesheet" href="css/style.css?v=97fa4302" />
 </head>
 <body>
   <a class="skip" href="#itemSearch">Skip to the calculator</a>
@@ -72,63 +72,42 @@
     </h1>
     <p class="tagline">Know what your scrolled item is worth.</p>
     <div class="top-actions">
+      <button id="guideBtn" class="guide-btn" type="button" aria-controls="guide" aria-expanded="false">❓ How it works</button>
       <a class="discord" data-discord href="https://discord.gg/hWYs9vxhRv" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M5 5.5C7 4.4 9 4 9 4l.6 1.2a15 15 0 0 1 4.8 0L15 4s2 .4 4 1.5c2 3 2.6 6.4 2.4 10.5-1.6 1.3-3.3 2-5 2.5l-1-1.7c.7-.3 1.3-.6 1.9-1-3.8 1.8-8.8 1.8-12.6 0 .6.4 1.2.7 1.9 1l-1 1.7c-1.7-.5-3.4-1.2-5-2.5C2.4 11.9 3 8.5 5 5.5Z"/><circle cx="9" cy="12" r="1.6" fill="#5865f2"/><circle cx="15" cy="12" r="1.6" fill="#5865f2"/></svg>
         Discord</a>
-      <span class="a11y-wrap">
-    <button id="a11yBtn" class="a11y-btn" type="button" aria-expanded="false" aria-controls="a11yPanel" aria-label="Accessibility options">
-        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="4" r="2" fill="currentColor"/><path d="M4 8.5 12 10l8-1.5M12 10v4.5m0 0-3.5 6.5m3.5-6.5 3.5 6.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div id="a11yPanel" class="a11y-panel" role="dialog" aria-label="Accessibility options" hidden>
-        <b>Accessibility</b>
-        <label><input type="checkbox" data-a11y="big" /> Larger text</label>
-        <label><input type="checkbox" data-a11y="still" /> Stop animations</label>
-        <label><input type="checkbox" data-a11y="contrast" /> High contrast</label>
-        <label><input type="checkbox" data-a11y="links" /> Underline links</label>
-        <a href="terms.html#accessibility">Accessibility statement</a>
-      </div>
-      </span>
+
       <a class="donate" data-donate hidden target="_blank" rel="noopener" title="Voluntary, helps cover the site's running costs">☕ Support FMCheck</a>
     </div>
   </header>
 
   <main>
-    <div class="tabs" role="tablist" aria-label="What do you want to do?">
-      <button type="button" role="tab" id="tabBuild" data-mode="b" aria-selected="true" aria-controls="itemCard">🛠️ Build an item</button>
-      <button type="button" role="tab" id="tabFinished" data-mode="f" aria-selected="false" aria-controls="finishedCard">📜 Price my finished item</button>
-    </div>
     <datalist id="equipNames"></datalist>
 
-    <!-- Finished item: typed in like the game's tooltip (or read from a screenshot) -->
-    <section class="card" id="finishedCard" role="tabpanel" aria-labelledby="tabFinished" hidden>
-      <h2><b>1</b> Your item, as it shows in the game</h2>
-      <div class="fin-actions">
-        <button id="finRead" type="button" class="read-btn">📷 Fill from a screenshot</button>
-        <input id="finFile" type="file" accept="image/*" hidden />
-        <span class="hint">or type it in below</span>
-        <span class="hint tip">Best results: a screenshot, or a close, straight photo of just the item's window.</span>
+    <!-- How it works: four real frames from the site, played like a short animation. -->
+    <section id="guide" class="card guide" aria-labelledby="guideTitle" hidden>
+      <div class="guide-head">
+        <h2 id="guideTitle">How FMCheck works</h2>
+        <button id="guideClose" type="button" class="ghost-btn" aria-label="Close the guide">✕</button>
       </div>
-      <p id="finStatus" class="reader-status" role="status"></p>
-      <progress id="finProg" max="1" value="0" hidden></progress>
-      <div id="finSuggest" class="suggestions"></div>
-      <div class="tt-box" id="finBox">
-        <div class="tt-title">
-          <input id="finName" list="equipNames" placeholder="Item name" autocomplete="off" aria-label="Item name" />
-          <span class="tt-up">(+<input id="finUp" type="number" min="0" inputmode="numeric" aria-label="Upgrades, the number after +" />)</span>
+      <div class="guide-stage">
+        <img id="guideImg" src="assets/guide/1.webp" alt="" />
+      </div>
+      <p id="guideCaption" class="guide-caption" aria-live="polite"></p>
+      <div class="guide-nav">
+        <button id="guidePrev" type="button" class="ghost-btn" aria-label="Previous step">←</button>
+        <div class="guide-dots" role="group" aria-label="Steps">
+          <button type="button" data-step="0" aria-label="Step 1"></button><button type="button" data-step="1" aria-label="Step 2"></button>
+          <button type="button" data-step="2" aria-label="Step 3"></button><button type="button" data-step="3" aria-label="Step 4"></button>
         </div>
-        <div class="tt-head" id="finHead"></div>
-        <div id="finStats" class="tt-stats"></div>
-        <div class="tt-line"><span class="tt-dot">•</span> Remaining Enhancements:
-          <input id="finLeft" type="number" min="0" inputmode="numeric" aria-label="Remaining Enhancements" /></div>
+        <button id="guideNext" type="button" class="ghost-btn" aria-label="Next step">→</button>
+        <button id="guideGo" type="button">Got it, let's start</button>
       </div>
-      <div id="finScrolls" class="fin-scrolls"></div>
-      <div id="finPrices" class="fin-prices"></div>
     </section>
 
     <!-- 1. Item -->
     <section class="card" id="itemCard">
       <h2><b>1</b> Item</h2>
-      <button type="button" class="link-btn to-finished" data-mode="f">Have a finished item? Price it as it shows in the game →</button>
       <div id="cats" class="cats" role="toolbar" aria-label="Item categories"></div>
       <div class="search-row">
       <div class="search">
@@ -275,7 +254,23 @@ chance = clean roll × scrolls</pre>
 
   <div id="toast" class="toast" role="status" hidden></div>
 
+  <!-- Accessibility options (bottom right), saved in this browser. -->
+  <div class="a11y-wrap">
+<button id="a11yBtn" class="a11y-btn" type="button" aria-expanded="false" aria-controls="a11yPanel" aria-label="Accessibility options">
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="4" r="2" fill="currentColor"/><path d="M4 8.5 12 10l8-1.5M12 10v4.5m0 0-3.5 6.5m3.5-6.5 3.5 6.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <div id="a11yPanel" class="a11y-panel" role="dialog" aria-label="Accessibility options" hidden>
+    <b>Accessibility</b>
+    <label><input type="checkbox" data-a11y="big" /> Larger text</label>
+    <label><input type="checkbox" data-a11y="still" /> Stop animations</label>
+    <label><input type="checkbox" data-a11y="contrast" /> High contrast</label>
+    <label><input type="checkbox" data-a11y="links" /> Underline links</label>
+    <a href="terms.html#accessibility">Accessibility statement</a>
+  </div>
+  
+  </div>
 
-  <script type="module" src="js/app.js?v=8f83cf90"></script>
+
+  <script type="module" src="js/app.js?v=97fa4302"></script>
 </body>
 </html>

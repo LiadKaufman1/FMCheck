@@ -75,16 +75,7 @@ canvas has a full text description, AA color contrast, visible keyboard focus. T
 offers larger text, stop animations, high contrast and underlined links (saved per browser). The accessibility
 statement is in `terms.html#accessibility`.
 
-## Price my finished item
+## How it works guide
 
-The "Price my finished item" tab is a box that looks like the game's item tooltip: type the name, the (+N),
-each stat as the game shows it ("+total (default ±difference)") and Remaining Enhancements,
-or fill it from a screenshot. `inferScrolls` in `js/calc.js` finds the scroll combinations whose gains add up
-exactly, ranked by success chance × how common the tier is; the tab then asks only for today's prices and shows
-the estimate and card (it fills the same calculator underneath). Screenshots are read in the browser by
-`js/reader.js` (Tesseract.js, loaded on first use; the image is never uploaded).
-
-Note: in the game's brackets the first number is the item's default stat (from the data), and the ± number is the
-difference from it: the clean item's random roll plus what the scrolls added. `inferScrolls` takes a roll tolerance
-per stat (the usual range plus one rare point) and ranks fits by how likely each roll is. A picture is read up to
-three ways (as-is, bright-text-only, high-contrast) and the readings vote (`mergeReadings`).
+"❓ How it works" in the header opens a short guide (it also opens on a first visit): four real frames of the site
+in `assets/guide/` that play one after another with a caption each. Retake them after big UI changes.

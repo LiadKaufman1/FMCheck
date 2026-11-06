@@ -1,8 +1,7 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=8f83cf90";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, inferScrolls, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, failedItemValue, mesos, UNITS, readRange } from "./calc.js?v=8f83cf90";
-import { getPrice, setPrice } from "./prices.js?v=8f83cf90";
-import { parseTooltip, readImage } from "./reader.js?v=8f83cf90";
-import { drawCard, cardBlob } from "./card.js?v=8f83cf90";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=97fa4302";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, failedItemValue, mesos, UNITS, readRange } from "./calc.js?v=97fa4302";
+import { getPrice, setPrice } from "./prices.js?v=97fa4302";
+import { drawCard, cardBlob } from "./card.js?v=97fa4302";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -67,9 +66,9 @@ let matches = [], active = 0, hideTimer;
 const filter = { cat: "", job: "" };
 
 // Categories like the game's equip tabs. Icon = a typical item of that kind.
-const CATS = [["", "All", null], ["Weapon", "Weapons", 1302000], ["Hat", "Hats", 1002058], ["Top", "Tops", 1040002],
-  ["Bottom", "Bottoms", 1060001], ["Overall", "Overalls", 1050036], ["Shoes", "Shoes", 1072083], ["Glove", "Gloves", 1082000],
-  ["Shield", "Shields", 1092001], ["Cape", "Capes", 1102000], ["Earring", "Earrings", 1032004]];
+const CATS = [["", "All", null], ["Weapon", "Weapons", 1302000], ["Hat", "Hats", 1002012], ["Top", "Tops", 1040002],
+  ["Bottom", "Bottoms", 1060001], ["Overall", "Overalls", 1050010], ["Shoes", "Shoes", 1072083], ["Glove", "Gloves", 1082000],
+  ["Shield", "Shields", 1092001], ["Cape", "Capes", 1102000], ["Earring", "Earrings", 1032007]];
 const catOf = (e) => (Math.floor(e[0] / 10000) >= 130 ? "Weapon" : e[3]);
 const jobOk = (e) => !filter.job || !(e[6] && e[6].jobs) || e[6].jobs.includes(filter.job);
 const inFilter = (e) => (!filter.cat || catOf(e) === filter.cat) && jobOk(e);
@@ -438,15 +437,13 @@ function update() {
   const odds = renderOdds(failed);
   saveHash();
   const price = failed < 0 ? null : renderEstimate(used);
-  lastPrice = price;
-  renderVerdict();
   renderCard(fin, odds, price);
 }
 
 // The price estimate; returns { lo, hi } or null when it can't be worked out yet.
 function renderEstimate(used) {
   const out = $("estimate");
-  if (!cleanPrice) { out.innerHTML = `<p class="hint">Enter the clean item price ${mode === "f" ? "above" : "(step 1)"} to get an estimate.</p>`; return null; }
+  if (!cleanPrice) { out.innerHTML = `<p class="hint">Enter the clean item price (step 1) to get an estimate.</p>`; return null; }
 
   // What the item gained, per scroll family, and the scrolls the user entered (with a price).
   const needs = {};
@@ -578,7 +575,6 @@ function saveHash() {
   if (r) q.set("r", r);
   if (state.left !== state.slots) q.set("l", state.left);
   if (s) q.set("s", s);
-  if (mode === "f") q.set("m", "f");
   history.replaceState(null, "", `#${q}`);
 }
 
@@ -599,259 +595,57 @@ function readHash() {
   return { id, restore: { clean, rows, left: q.has("l") ? +q.get("l") : undefined } };
 }
 
-// ---------- "Price my finished item": the game's tooltip, typed in or read from a screenshot ----------
-//
-// The tooltip shows "Name (+passes)", each stat as "+total" or "+total (clean +gain)", and "Remaining Enhancements".
-// From that we work out which scrolls passed (inferScrolls), ask only for prices, and show the estimate.
-// Under the hood it fills the same calculator, so the estimate and card are the same as in "Build an item".
+// ---------- How it works: a short guide that plays real frames from the site ----------
 
-let mode = "b";
-const fin = { item: null, options: [], choice: 0, clean: null };
+const GUIDE = [
+  ["assets/guide/1.webp", "1. Pick your item: search it, or tap a category and a class to browse."],
+  ["assets/guide/2.webp", "2. Enter what a clean one costs today (from – to), and set its clean stats."],
+  ["assets/guide/3.webp", "3. Set the slots left, add the scrolls that passed and their price. Failed ones are worked out for you."],
+  ["assets/guide/4.webp", "4. Get the price range and the odds, and save the item card to share it."],
+];
+const GUIDE_KEY = "fmcheck-guide-seen";
+let guideStep = 0, guideTimer = null;
+const stillMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.classList.contains("a11y-still");
+for (const [src] of GUIDE) { const i = new Image(); i.src = src; } // load all frames up front
 
-function setMode(m) {
-  mode = m;
-  document.documentElement.classList.toggle("mode-f", m === "f");
-  $("tabBuild").setAttribute("aria-selected", String(m === "b"));
-  $("tabFinished").setAttribute("aria-selected", String(m === "f"));
-  $("finishedCard").hidden = m !== "f";
-  $("resultCard").querySelector("h2 b").textContent = m === "f" ? "2" : "4";
-  if (m === "f") { if (!fin.item) $("resultCard").hidden = true; else applyFin(); }
-  else if (state.item) { for (const id of ["cleanField", "rollCard", "scrollCard", "resultCard"]) $(id).hidden = false; renderCleanPrice(); update(); }
+function showGuideStep(n) {
+  guideStep = (n + GUIDE.length) % GUIDE.length;
+  const img = $("guideImg");
+  img.classList.remove("play");
+  void img.offsetWidth; // restart the animation
+  img.src = GUIDE[guideStep][0];
+  img.alt = GUIDE[guideStep][1];
+  img.classList.add("play");
+  $("guideCaption").textContent = GUIDE[guideStep][1];
+  for (const d of document.querySelectorAll(".guide-dots button")) d.setAttribute("aria-current", String(+d.dataset.step === guideStep));
 }
-for (const el of document.querySelectorAll("[data-mode]")) {
-  el.addEventListener("click", () => { setMode(el.dataset.mode); (el.dataset.mode === "f" ? $("finName") : search).focus(); });
+function guideAuto(on) {
+  clearInterval(guideTimer);
+  if (on && !stillMotion()) guideTimer = setInterval(() => showGuideStep(guideStep + 1), 4200);
 }
-
-const byName = (name) => { const n = (name || "").trim().toLowerCase(); return equips.find((e) => e[1].toLowerCase() === n) || null; };
-
-// Stat lines: the item's own stats plus the ones its scrolls can add, in the game's order.
-function finStatKeys(e) {
-  const prefix = Math.floor(e[0] / 10000);
-  const fromScrolls = new Set(scrolls.filter((s) => s.target === prefix).flatMap((s) => Object.keys(s.stats)));
-  return GAME_ORDER.filter((k) => e[5][k] || fromScrolls.has(k));
+function openGuide() {
+  $("guide").hidden = false;
+  $("guideBtn").setAttribute("aria-expanded", "true");
+  showGuideStep(0);
+  guideAuto(true);
 }
-
-function renderFinItem() {
-  const e = fin.item;
-  if (!e) { $("finHead").innerHTML = ""; $("finStats").innerHTML = ""; return; }
-  const req = (e[6] && e[6].req) || [0, 0, 0, 0];
-  $("finHead").innerHTML = `<span class="tt-icon"><img src="${icon(e[0])}" alt="" /></span>
-    <span class="tt-req">REQ LEV : ${e[2]}${["STR", "DEX", "INT", "LUK"].map((k, i) => (req[i] ? `<br>REQ ${k} : ${req[i]}` : "")).join("")}
-    <br><span class="tt-type">Type: ${esc(e[3])} · ${e[4]} slots</span></span>`;
-  $("finStats").innerHTML = finStatKeys(e).map((k) => `<div class="tt-line" data-k="${k}">
-    <span class="tt-dot">•</span> ${GAME_LABEL[k]}:
-    +<input data-f="total" type="number" min="0" inputmode="numeric" placeholder="${e[5][k] || ""}" aria-label="${GAME_LABEL[k]} total" />
-    <span class="tt-paren">( <span class="tt-clean">${e[5][k] || 0}</span> <input data-f="gain" type="text" inputmode="text" placeholder="+0" aria-label="${GAME_LABEL[k]}: the + or − number in brackets" /> )</span>
-  </div>`).join("");
+function closeGuide(focusSearch) {
+  $("guide").hidden = true;
+  $("guideBtn").setAttribute("aria-expanded", "false");
+  guideAuto(false);
+  try { localStorage.setItem(GUIDE_KEY, "1"); } catch { /* fine */ }
+  if (focusSearch) search.focus();
 }
-
-// "Did you mean…" when the picture's item name couldn't be read.
-function renderSuggestions(list) {
-  const box = $("finSuggest");
-  box.innerHTML = list && list.length ? `<span class="label">Did you mean:</span> ${list.map((e) =>
-    `<button type="button" class="suggest" data-name="${esc(e[1])}"><img src="${icon(e[0])}" alt="" /> ${esc(e[1])}</button>`).join("")}` : "";
-}
-$("finSuggest").addEventListener("click", (e) => {
-  const b = e.target.closest(".suggest");
-  if (!b) return;
-  $("finName").value = b.dataset.name;
-  renderSuggestions([]);
-  onFinInput({ target: $("finName") });
+$("guideBtn").addEventListener("click", () => ($("guide").hidden ? openGuide() : closeGuide(false)));
+$("guideClose").addEventListener("click", () => closeGuide(false));
+$("guideGo").addEventListener("click", () => closeGuide(true));
+$("guidePrev").addEventListener("click", () => { showGuideStep(guideStep - 1); guideAuto(false); });
+$("guideNext").addEventListener("click", () => { showGuideStep(guideStep + 1); guideAuto(false); });
+document.querySelector(".guide-dots").addEventListener("click", (e) => {
+  if (e.target.dataset.step != null) { showGuideStep(+e.target.dataset.step); guideAuto(false); }
 });
-
-// Put read values into the tooltip lines (those that exist for the current item).
-function fillFinStats(stats) {
-  for (const [k, v] of Object.entries(stats || {})) {
-    const line = $("finStats").querySelector(`.tt-line[data-k="${k}"]`);
-    if (!line) continue;
-    line.querySelector('[data-f="total"]').value = v.total;
-    line.querySelector('[data-f="gain"]').value = v.gain ? (v.gain > 0 ? "+" : "−") + Math.abs(v.gain) : "";
-  }
-}
-
-// Each line: "+total (default ±difference)". The difference is the clean roll plus what scrolls added.
-function readFin() {
-  const num = (el) => (el && el.value !== "" ? Math.max(0, Math.floor(+el.value)) : null);
-  const signed = (el) => { const m = String(el?.value || "").replace(/[−–]/g, "-").match(/^\s*([+-]?)\s*(\d+)/); return m ? (m[1] === "-" ? -1 : 1) * +m[2] : null; };
-  const e = fin.item;
-  const stats = {};
-  for (const line of $("finStats").querySelectorAll(".tt-line[data-k]")) {
-    const k = line.dataset.k, def = e[5][k] || 0;
-    const total = num(line.querySelector('[data-f="total"]')), diff = signed(line.querySelector('[data-f="gain"]'));
-    if (total == null && diff == null) continue;
-    const t = total ?? def + (diff || 0);
-    stats[k] = { total: t, base: def, gain: diff ?? t - def };
-  }
-  return { upgrades: num($("finUp")), left: num($("finLeft")), stats };
-}
-
-// How far a clean roll can land from the default, for matching the difference to scrolls.
-// The usual roll range plus one point, which only counts as a rare outlier (see inferScrolls).
-const rollTolerance = (k, def) => (def ? statRange(k, def)[1] - def + 1 : 0);
-
-function onFinInput(e) {
-  if (e && e.target.id === "finName") {
-    const it = byName($("finName").value);
-    if (it === fin.item) return;
-    fin.item = it;
-    renderFinItem();
-    if (it) renderSuggestions([]);
-    if (it && fin.pending) { fillFinStats(fin.pending); fin.pending = null; } // stats read from a picture before the item was known
-  }
-  if (!fin.item) {
-    $("finScrolls").innerHTML = `<p class="hint">Type the item's name as it shows in the game, then its stats.</p>`;
-    $("finPrices").innerHTML = ""; $("resultCard").hidden = true;
-    return;
-  }
-  const r = readFin(), it = fin.item;
-  const used = r.left != null ? it[4] - r.left : null;
-  const gains = Object.fromEntries(Object.entries(r.stats).map(([k, v]) => [k, v.gain]));
-  const tol = Object.fromEntries(Object.keys(gains).map((k) => [k, rollTolerance(k, it[5][k] || 0)]));
-  const prefix = Math.floor(it[0] / 10000);
-  const passes = r.upgrades ?? null;
-  fin.options = inferScrolls({ gains, tol, passes, used, scrolls: scrolls.filter((s) => s.target === prefix) });
-  fin.choice = 0;
-  fin.read = r;
-  renderFinScrolls();
-  renderFinPrices();
-  applyFin();
-}
-
-function renderFinScrolls() {
-  const box = $("finScrolls");
-  const r = fin.read;
-  if (r.left != null && r.left > fin.item[4]) { box.innerHTML = `<p class="warn">This item has only ${fin.item[4]} slots.</p>`; return; }
-  if (!fin.options.length) {
-    box.innerHTML = `<p class="warn">No scrolls for this item add up to these numbers. Check the (+N) and the numbers after + in brackets.</p>`;
-    return;
-  }
-  const text = (o) => (o.rows.length ? o.rows.map((x) => `${x.n}× ${esc(x.scroll.name)}`).join(" + ") : "No scroll passed");
-  const used = r.left != null ? fin.item[4] - r.left : null, passed = fin.options[0].rows.reduce((a, x) => a + x.n, 0);
-  box.innerHTML = `<p class="label">Scrolls that passed${used != null && used > passed ? ` · ${used - passed} failed` : ""}</p>
-    ${fin.options.length === 1 ? `<p class="fin-one">${text(fin.options[0])}</p>`
-    : `<fieldset class="reader-opts"><legend class="sr-only">Pick the scrolls</legend>${fin.options.map((o, i) => `<label>
-      <input type="radio" name="finOpt" value="${i}" ${i === fin.choice ? "checked" : ""} /> ${text(o)}
-      <small>${i === 0 ? "most likely · " : ""}${Math.round(o.share * 100)}%</small></label>`).join("")}</fieldset>`}`;
-}
-
-function finScrollList() {
-  const o = fin.options[fin.choice];
-  return o ? o.rows.map((x) => scrollById.get(x.scroll.id)) : [];
-}
-
-// ---------- "Is it worth it?": the shop's asking price against the estimate ----------
-let lastPrice = null;
-const finAsk = { value: null };
-
-// Below 90% of the low end: good deal. Inside the range (±10%): fair. Above 110% of the high end: overpriced.
-function verdictFor(ask, est) {
-  if (!ask || !est) return null;
-  if (ask < est.lo * 0.9) return { cls: "good", icon: "✅", text: "Good deal", note: `${Math.round((1 - ask / est.lo) * 100)}% below the estimate` };
-  if (ask > est.hi * 1.1) return { cls: "bad", icon: "❌", text: "Overpriced", note: `${Math.round((ask / est.hi - 1) * 100)}% above the estimate` };
-  return { cls: "fair", icon: "👍", text: "Fair price", note: "within the estimate" };
-}
-
-function renderVerdict() {
-  const box = $("finVerdict");
-  if (!box) return;
-  const v = mode === "f" ? verdictFor(finAsk.value, lastPrice) : null;
-  box.className = "verdict" + (v ? " " + v.cls : "");
-  box.innerHTML = v ? `<b>${v.icon} ${v.text}</b> <span>Asking ${mesos(finAsk.value)}: ${v.note} (${rangeText(lastPrice.lo, lastPrice.hi)}).</span>`
-    : finAsk.value && !lastPrice ? `<span>Enter the prices above to compare.</span>` : "";
-}
-
-function renderFinPrices() {
-  const box = $("finPrices");
-  if (!fin.options.length) { box.innerHTML = ""; return; }
-  const it = fin.item;
-  box.innerHTML = `<p class="label">Today's prices (from – to)</p>
-    <div class="scroll-row price-row" data-clean="1">
-      <img src="${icon(it[0])}" alt="" />
-      <span class="nm"><b>Clean ${esc(it[1])}</b><small>with the clean stats above</small></span><span></span>
-      <span class="row-price price-input">${rangeFields(fin.clean, "k")}
-        <a href="${priceLink(it[0], it[1])}" data-name="${esc(it[1])}" target="_blank" rel="noopener">check price ↗</a></span>
-    </div>
-    ${finScrollList().map((sc) => `<div class="scroll-row price-row" data-id="${sc.id}">
-      <img src="${scrollIcon(sc.id)}" alt="" />
-      <span class="nm"><b>${esc(sc.name)}</b><small>${esc(scrollOdds(sc))} · ${esc(plusList(sc.stats))}</small></span><span></span>
-      <span class="row-price price-input">${rangeFields(getPrice(sc.id), "m")}
-        <a href="${priceLink(sc.id, sc.name)}" data-name="${esc(sc.name)}" target="_blank" rel="noopener">check price ↗</a></span>
-    </div>`).join("")}
-    <label class="ask-field">Shop asking price <small>(optional: is it worth it?)</small>
-      <span class="price-input"><input id="finAsk" inputmode="decimal" placeholder="e.g. 5" aria-label="Shop asking price" value="${finAsk.raw || ""}" />
-        ${unitSelect(finAsk.unit || "m", 'id="finAskUnit"')}</span></label>
-    <div id="finVerdict" class="verdict" role="status"></div>`;
-  renderVerdict();
-}
-function onAsk() {
-  finAsk.raw = $("finAsk").value; finAsk.unit = $("finAskUnit").value;
-  const v = readRange(finAsk.raw, "", finAsk.unit);
-  finAsk.value = v ? v.lo : null;
-  renderVerdict();
-}
-
-// Fill the calculator from the tooltip and show the estimate.
-async function applyFin() {
-  const it = fin.item, o = fin.options[fin.choice], r = fin.read;
-  if (!it || !o || !r) { $("resultCard").hidden = true; return; }
-  // clean roll = what the game shows − what these scrolls added
-  const clean = { ...it[5] };
-  for (const [k, v] of Object.entries(r.stats)) clean[k] = Math.max(0, v.total - ((o.got && o.got[k]) || 0));
-  const rows = o.rows.map((x) => ({ scroll: scrollById.get(x.scroll.id), successes: x.n }));
-  const passed = rows.reduce((a, x) => a + x.successes, 0);
-  await pickItem(it[0], { clean, rows, left: r.left ?? Math.max(0, it[4] - passed) });
-  cleanPrice = fin.clean;
-  update();
-}
-
-$("finBox").addEventListener("input", (e) => onFinInput(e));
-$("finName").addEventListener("change", (e) => onFinInput(e));
-$("finScrolls").addEventListener("change", (e) => {
-  if (e.target.name !== "finOpt") return;
-  fin.choice = +e.target.value;
-  renderFinPrices();
-  applyFin();
-});
-function onFinPrice(e) {
-  if (e.target.id === "finAsk" || e.target.id === "finAskUnit") { onAsk(); return; }
-  if (!["from", "to", "unit"].includes(e.target.dataset.f)) return;
-  const row = e.target.closest(".price-row");
-  if (row.dataset.clean) { fin.clean = readFields(row); cleanPrice = fin.clean; }
-  else setPrice(+row.dataset.id, readFields(row));
-  update();
-}
-$("finPrices").addEventListener("input", onFinPrice);
-$("finPrices").addEventListener("change", onFinPrice);
-
-// Screenshot: read it in the browser, then fill the tooltip box.
-$("finRead").addEventListener("click", () => $("finFile").click());
-$("finFile").addEventListener("change", async (e) => {
-  const file = e.target.files?.[0];
-  e.target.value = "";
-  if (!file) return;
-  const st = $("finStatus"), prog = $("finProg");
-  prog.hidden = false; prog.value = 0; st.textContent = "Reading your item…";
-  try {
-    const { parsed: p } = await readImage(file, (text) => parseTooltip(text, equips), (v, label) => { prog.value = v; st.textContent = label; });
-    if (p.item) { $("finName").value = p.item[1]; fin.item = p.item; renderFinItem(); }
-    $("finUp").value = p.upgrades ?? "";
-    $("finLeft").value = p.left ?? "";
-    fin.pending = p.item ? null : p.stats; // filled in once the item is picked
-    fillFinStats(p.stats);
-    const n = Object.keys(p.stats).length;
-    const got = [p.upgrades != null ? "(+N)" : null, p.left != null ? "slots left" : null, n ? `${n} stat${n > 1 ? "s" : ""}` : null].filter(Boolean);
-    renderSuggestions(p.item ? [] : p.suggestions);
-    st.textContent = !p.item && n ? `Read ${got.join(", ")}, but not the item's name. Pick it${p.suggestions.length ? " below" : " above"} and we'll fill in the rest.`
-      : p.item && p.confidence < 0.8 ? `We think it's ${p.item[1]} (from its stats). Check it and fix anything that's off.`
-      : got.length || p.item ? `Read ${[p.item ? "the item" : null, ...got].filter(Boolean).join(", ")}. Check the numbers and fix anything that's off.`
-      : "Couldn't read this picture. A straight screenshot of the item's window works best; you can also type it in.";
-    onFinInput();
-    if (!p.item) $("finName").focus();
-  } catch (err) {
-    console.error("FMCheck reader:", err);
-    st.textContent = "Couldn't read the picture here. You can type the numbers in instead.";
-  } finally { prog.hidden = true; }
-});
+// first visit (and not opening a shared calculation): show the guide
+try { if (!localStorage.getItem(GUIDE_KEY) && !location.hash.includes("i=")) openGuide(); } catch { /* storage off: skip */ }
 
 // ---------- accessibility options (saved in this browser) ----------
 
@@ -897,9 +691,6 @@ if (DONATE_URL) {
   scrollById = new Map(sc.map((s) => [s.id, s]));
   renderCats();
   $("equipNames").innerHTML = eq.map((e) => `<option value="${esc(e[1])}"></option>`).join("");
-  // A shared calculation opens in "Build an item", where all of it is shown; "#m=f" alone opens the finished-item tab.
-  const hq = new URLSearchParams(location.hash.slice(1));
-  if (hq.get("m") === "f" && !hq.get("i")) setMode("f");
   const h = readHash();
   if (h) pickItem(h.id, h.restore);
   else if (search.value.trim()) showResults(); // typed before the list loaded

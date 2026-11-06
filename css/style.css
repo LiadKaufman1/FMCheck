@@ -383,13 +383,14 @@ footer .community { font-weight: 800; }
 .skip { position: absolute; left: 12px; top: -60px; z-index: 50; padding: 10px 14px; border-radius: 8px;
   background: var(--btn-bg); color: var(--btn-text); font-weight: 800; text-decoration: none; }
 .skip:focus { top: 12px; }
-.a11y-wrap { position: relative; display: inline-flex; }
+.a11y-wrap { position: fixed; right: 14px; bottom: 14px; z-index: 30; }
+body { padding-bottom: 72px; } /* room so the button never covers the end of the page */
 .a11y-btn {
-  width: 40px; height: 40px; padding: 0; border-radius: 50%;
-  display: grid; place-items: center; background: #1d4ed8; color: #fff; box-shadow: 0 3px 0 #1e3a8a;
+  width: 48px; height: 48px; padding: 0; border-radius: 50%;
+  display: grid; place-items: center; background: #1d4ed8; color: #fff; box-shadow: 0 4px 14px rgba(0,0,0,.3);
 }
 .a11y-panel {
-  position: absolute; right: 0; top: 48px; z-index: 40; width: 230px; padding: 14px;
+  position: absolute; right: 0; bottom: 58px; z-index: 40; width: 230px; padding: 14px;
   display: grid; gap: 10px; border-radius: 12px; background: var(--card); color: var(--text);
   border: 2px solid var(--card-edge); box-shadow: 0 10px 30px rgba(0,0,0,.25);
 }
@@ -419,90 +420,26 @@ html.a11y-contrast .card { box-shadow: none; }
   .top, main, footer { zoom: 1.05; }
 }
 
-/* tabs */
-.tabs { display: flex; gap: 8px; margin: 14px 0 0; flex-wrap: wrap; }
-.tabs button {
-  flex: 1 1 200px; padding: 12px 14px; border-radius: 12px; font: 700 16px "Fredoka", sans-serif;
-  background: var(--card); color: var(--text); border: 2px solid var(--card-edge); box-shadow: 0 4px 0 var(--card-edge);
-}
-.tabs button[aria-selected="true"] { background: var(--btn-bg); color: var(--btn-text); border-color: var(--btn-bg); box-shadow: 0 4px 0 #7c2d12; }
-html.mode-f #itemCard, html.mode-f #rollCard, html.mode-f #scrollCard { display: none !important; }
-.link-btn { background: none; color: var(--accent-text); padding: 2px 0; text-decoration: underline; font-weight: 700; margin-bottom: 10px; }
-.read-btn { background: var(--btn-bg); color: var(--btn-text); }
-.fin-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 8px; }
-.reader-status { margin: 0 0 8px; font-weight: 700; }
-.reader-status:empty { display: none; }
-#finProg { width: 100%; height: 10px; accent-color: var(--btn-bg); margin-bottom: 8px; }
-
-/* the game-style tooltip you type into */
-.tt-box {
-  background: linear-gradient(#25306b, #151b44); color: #fff; border: 2px solid #7c89d6; border-radius: 12px;
-  padding: 14px 16px; display: grid; gap: 8px; font: 700 15px "Nunito", sans-serif;
-}
-.tt-box input {
-  background: rgba(255,255,255,.08); color: #fff; border: 1px solid rgba(255,255,255,.3); border-radius: 6px;
-  padding: 4px 6px; font: inherit; text-align: center;
-}
-.tt-box input::placeholder { color: rgba(255,255,255,.45); }
-.tt-box input:focus { outline: 2px solid #ffb83d; outline-offset: 0; }
-.tt-title { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
-.tt-title #finName { flex: 1 1 200px; max-width: 280px; color: #ffb83d; font: 600 19px "Fredoka", sans-serif; }
-.tt-up { color: #ffb83d; font: 600 19px "Fredoka", sans-serif; white-space: nowrap; }
-.tt-up input { width: 46px; color: #ffb83d; }
-.tt-head { display: flex; gap: 14px; align-items: center; }
-.tt-head:empty { display: none; }
-.tt-icon { width: 70px; height: 70px; border-radius: 6px; background: #f4f4f4; display: grid; place-items: center; flex: none; }
-.tt-icon img { width: 48px; height: 48px; object-fit: contain; image-rendering: pixelated; }
-.tt-req { font-size: 13px; line-height: 1.5; color: #dfe3ff; }
-.tt-type { color: #9aa3d6; }
-.tt-stats { display: grid; gap: 6px; border-top: 1px solid rgba(255,255,255,.18); padding-top: 8px; }
-.tt-stats:empty { display: none; }
-.tt-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; color: #dfe3ff; }
-.tt-line input { width: 54px; }
-.tt-dot { color: #ffb83d; }
-.tt-paren { color: #7dffa8; font-size: 13px; white-space: nowrap; }
-.tt-paren input { width: 46px; color: #7dffa8; }
-.fin-scrolls { margin-top: 14px; }
-.fin-one { font-weight: 800; margin: 0; }
-.fin-prices { display: grid; gap: 8px; margin-top: 14px; }
-.reader-opts { border: 0; padding: 0; margin: 4px 0 0; display: grid; gap: 6px; }
-.reader-opts label { display: flex; gap: 8px; align-items: center; font-size: 14px; flex-wrap: wrap; }
-.reader-opts small { color: var(--muted); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* note shown only on the backup addresses */
 .moved { display: none; margin: 0; padding: 8px 16px; text-align: center; font-weight: 700; background: var(--card); color: var(--text); }
 html.old-address .moved { display: block; }
 
-/* shop asking price verdict */
-.ask-field { display: grid; gap: 4px; margin-top: 6px; font-weight: 700; }
-.ask-field small { color: var(--muted); font-weight: 600; }
-.verdict:empty { display: none; }
-.verdict { padding: 12px 14px; border-radius: 12px; border: 2px solid var(--line); background: var(--card); }
-.verdict b { font: 700 18px "Fredoka", sans-serif; margin-right: 6px; }
-.verdict.good { border-color: #1f8a4c; background: #e7f6ec; color: #11512b; }
-.verdict.fair { border-color: #b45309; background: #fdf3e3; color: #6b3507; }
-.verdict.bad { border-color: #b91c1c; background: #fdeaea; color: #7f1414; }
-@media (prefers-color-scheme: dark) {
-  .verdict.good { background: #0f2a1a; color: #a7f3c4; }
-  .verdict.fair { background: #2a1d0b; color: #fcd9a6; }
-  .verdict.bad { background: #2c0f0f; color: #fecaca; }
-}
-
-/* phones: tabs side by side, compact */
-@media (max-width: 560px) {
-  .tabs { flex-wrap: nowrap; gap: 6px; }
-  .tabs button { flex: 1 1 0; padding: 9px 6px; font-size: 14px; }
-  .tt-box { padding: 12px; }
-  .tt-title #finName { font-size: 17px; }
-  .a11y-panel { right: auto; left: 0; }
-}
-
-.suggestions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
-.suggestions:empty { display: none; }
-.suggest { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--card); color: var(--text);
-  border: 2px solid var(--card-edge); border-radius: 999px; font-weight: 700; }
-.suggest img { width: 22px; height: 22px; object-fit: contain; image-rendering: pixelated; }
-
-.tt-paren .tt-clean { color: #7dffa8; }
-.fin-actions .tip { flex-basis: 100%; font-size: 12px; }
+/* how it works */
+.guide-btn { background: #fff; color: #1d2b53; font: 700 14px "Fredoka", system-ui, sans-serif; padding: 8px 14px; border-radius: 999px; box-shadow: 0 3px 0 #c9d4f0; }
+.guide-head { display: flex; align-items: center; justify-content: space-between; }
+.guide-head h2 { margin: 0; }
+.guide-stage { margin: 12px 0 8px; border-radius: 12px; overflow: hidden; background: #e4fbf5; border: 2px solid var(--card-edge); aspect-ratio: 900 / 520; display: grid; place-items: center; }
+.guide-stage img { width: 100%; height: 100%; object-fit: contain; }
+.guide-stage img.play { animation: guide-in .5s ease-out, guide-drift 4.2s ease-in-out .5s; }
+@keyframes guide-in { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes guide-drift { 50% { transform: scale(1.03); } }
+.guide-caption { margin: 0 0 10px; font-weight: 800; min-height: 2.6em; }
+.guide-nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.guide-dots { display: flex; gap: 6px; }
+.guide-dots button { width: 12px; height: 12px; padding: 0; border-radius: 50%; background: var(--line); box-shadow: none; }
+.guide-dots button[aria-current="true"] { background: var(--btn-bg); width: 28px; border-radius: 6px; }
+#guideGo { margin-left: auto; }
+@media (prefers-reduced-motion: reduce) { .guide-stage img.play { animation: none; } }
+html.a11y-still .guide-stage img.play { animation: none; }
