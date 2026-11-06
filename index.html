@@ -32,7 +32,7 @@
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
   <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="css/style.css?v=807f3e02" />
+  <link rel="stylesheet" href="css/style.css?v=7840d99d" />
 </head>
 <body>
   <a class="skip" href="#itemSearch">Skip to the calculator</a>
@@ -72,6 +72,7 @@
     </h1>
     <p class="tagline">Know what your scrolled item is worth.</p>
     <div class="top-actions">
+      <a class="guide-btn" href="community.html">🏪 Community</a>
       <button id="guideBtn" class="guide-btn" type="button" aria-controls="guide" aria-expanded="false">❓ How it works</button>
       <a class="discord" data-discord href="https://discord.gg/hWYs9vxhRv" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M5 5.5C7 4.4 9 4 9 4l.6 1.2a15 15 0 0 1 4.8 0L15 4s2 .4 4 1.5c2 3 2.6 6.4 2.4 10.5-1.6 1.3-3.3 2-5 2.5l-1-1.7c.7-.3 1.3-.6 1.9-1-3.8 1.8-8.8 1.8-12.6 0 .6.4 1.2.7 1.9 1l-1 1.7c-1.7-.5-3.4-1.2-5-2.5C2.4 11.9 3 8.5 5 5.5Z"/><circle cx="9" cy="12" r="1.6" fill="#5865f2"/><circle cx="15" cy="12" r="1.6" fill="#5865f2"/></svg>
@@ -184,6 +185,25 @@
           <p id="saleMsg" class="sale-msg" role="status"></p>
         </form>
       </div>
+      <div id="publish" class="publish" hidden>
+        <h3>✨ Put it in the spotlight</h3>
+        <p class="hint">Show this item on the <a href="community.html">FMCheck community</a> page, for sale or just to show it off.
+          Buyers see its full stats, slots, scrolls, odds and estimate, and where to find you.</p>
+        <div id="pubSignIn" class="pub-signin"></div>
+        <form id="pubForm" class="pub-form" hidden>
+          <label id="pubIgnRow">In-game name <input id="pubIgn" autocomplete="off" maxlength="13" placeholder="e.g. GuaiLan" /></label>
+          <div class="pub-grid">
+            <label>Asking price <small>(empty = just showing it off)</small>
+              <span class="pub-price"><input id="pubPrice" inputmode="decimal" placeholder="price" />
+              <select id="pubUnit" aria-label="Unit"><option value="">mesos</option><option value="k">K</option><option value="m" selected>M</option><option value="b">B</option></select></span></label>
+            <label>Channel <input id="pubChannel" inputmode="numeric" maxlength="2" placeholder="e.g. 3" /></label>
+            <label>FM room <input id="pubRoom" inputmode="numeric" maxlength="2" placeholder="e.g. 7" /></label>
+          </div>
+          <label>Note <small>(optional)</small> <input id="pubNote" maxlength="140" placeholder="e.g. whisper me, open to offers" /></label>
+          <button type="submit" id="pubSend">Publish</button>
+          <p id="pubMsg" class="sale-msg" role="status"></p>
+        </form>
+      </div>
       <details class="how">
         <summary>How is this worked out?</summary>
         <p><b>The idea.</b> A buyer won't pay more than it would cost to make an item at least this good themselves,
@@ -290,6 +310,6 @@ chance = clean roll × scrolls</pre>
   </div>
 
 
-  <script type="module" src="js/app.js?v=807f3e02"></script>
+  <script type="module" src="js/app.js?v=7840d99d"></script>
 </body>
 </html>

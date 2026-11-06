@@ -1,4 +1,4 @@
-// FMCheck's small server: the static site, plus /api/sales for reported sales.
+// FMCheck's small server: the static site, /api/sales for reported sales, and the community (src/community.js).
 //
 // Reports are stored in Workers KV (binding SALES). Nothing personal is kept: no names, no accounts, no IP addresses.
 // To limit spam, each visitor's IP is turned into a one-way hash that lives for a day.
@@ -6,13 +6,16 @@
 //   POST /api/sales            { item, price, kind: "sold"|"bought", gained, left, slots, scrolls, estimate } -> { ok }
 //   GET  /api/sales?item=ID    the latest reports for one item (newest first)
 //   GET  /api/sales/all        every report (for calibrating the formula), paged with ?cursor=
-//   GET  /api/health           { ok, sales: true|false }
+//   GET  /api/health           { ok, sales, community, googleClientId }
+
+import { community, communityReady } from "./community.js";
 
 const MAX_PER_DAY = 20; // reports per visitor per day
 
-const json = (data, status = 200) => new Response(JSON.stringify(data), {
+const json = (data, status = 200, extra = {}) => new Response(JSON.stringify(data), {
   status,
   headers: {
+    ...extra,
     "content-type": "application/json; charset=utf-8",
     "cache-control": "no-store",
     // the backup addresses (GitHub Pages) call fmcheck.org's API
@@ -55,9 +58,20 @@ async function hashIp(ip) {
 // Newest first: KV lists keys in ascending order, so store an inverted timestamp.
 const keyFor = (item, t) => `sale:${item}:${String(9e15 - t).padStart(16, "0")}:${Math.random().toString(36).slice(2, 8)}`;
 
-async function api(request, env, url) {
+async function saveSale(env, rec) {
+  rec.t = Date.now();
+  // the record also goes in the key's metadata, so listing doesn't need one read per report
+  await env.SALES.put(keyFor(rec.item, rec.t), JSON.stringify(rec), { metadata: rec });
+}
+
+async function api(request, env, ctx, url) {
   if (request.method === "OPTIONS") return json({});
-  if (url.pathname === "/api/health") return json({ ok: true, sales: !!env.SALES });
+  if (url.pathname === "/api/health") {
+    return json({ ok: true, sales: !!env.SALES, community: communityReady(env), googleClientId: env.GOOGLE_CLIENT_ID || null });
+  }
+  if (/^\/api\/(auth|me|listings)(\/|$)/.test(url.pathname)) {
+    return community(request, env, ctx, url, json, env.SALES ? (rec) => saveSale(env, rec) : null);
+  }
   if (!env.SALES) return json({ error: "Sale reports aren't set up yet." }, 503);
 
   if (url.pathname === "/api/sales" && request.method === "POST") {
@@ -70,10 +84,7 @@ async function api(request, env, url) {
     const count = +(await env.SALES.get(rlKey)) || 0;
     if (count >= MAX_PER_DAY) return json({ error: "Thanks! That's enough reports for today." }, 429);
     await env.SALES.put(rlKey, String(count + 1), { expirationTtl: 86400 });
-    const t = Date.now();
-    rec.t = t;
-    // the record also goes in the key's metadata, so listing doesn't need one read per report
-    await env.SALES.put(keyFor(rec.item, t), JSON.stringify(rec), { metadata: rec });
+    await saveSale(env, rec);
     return json({ ok: true });
   }
 
@@ -93,9 +104,12 @@ async function api(request, env, url) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    if (url.pathname.startsWith("/api/")) return api(request, env, url);
+    if (url.pathname.startsWith("/api/")) {
+      try { return await api(request, env, ctx, url); }
+      catch (e) { console.error(e); return json({ error: "Something went wrong on our side. Try again." }, 500); }
+    }
     return env.ASSETS.fetch(request);
   },
 };

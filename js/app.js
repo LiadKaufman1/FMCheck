@@ -1,7 +1,10 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=807f3e02";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readRange, readPrice } from "./calc.js?v=807f3e02";
-import { getPrice, setPrice } from "./prices.js?v=807f3e02";
-import { drawCard, cardBlob } from "./card.js?v=807f3e02";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=7840d99d";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readRange, readPrice } from "./calc.js?v=7840d99d";
+import { getPrice, setPrice } from "./prices.js?v=7840d99d";
+import { drawCard, cardBlob } from "./card.js?v=7840d99d";
+import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=7840d99d";
+import { setupA11y } from "./a11y.js?v=7840d99d";
+import { API, api, health, me, googleButton, validIgn } from "./account.js?v=7840d99d";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -467,6 +470,7 @@ function update() {
   saveHash();
   const price = failed < 0 ? null : renderEstimate(used);
   lastEstimate = price;
+  lastOdds = odds;
   renderCard(fin, odds, price);
   if (salesOn) { if (salesFor !== state.item.id) loadSales(); else renderSales(); }
 }
@@ -533,9 +537,7 @@ function renderEstimate(used) {
 // Players report what they really sold or bought an item for. The list shows the latest reports for the item,
 // and the reports are collected to check and tune the formula against the market.
 
-// fmcheck.org serves the API; the GitHub Pages backup calls it there.
-const API = location.hostname.endsWith("github.io") ? "https://fmcheck.org" : "";
-let salesOn = false, salesFor = null, salesData = [], lastEstimate = null;
+let salesOn = false, salesFor = null, salesData = [], lastEstimate = null, lastOdds = null;
 
 // What the item gained from scrolls, e.g. { PAD: 7 }.
 function gainedStats() {
@@ -611,47 +613,80 @@ $("saleForm").addEventListener("submit", async (e) => {
   }
 });
 
+// ---------- publish to the community ----------
+
+let pubUser = null;
+async function setupPublish() {
+  $("publish").hidden = false;
+  const m = await me();
+  showPublish(m.user);
+}
+function showPublish(user) {
+  pubUser = user;
+  $("pubSignIn").hidden = !!user;
+  $("pubForm").hidden = !user;
+  if (!user) { googleButton($("pubSignIn"), showPublish); return; }
+  $("pubIgnRow").hidden = !!user.ign;
+}
+
+$("pubForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = $("pubMsg");
+  msg.textContent = "";
+  if (!state.item) return;
+  if (state.slots - state.left < passedTotal()) { msg.textContent = "Fix the slots first: more passed scrolls than used slots."; return; }
+  const priceText = $("pubPrice").value.trim();
+  const price = priceText ? readPrice(priceText, $("pubUnit").value) : null;
+  if (priceText && !(price > 0)) { msg.textContent = "The price doesn't look right, e.g. 350 M."; return; }
+  $("pubSend").disabled = true;
+  try {
+    if (!pubUser.ign) {
+      const ign = $("pubIgn").value.trim();
+      if (!validIgn(ign)) throw new Error("In-game name: 2–13 letters or numbers.");
+      pubUser = (await api("/api/me", { method: "PUT", body: { ign } })).user;
+      $("pubIgnRow").hidden = true;
+    }
+    msg.textContent = "Publishing…";
+    const j = await api("/api/listings", { method: "POST", body: {
+      item: state.item.id, clean: state.clean, left: state.left,
+      scrolls: state.rows.map((r) => ({ id: r.scroll.id, n: r.successes })),
+      chance: lastOdds ? lastOdds.chance : 1, estimate: lastEstimate,
+      price, channel: $("pubChannel").value.trim(), room: $("pubRoom").value.trim(), note: $("pubNote").value.trim(),
+      image: $("card").toDataURL("image/png"),
+    } });
+    const link = `${location.origin}/community.html#l=${j.id}`;
+    msg.innerHTML = `Published! <a href="community.html#l=${j.id}">See it on the community page</a>
+      · <button type="button" class="ghost-btn" id="pubCopy">Copy link</button>`;
+    $("pubCopy").addEventListener("click", () => navigator.clipboard.writeText(link).then(() => toast("Link copied.")).catch(() => {}));
+  } catch (err) {
+    msg.textContent = err.message;
+    if (err.status === 401) { pubUser = null; showPublish(null); }
+  } finally {
+    $("pubSend").disabled = false;
+  }
+});
+
 // ---------- result card (in-game tooltip style) ----------
 
-const GAME_LABEL = { STR: "STR", DEX: "DEX", INT: "INT", LUK: "LUK", MHP: "MaxHP", MMP: "MaxMP", PAD: "Weapon Att.",
-  MAD: "Magic Att.", PDD: "Weapon Def.", MDD: "Magic Def.", ACC: "Accuracy", EVA: "Avoidability", Speed: "Speed",
-  Jump: "Jump", CRT: "Critical Rate", CRD: "Critical Damage" };
-const GAME_ORDER = ["STR", "DEX", "INT", "LUK", "MHP", "MMP", "PAD", "MAD", "PDD", "MDD", "ACC", "EVA", "Speed", "Jump", "CRT", "CRD"];
-const cardFmt = {
-  range: (lo, hi) => rangeText(lo, hi),
-  pct: (x) => (x >= 0.995 ? "100%" : x >= 0.01 ? `${(x * 100).toFixed(1)}%` : `${(x * 100).toPrecision(2)}%`),
-  oneIn: (n) => (n < 1.05 ? "almost every try" : `1 in ${n < 1e6 ? Math.round(n).toLocaleString("en-US") : mesos(n)}`),
-};
-
 function renderCard(fin, odds, price) {
-  const e = equips.find((x) => x[0] === state.item.id) || [];
-  const statText = GAME_ORDER.filter((k) => fin[k]).map((k) => `${GAME_LABEL[k]} ${fin[k]}`).join(", ");
-  $("card").setAttribute("aria-label", `${state.item.name}${passedTotal() ? ` (+${passedTotal()})` : ""}: ${statText || "no stats"}, `
-    + `${state.left} slots left. Estimated price ${price ? rangeText(price.lo, price.hi) : "not available yet"}. `
-    + `Chance of an item like this ${odds ? cardFmt.pct(odds.chance) : "unknown"}.`);
-  const extra = e[6] || {};
-  drawCard($("card"), {
-    name: state.item.name,
-    upgrades: passedTotal(),
-    icon: icon(state.item.id),
-    level: state.item.level || 0,
-    req: extra.req || [0, 0, 0, 0],
-    jobs: extra.jobs || null,
-    type: state.item.cat,
-    stats: GAME_ORDER.filter((k) => fin[k]).map((k) => ({
-      label: GAME_LABEL[k], total: fin[k], base: state.clean[k] || 0, gain: fin[k] - (state.clean[k] || 0),
-    })),
+  const e = equips.find((x) => x[0] === state.item.id);
+  const d = cardInfo({
+    equip: e,
+    fin,
+    clean: state.clean,
     left: state.left,
+    upgrades: passedTotal(),
     price,
     priceHint: !cleanPrice ? "Enter the clean item price"
       : state.rows.some((r) => !getPrice(r.scroll.id)) ? `Enter a price for ${shortName(state.rows.find((r) => !getPrice(r.scroll.id)).scroll).split(":").pop().trim()} scrolls`
       : "Check the prices you entered",
-    date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
     chance: odds ? odds.chance : 1,
     oneIn: odds ? odds.oneIn : 1,
     scrolls: state.rows.map((r) => ({ n: r.successes, name: shortName(r.scroll) })),
     footer: "From that day's prices · not a guarantee",
-  }, cardFmt);
+  });
+  $("card").setAttribute("aria-label", cardLabel(d));
+  drawCard($("card"), d, cardFmt);
 }
 
 const cardFile = async () => {
@@ -760,32 +795,7 @@ document.querySelector(".guide-dots").addEventListener("click", (e) => {
 // first visit (and not opening a shared calculation): show the guide
 try { if (!localStorage.getItem(GUIDE_KEY) && !location.hash.includes("i=")) openGuide(); } catch { /* storage off: skip */ }
 
-// ---------- accessibility options (saved in this browser) ----------
-
-const A11Y_KEY = "fmcheck-a11y";
-let a11y = {};
-try { a11y = JSON.parse(localStorage.getItem(A11Y_KEY) || "{}") || {}; } catch { a11y = {}; }
-function applyA11y() {
-  for (const k of ["big", "still", "contrast", "links"]) document.documentElement.classList.toggle(`a11y-${k}`, !!a11y[k]);
-  for (const box of document.querySelectorAll("[data-a11y]")) box.checked = !!a11y[box.dataset.a11y];
-}
-applyA11y();
-$("a11yBtn").addEventListener("click", () => {
-  const open = $("a11yPanel").hidden;
-  $("a11yPanel").hidden = !open;
-  $("a11yBtn").setAttribute("aria-expanded", String(open));
-  if (open) $("a11yPanel").querySelector("input").focus();
-});
-$("a11yPanel").addEventListener("change", (e) => {
-  const k = e.target.dataset.a11y;
-  if (!k) return;
-  a11y[k] = e.target.checked;
-  try { localStorage.setItem(A11Y_KEY, JSON.stringify(a11y)); } catch { /* not saved, still applied */ }
-  applyA11y();
-});
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !$("a11yPanel").hidden) { $("a11yPanel").hidden = true; $("a11yBtn").setAttribute("aria-expanded", "false"); $("a11yBtn").focus(); }
-});
+setupA11y();
 
 // ---------- start ----------
 
@@ -805,10 +815,11 @@ if (DONATE_URL) {
   renderCats();
   $("equipNames").innerHTML = eq.map((e) => `<option value="${esc(e[1])}"></option>`).join("");
   // Sale reports appear only when the server has them switched on.
-  fetch(`${API}/api/health`).then((r) => r.json()).then((j) => {
+  health().then((j) => {
     salesOn = !!j.sales;
     if (salesOn && state.item) update();
-  }).catch(() => {});
+    if (j.community) setupPublish();
+  });
   const h = readHash();
   if (h) pickItem(h.id, h.restore);
   else if (search.value.trim()) showResults(); // typed before the list loaded

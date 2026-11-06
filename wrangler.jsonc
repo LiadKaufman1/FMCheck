@@ -11,4 +11,7 @@
   },
   // Sale reports are stored in this KV namespace (fmcheck-sales)
   "kv_namespaces": [{ "binding": "SALES", "id": "1ee0771d2f294f979e571a65aa37c295" }]
+  // The community needs a D1 database and the Google sign-in client id:
+  // ,"d1_databases": [{ "binding": "DB", "database_name": "fmcheck-community", "database_id": "<database id>" }]
+  // ,"vars": { "GOOGLE_CLIENT_ID": "<client id>.apps.googleusercontent.com" }
 }

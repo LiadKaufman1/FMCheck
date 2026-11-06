@@ -56,6 +56,20 @@ The small server in `src/worker.js` (Cloudflare Worker) serves the site and the 
 - Reports are kept in Workers KV (binding `SALES` in `wrangler.jsonc`). Without it, the API says so and the page hides the feature.
 - Anonymous: no names, accounts or IPs. Spam limit: 20 reports a day per visitor, counted by a one-way hash of the IP that expires after a day.
 
+### Community
+
+`community.html` lists players' scrolled items, for sale or shown off, with the full picture: stats, slots, scrolls,
+odds, the estimate and where to find the seller. Items are put up from the calculator ("Put it in the spotlight").
+
+- Sign-in with Google (Google Identity Services). The Worker checks Google's token itself; it stores only a hash of the
+  Google account id and the in-game name the player types. Sessions are random tokens in an HttpOnly cookie.
+- Data in Cloudflare D1 (binding `DB`); `src/community.js` creates the tables on first use.
+- "Check it on screen" (`js/verify.js`): the seller shares the game window, the page reads the item window with
+  [tesseract.js](https://github.com/naptha/tesseract.js) (Apache 2.0, served from `assets/vendor/tesseract/`), and sends only
+  the numbers read; the server compares them with the item.
+- Rare items (1 in 50 or rarer, `DISCORD_MIN_ONE_IN`) are posted to Discord through the `DISCORD_WEBHOOK` secret.
+- Settings: `GOOGLE_CLIENT_ID` (var), `DISCORD_WEBHOOK` (secret), `ADMIN_IDS` (comma-separated user ids that can remove any item).
+
 ### Staying up to date
 
 `.github/workflows/refresh-data.yml` runs every Monday: it rebuilds the data from the latest OSMS dataset, copies any
