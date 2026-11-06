@@ -1,8 +1,8 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=10d3f111";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, inferScrolls, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, failedItemValue, mesos, UNITS, readRange } from "./calc.js?v=10d3f111";
-import { getPrice, setPrice } from "./prices.js?v=10d3f111";
-import { parseTooltip, readImage } from "./reader.js?v=10d3f111";
-import { drawCard, cardBlob } from "./card.js?v=10d3f111";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=8f83cf90";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, inferScrolls, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, failedItemValue, mesos, UNITS, readRange } from "./calc.js?v=8f83cf90";
+import { getPrice, setPrice } from "./prices.js?v=8f83cf90";
+import { parseTooltip, readImage } from "./reader.js?v=8f83cf90";
+import { drawCard, cardBlob } from "./card.js?v=8f83cf90";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -67,9 +67,9 @@ let matches = [], active = 0, hideTimer;
 const filter = { cat: "", job: "" };
 
 // Categories like the game's equip tabs. Icon = a typical item of that kind.
-const CATS = [["", "All", null], ["Weapon", "Weapons", 1302000], ["Hat", "Hats", 1002995], ["Top", "Tops", 1040002],
-  ["Bottom", "Bottoms", 1060001], ["Overall", "Overalls", 1050000], ["Shoes", "Shoes", 1072001], ["Glove", "Gloves", 1082000],
-  ["Shield", "Shields", 1092001], ["Cape", "Capes", 1102000], ["Earring", "Earrings", 1032001]];
+const CATS = [["", "All", null], ["Weapon", "Weapons", 1302000], ["Hat", "Hats", 1002058], ["Top", "Tops", 1040002],
+  ["Bottom", "Bottoms", 1060001], ["Overall", "Overalls", 1050036], ["Shoes", "Shoes", 1072083], ["Glove", "Gloves", 1082000],
+  ["Shield", "Shields", 1092001], ["Cape", "Capes", 1102000], ["Earring", "Earrings", 1032004]];
 const catOf = (e) => (Math.floor(e[0] / 10000) >= 130 ? "Weapon" : e[3]);
 const jobOk = (e) => !filter.job || !(e[6] && e[6].jobs) || e[6].jobs.includes(filter.job);
 const inFilter = (e) => (!filter.cat || catOf(e) === filter.cat) && jobOk(e);
