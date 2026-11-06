@@ -462,3 +462,17 @@ html.a11y-still .guide-stage img.play { animation: none; }
   .top-actions { gap: 4px; }
   .top-actions .guide-btn, .top-actions .discord, .top-actions .donate { padding: 4px 7px; font-size: 11.5px; }
 }
+
+/* reported sales */
+.sales { margin-top: 16px; border-top: 1px dashed var(--line, #ddd); padding-top: 12px; }
+.sales h3 { margin: 0 0 8px; font-size: 15px; }
+.sales-list ul { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 4px; }
+.sales-list li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; font-size: 14px; }
+.sales-list li b { min-width: 64px; }
+.sales-list li small { color: var(--muted); }
+.sales-list li.same { font-weight: 700; }
+.sales-list .tag { font-size: 11px; padding: 1px 6px; border-radius: 999px; background: var(--bg); }
+.sale-form .hint { margin: 6px 0; }
+.sale-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.sale-row input { width: 100px; flex: 1 1 80px; }
+.sale-msg { min-height: 1.2em; margin: 6px 0 0; font-size: 13px; }

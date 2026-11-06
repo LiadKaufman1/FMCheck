@@ -32,7 +32,7 @@
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
   <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="css/style.css?v=df1c1fee" />
+  <link rel="stylesheet" href="css/style.css?v=807f3e02" />
 </head>
 <body>
   <a class="skip" href="#itemSearch">Skip to the calculator</a>
@@ -170,6 +170,20 @@
       </div>
       <div id="odds" class="odds" aria-live="polite"></div>
       <div id="estimate" class="estimate" aria-live="polite"></div>
+      <div id="sales" class="sales" hidden>
+        <h3>Real sales of this item</h3>
+        <div id="salesList" class="sales-list" aria-live="polite"></div>
+        <form id="saleForm" class="sale-form">
+          <p class="hint">Sold or bought one exactly like this? Report the price (anonymous). It shows here for everyone and helps keep the estimates true to the market.</p>
+          <div class="sale-row">
+            <select id="saleKind" aria-label="Sold or bought"><option value="sold">I sold it for</option><option value="bought">I bought it for</option></select>
+            <input id="salePrice" inputmode="decimal" placeholder="price" aria-label="Price" required />
+            <select id="saleUnit" aria-label="Unit"><option value="">mesos</option><option value="k">K</option><option value="m" selected>M</option><option value="b">B</option></select>
+            <button type="submit" id="saleSend">Report</button>
+          </div>
+          <p id="saleMsg" class="sale-msg" role="status"></p>
+        </form>
+      </div>
       <details class="how">
         <summary>How is this worked out?</summary>
         <p><b>The idea.</b> A buyer won't pay more than it would cost to make an item at least this good themselves,
@@ -276,6 +290,6 @@ chance = clean roll × scrolls</pre>
   </div>
 
 
-  <script type="module" src="js/app.js?v=df1c1fee"></script>
+  <script type="module" src="js/app.js?v=807f3e02"></script>
 </body>
 </html>

@@ -1,9 +1,14 @@
-// Cloudflare Workers: serve this folder as a static site (no server code).
+// Cloudflare Workers: the static site, plus a small server for /api (reported sales).
 {
   "name": "fmcheck",
   "compatibility_date": "2026-10-01",
+  "main": "src/worker.js",
   "assets": {
     "directory": "./",
-    "not_found_handling": "single-page-application"
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
   }
+  // Sale reports need a KV namespace. Once it exists in the Cloudflare dashboard, add its id:
+  // "kv_namespaces": [{ "binding": "SALES", "id": "<namespace id>" }]
 }

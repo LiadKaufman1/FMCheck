@@ -9,15 +9,15 @@ add the scrolls that passed with today's price for each, and get a ballpark valu
 
 A buyer won't pay more than it would cost to make an item at least this good themselves, the cheapest way,
 so the estimate is that cost plus what the open slots are worth. The page shows the exact formulas under
-"How is this worked out?"; the code is `cheapestRoute` and `openSlotValue` in `js/calc.js`.
+"How is this worked out?"; the code is `cheapestRoute` and `openSlotsBonus` in `js/calc.js`.
 
 - **Cheapest way to make one (M):** reach at least the same stat points within the same used slots, using the
   scrolls the user entered plus the Lesser and Intermediate of the same scroll (asked for under Scrolls). So only the
   result counts: the same final stats and slots left give the same price whatever was actually used. The maker picks the best scroll each step, stops at the goal, and
   drops an item that can't reach it (or that a Chaos scroll destroyed) and starts over with a new clean item.
   Solved as an expected-cost recursion with M on both sides, repeated until it settles.
-- **Open slots:** per slot = best scroll's (chance × gain × mesos per stat point − price − chance of losing the
-  item × M), never below 0; mesos per stat point = (M − clean price) ÷ points gained.
+- **Open slots:** what the chance to keep scrolling them is worth: the best of selling now or scrolling one more
+  slot (pass, fail, or a Chaos scroll destroying it), looking up to 6 slots ahead (`openSlotsBonus`).
 - **Estimate** = M + open slots, worked out with all "from" prices and all "to" prices for the range.
 
 A failed scroll uses up its slot (checked in game).
@@ -45,6 +45,23 @@ Scroll prices are remembered in the browser; the clean price isn't, since it dep
 Failed scrolls aren't entered: the page works them out from the slots left and spreads them over
 the passed scroll types in the most likely way.
 
+### Reported sales
+
+Players can report what they really sold or bought an item for (under the estimate). The latest reports for the
+item show on the page, and they're collected to check and tune the formula against the market.
+
+The small server in `src/worker.js` (Cloudflare Worker) serves the site and the API:
+
+- `POST /api/sales` add a report · `GET /api/sales?item=ID` latest reports · `GET /api/sales/all` all reports, paged with `?cursor=`
+- Reports are kept in Workers KV (binding `SALES` in `wrangler.jsonc`). Without it, the API says so and the page hides the feature.
+- Anonymous: no names, accounts or IPs. Spam limit: 20 reports a day per visitor, counted by a one-way hash of the IP that expires after a day.
+
+### Staying up to date
+
+`.github/workflows/refresh-data.yml` runs every Monday: it rebuilds the data from the latest OSMS dataset, copies any
+new icons, re-stamps the files and commits if anything changed, so Cloudflare deploys it. It can also be run by hand
+from the Actions tab.
+
 ## Run locally
 
 ```
@@ -55,7 +72,8 @@ python3 scripts/fetch_icons.py   # copy any new item/scroll icons into assets/it
 python3 scripts/stamp.py   # after changing css/ or js/: new ?v= so browsers don't mix old and new files
 ```
 
-It's a static site (no build step), so it can be hosted as-is on GitHub Pages, Netlify or Cloudflare Pages.
+It's a static site (no build step), so it can be hosted as-is on GitHub Pages. To try sale reports locally: `npx wrangler dev`
+(with a `SALES` KV binding in `wrangler.jsonc`).
 
 ## License
 

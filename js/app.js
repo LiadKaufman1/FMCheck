@@ -1,7 +1,7 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=df1c1fee";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readRange } from "./calc.js?v=df1c1fee";
-import { getPrice, setPrice } from "./prices.js?v=df1c1fee";
-import { drawCard, cardBlob } from "./card.js?v=df1c1fee";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=807f3e02";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readRange, readPrice } from "./calc.js?v=807f3e02";
+import { getPrice, setPrice } from "./prices.js?v=807f3e02";
+import { drawCard, cardBlob } from "./card.js?v=807f3e02";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -466,7 +466,9 @@ function update() {
   const odds = renderOdds(failed);
   saveHash();
   const price = failed < 0 ? null : renderEstimate(used);
+  lastEstimate = price;
   renderCard(fin, odds, price);
+  if (salesOn) { if (salesFor !== state.item.id) loadSales(); else renderSales(); }
 }
 
 // The price estimate; returns { lo, hi } or null when it can't be worked out yet.
@@ -526,6 +528,88 @@ function renderEstimate(used) {
     ${tiersMissing.length ? `<p class="hint">Add today's price of ${tiersMissing.join(" and ")} (under Scrolls) so the estimate depends only on the result.</p>` : ""}`;
   return { lo: lo.value, hi: hi.value };
 }
+
+// ---------- reported sales ----------
+// Players report what they really sold or bought an item for. The list shows the latest reports for the item,
+// and the reports are collected to check and tune the formula against the market.
+
+// fmcheck.org serves the API; the GitHub Pages backup calls it there.
+const API = location.hostname.endsWith("github.io") ? "https://fmcheck.org" : "";
+let salesOn = false, salesFor = null, salesData = [], lastEstimate = null;
+
+// What the item gained from scrolls, e.g. { PAD: 7 }.
+function gainedStats() {
+  const g = {};
+  for (const r of state.rows) for (const [k, v] of Object.entries(r.scroll.stats)) g[k] = (g[k] || 0) + v * r.successes;
+  for (const k of Object.keys(g)) if (!g[k]) delete g[k];
+  return g;
+}
+const sameGain = (a, b) => {
+  const ka = Object.keys(a), kb = Object.keys(b);
+  return ka.length === kb.length && ka.every((k) => a[k] === b[k]);
+};
+const ago = (t) => {
+  const d = Math.floor((Date.now() - t) / 864e5);
+  return d < 1 ? "today" : d === 1 ? "yesterday" : d < 30 ? `${d} days ago` : new Date(t).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+};
+
+async function loadSales() {
+  const id = state.item.id;
+  salesFor = id;
+  salesData = [];
+  renderSales(true);
+  try {
+    const r = await fetch(`${API}/api/sales?item=${id}`);
+    const j = await r.json();
+    if (salesFor === id) { salesData = j.sales || []; renderSales(); }
+  } catch { if (salesFor === id) $("salesList").innerHTML = `<p class="hint">Couldn't load reported sales right now.</p>`; }
+}
+
+function renderSales(loading = false) {
+  $("sales").hidden = !state.item;
+  const box = $("salesList");
+  if (loading) { box.innerHTML = `<p class="hint">Loading…</p>`; return; }
+  if (!salesData.length) { box.innerHTML = `<p class="hint">No sales reported for this item yet. Be the first!</p>`; return; }
+  const g = gainedStats();
+  const rows = salesData.map((x) => {
+    const same = sameGain(x.gained || {}, g) && x.left === state.left;
+    const what = Object.keys(x.gained || {}).length ? plusList(x.gained) : "clean";
+    const left = x.left != null ? ` · ${x.left} slot${x.left === 1 ? "" : "s"} left` : "";
+    return `<li class="${same ? "same" : ""}"><b>${mesos(x.price)}</b><span>${esc(what)}${left}</span>
+      <small>${x.kind === "bought" ? "bought" : "sold"} ${ago(x.t)}</small>${same ? `<span class="tag">same as yours</span>` : ""}</li>`;
+  });
+  box.innerHTML = `<ul>${rows.join("")}</ul>`;
+}
+
+$("saleForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = $("saleMsg");
+  const price = readPrice($("salePrice").value, $("saleUnit").value);
+  if (!state.item || !Number.isFinite(price) || price <= 0) { msg.textContent = "Enter the price, e.g. 350 M."; return; }
+  const used = state.slots - state.left;
+  if (used < passedTotal()) { msg.textContent = "Fix the slots first: more passed scrolls than used slots."; return; }
+  const body = {
+    item: state.item.id, price, kind: $("saleKind").value, gained: gainedStats(),
+    left: state.left, slots: state.slots,
+    scrolls: state.rows.map((r) => ({ id: r.scroll.id, n: r.successes })),
+    estimate: lastEstimate,
+  };
+  $("saleSend").disabled = true;
+  msg.textContent = "Sending…";
+  try {
+    const r = await fetch(`${API}/api/sales`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || "Couldn't send it, try again later.");
+    msg.textContent = "Thanks! Your report was added.";
+    $("salePrice").value = "";
+    salesFor = null;
+    loadSales();
+  } catch (err) {
+    msg.textContent = err.message || "Couldn't send it, try again later.";
+  } finally {
+    $("saleSend").disabled = false;
+  }
+});
 
 // ---------- result card (in-game tooltip style) ----------
 
@@ -720,6 +804,11 @@ if (DONATE_URL) {
   scrollById = new Map(sc.map((s) => [s.id, s]));
   renderCats();
   $("equipNames").innerHTML = eq.map((e) => `<option value="${esc(e[1])}"></option>`).join("");
+  // Sale reports appear only when the server has them switched on.
+  fetch(`${API}/api/health`).then((r) => r.json()).then((j) => {
+    salesOn = !!j.sales;
+    if (salesOn && state.item) update();
+  }).catch(() => {});
   const h = readHash();
   if (h) pickItem(h.id, h.restore);
   else if (search.value.trim()) showResults(); // typed before the list loaded

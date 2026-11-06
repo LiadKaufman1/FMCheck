@@ -1,0 +1,55 @@
+# Keeps FMCheck's item and scroll data current: every Monday, rebuild it from the latest
+# OSMS Data Explorer dataset, copy any new icons, and commit if anything changed
+# (Cloudflare then deploys the new commit). Can also be run by hand from the Actions tab.
+name: Refresh game data
+
+on:
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-data
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Rebuild data
+        run: python3 scripts/build_data.py
+
+      - name: Copy new icons
+        run: python3 scripts/fetch_icons.py
+
+      - name: Check the math still works
+        run: npm test
+
+      - name: Stamp file versions
+        run: python3 scripts/stamp.py
+
+      - name: Commit if changed
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "Data is already up to date."
+            exit 0
+          fi
+          git config user.name "fmcheck-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A data assets/items index.html terms.html js css
+          git commit -m "Weekly data refresh from OSMS Data Explorer"
+          git push
