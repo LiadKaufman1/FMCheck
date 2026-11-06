@@ -32,7 +32,7 @@
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
   <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="css/style.css?v=2558cb0a" />
+  <link rel="stylesheet" href="css/style.css?v=03bf43d4" />
 </head>
 <body>
   <a class="skip" href="#itemSearch">Skip to the calculator</a>
@@ -149,6 +149,7 @@
       </div>
       <p class="label">Scrolls used · how many passed (×0 = all failed)</p>
       <div id="scrollRows" class="scroll-rows"></div>
+      <div id="mainTiers" class="scroll-rows main-tiers"></div>
       <button id="openPicker" type="button" class="add-btn">+ Add a scroll</button>
       <div id="picker" class="picker" hidden>
         <input id="pickerSearch" type="search" placeholder="Filter, e.g. attack" autocomplete="off" />
@@ -176,7 +177,9 @@
 
         <p><b>1. Cheapest way to make one (M)</b></p>
         <p>The goal: a clean item with these stats that gains at least the same stat points, within the same number of used slots
-          (so it keeps as many open slots), using the scrolls you entered.
+          (so it keeps as many open slots), using the scrolls you entered plus the Lesser and Intermediate
+          of the same scroll. Only the result counts: two items with the same final stats and slots left get the same price,
+          whatever scrolls were actually used, which is how players price items.
           The maker picks the best scroll for each step, stops once the goal is reached, and drops an item that can't reach it anymore
           (or that a Chaos scroll destroyed) and starts again with a new clean item.</p>
         <pre class="formula">M = clean price + C(used slots, points gained)
@@ -271,6 +274,6 @@ chance = clean roll × scrolls</pre>
   </div>
 
 
-  <script type="module" src="js/app.js?v=2558cb0a"></script>
+  <script type="module" src="js/app.js?v=03bf43d4"></script>
 </body>
 </html>

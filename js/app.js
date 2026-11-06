@@ -1,7 +1,7 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=2558cb0a";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, failedItemValue, mesos, UNITS, readRange } from "./calc.js?v=2558cb0a";
-import { getPrice, setPrice } from "./prices.js?v=2558cb0a";
-import { drawCard, cardBlob } from "./card.js?v=2558cb0a";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=03bf43d4";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotValue, cheapestRoute, failedItemValue, mesos, UNITS, readRange } from "./calc.js?v=03bf43d4";
+import { getPrice, setPrice } from "./prices.js?v=03bf43d4";
+import { drawCard, cardBlob } from "./card.js?v=03bf43d4";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -307,8 +307,35 @@ const passedTotal = () => state.rows.reduce((n, r) => n + r.successes, 0);
 const family = (sc) => sc.name.split(":")[0].trim();
 const points = (sc) => Object.values(sc.stats).reduce((a, b) => a + b, 0);
 
+// The common tiers of each scroll on the item. The price is the cheapest way to reach the same result with them,
+// whatever was actually used, so two items with the same final stats and slots left get the same price.
+const MAIN_TIERS = ["Lesser", "Intermediate"];
+function mainTiers() {
+  const used = new Set(state.rows.map((r) => r.scroll.id));
+  const fams = [...new Set(state.rows.filter((r) => r.successes > 0).map((r) => family(r.scroll)))];
+  return scrollsForItem().filter((sc) => fams.includes(family(sc)) && MAIN_TIERS.includes(sc.tier) && !used.has(sc.id));
+}
+function renderMainTiers() {
+  const box = $("mainTiers");
+  const list = mainTiers();
+  box.innerHTML = list.length ? `<p class="label">Also needed, so only the result counts: today's price of the common tiers</p>
+    ${list.map((sc) => `<div class="scroll-row tier-row" data-id="${sc.id}">
+      <img src="${scrollIcon(sc.id)}" alt="" />
+      <span class="nm"><b>${esc(shortName(sc))}</b><small>${esc(scrollOdds(sc))} · ${esc(plusList(sc.stats))}</small></span><span></span>
+      <span class="row-price price-input">${rangeFields(getPrice(sc.id), "k")}
+        <a href="${priceLink(sc.id, sc.name)}" data-name="${esc(sc.name)}" target="_blank" rel="noopener">check price ↗</a></span>
+    </div>`).join("")}` : "";
+}
+function onTierPrice(e) {
+  if (!["from", "to", "unit"].includes(e.target.dataset.f)) return;
+  const row = e.target.closest(".tier-row");
+  setPrice(+row.dataset.id, readFields(row));
+  update();
+}
+
 function renderRows() {
   const box = $("scrollRows");
+  renderMainTiers();
   if (!state.rows.length) {
     box.innerHTML = `<p class="hint">None yet. A clean item works too.</p>`;
     return;
@@ -338,6 +365,8 @@ function onScrollPrice(e) {
   update();
 }
 $("scrollRows").addEventListener("input", onScrollPrice);
+$("mainTiers").addEventListener("input", onTierPrice);
+$("mainTiers").addEventListener("change", onTierPrice);
 $("scrollRows").addEventListener("change", onScrollPrice);
 
 $("scrollRows").addEventListener("click", (e) => {
@@ -448,7 +477,7 @@ function renderEstimate(used) {
   // What the item gained, per scroll family, and the scrolls the user entered (with a price).
   const needs = {};
   for (const r of state.rows) needs[family(r.scroll)] = (needs[family(r.scroll)] || 0) + r.successes * points(r.scroll);
-  const tiersAt = (end) => state.rows.map((r) => r.scroll).map((sc) => ({
+  const tiersAt = (end) => [...state.rows.map((r) => r.scroll), ...mainTiers()].map((sc) => ({
     id: sc.id, fam: family(sc), points: points(sc), success: sc.success, boom: sc.boom, price: getPrice(sc.id)?.[end],
   })).filter((t) => Number.isFinite(t.price));
   const pointsGained = Object.values(needs).reduce((a, b) => a + b, 0);
@@ -474,6 +503,7 @@ function renderEstimate(used) {
   };
   const lo = run("lo"), hi = run("hi");
   const unpriced = state.rows.filter((r) => !getPrice(r.scroll.id)).map((r) => esc(shortName(r.scroll)));
+  const tiersMissing = mainTiers().filter((sc) => !getPrice(sc.id)).map((sc) => esc(shortName(sc)));
   if (!lo || !hi) {
     out.innerHTML = `<p class="hint">${unpriced.length ? `Enter a price for ${unpriced.join(", ")} to get an estimate.` : "Enter the scroll prices to get an estimate."}</p>`;
     return null;
@@ -494,7 +524,8 @@ function renderEstimate(used) {
       ${pointsGained ? `<span>Clean items the cheapest way uses</span><span>${items(lo.cleanItems)}</span>
       <span>Scrolls per clean item</span><span>${plan || "–"}</span>` : ""}`}
     </div>
-    ${unpriced.length ? `<p class="warn">No price for ${unpriced.join(", ")}: left out of the cheapest way.</p>` : ""}`;
+    ${unpriced.length ? `<p class="warn">No price for ${unpriced.join(", ")}: left out of the cheapest way.</p>` : ""}
+    ${tiersMissing.length ? `<p class="hint">Add today's price of ${tiersMissing.join(" and ")} (under Scrolls) so the estimate depends only on the result.</p>` : ""}`;
   return { lo: lo.value, hi: hi.value };
 }
 

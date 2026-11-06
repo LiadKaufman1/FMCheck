@@ -446,3 +446,6 @@ html.old-address .moved { display: block; }
 #guideGo { margin-left: auto; }
 @media (prefers-reduced-motion: reduce) { .guide-stage img.play { animation: none; } }
 html.a11y-still .guide-stage img.play { animation: none; }
+
+.main-tiers:not(:empty) { margin-top: 14px; }
+.tier-row { background: var(--bg); border-style: dashed; }
