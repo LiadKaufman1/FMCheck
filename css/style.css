@@ -529,7 +529,7 @@ html.a11y-still .guide-stage img.play { animation: none; }
 .more { display: block; margin: 12px auto 0; }
 .how-community ul { padding-left: 20px; line-height: 1.6; }
 .mine { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
-.mine-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.mine-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; align-items: center; }
 .mine-actions button { font-size: 13px; padding: 6px 10px; }
 .mine-edit { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-top: 8px; align-items: end; }
 .mine-edit label { display: grid; gap: 4px; font-size: 12px; font-weight: 800; }

@@ -1,10 +1,10 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=d0bc7899";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readRange, readPrice } from "./calc.js?v=d0bc7899";
-import { getPrice, setPrice } from "./prices.js?v=d0bc7899";
-import { drawCard, cardBlob } from "./card.js?v=d0bc7899";
-import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=d0bc7899";
-import { setupA11y } from "./a11y.js?v=d0bc7899";
-import { API, api, health, me, googleButton, validIgn } from "./account.js?v=d0bc7899";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=42a349b7";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readRange, readPrice } from "./calc.js?v=42a349b7";
+import { getPrice, setPrice } from "./prices.js?v=42a349b7";
+import { drawCard, cardBlob } from "./card.js?v=42a349b7";
+import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=42a349b7";
+import { setupA11y } from "./a11y.js?v=42a349b7";
+import { API, api, health, me, googleButton, validIgn } from "./account.js?v=42a349b7";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -478,7 +478,7 @@ function update() {
 // The price estimate; returns { lo, hi } or null when it can't be worked out yet.
 function renderEstimate(used) {
   const out = $("estimate");
-  if (!cleanPrice) { out.innerHTML = `<p class="hint">Enter the clean item price (step 1) to get an estimate.</p>`; return null; }
+  if (!cleanPrice) { out.innerHTML = `<p class="hint">Want an estimate? Enter the clean item price (step 1) and the scroll prices. It's optional: you can publish the item without it.</p>`; return null; }
 
   // What the item gained, per scroll family, and the scrolls the user entered (with a price).
   const needs = {};
@@ -746,10 +746,14 @@ function readHash() {
 // ---------- How it works: a short guide that plays real frames from the site ----------
 
 const GUIDE = [
-  ["assets/guide/1.webp?v=3", "1. Pick your item: search it, or tap a category and a class to browse."],
-  ["assets/guide/2.webp?v=3", "2. Enter what a clean one costs today (from – to), and set its clean stats. Tip: tap \"check price\" to see it on meso.watch."],
-  ["assets/guide/3.webp?v=3", "3. Set the slots left, add the scrolls that passed and their price. Failed ones are worked out for you. Tip: check each scroll's price on meso.watch (\"check price\") before you enter the range."],
-  ["assets/guide/4.webp?v=3", "4. Get the price range and the odds, and save the item card to share it."],
+  ["assets/guide/1.webp?v=4", "1. Pick your item: search it, or tap a category and a class to browse."],
+  ["assets/guide/2.webp?v=4", "2. Set its clean stats. For a price estimate, also enter what a clean one costs today (from – to). Tip: tap \"check price\" to see it on meso.watch."],
+  ["assets/guide/3.webp?v=4", "3. Set the slots left and add the scrolls that passed (failed ones are worked out for you). For the estimate, add each scroll's price too."],
+  ["assets/guide/4.webp?v=4", "4. See the odds of an item like this and, with prices, its price range. Save the item card to share it. Sold or bought one like it? Report the real price under the estimate."],
+  ["assets/guide/5.webp?v=4", "5. Put it in the spotlight: sign in with Google and publish the item, for sale or just to show it off. You set the price, prices aren't needed to publish: the estimate is only there to help."],
+  ["assets/guide/6.webp?v=4", "6. The Community page: buyers see each item's exact stats, slots, odds and how the price compares with the estimate, and can filter by stat. ⭐ Featured items sit on top."],
+  ["assets/guide/7.webp?v=4", "7. Tap an item to see its full card, the seller and where to find them (channel, FM room). ✓ Checked on screen: the seller showed the item from the game."],
+  ["assets/guide/8.webp?v=4", "8. Under My items: keep it up with Still selling, check it on screen, edit the price, mark it sold, or feature it for 24 hours (supporters)."],
 ];
 const GUIDE_KEY = "fmcheck-guide-seen";
 let guideStep = 0, guideTimer = null;

@@ -1,5 +1,5 @@
 // What goes on an item card (drawn by card.js), shared by the calculator and the community page.
-import { mesos } from "./calc.js?v=d0bc7899";
+import { mesos } from "./calc.js?v=42a349b7";
 
 export const GAME_LABEL = { STR: "STR", DEX: "DEX", INT: "INT", LUK: "LUK", MHP: "MaxHP", MMP: "MaxMP", PAD: "Weapon Att.",
   MAD: "Magic Att.", PDD: "Weapon Def.", MDD: "Magic Def.", ACC: "Accuracy", EVA: "Avoidability", Speed: "Speed",
