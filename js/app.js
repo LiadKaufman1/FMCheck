@@ -1,11 +1,11 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=7adea26c";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readRange, readPrice } from "./calc.js?v=7adea26c";
-import { getPrice, setPrice } from "./prices.js?v=7adea26c";
-import { drawCard, cardBlob } from "./card.js?v=7adea26c";
-import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=7adea26c";
-import { itemSearch } from "./itemsearch.js?v=7adea26c";
-import { setupA11y } from "./a11y.js?v=7adea26c";
-import { API, api, health, me, googleButton, validIgn } from "./account.js?v=7adea26c";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=bbf16a45";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readRange, readPrice } from "./calc.js?v=bbf16a45";
+import { getPrice, setPrice } from "./prices.js?v=bbf16a45";
+import { drawCard, cardBlob } from "./card.js?v=bbf16a45";
+import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=bbf16a45";
+import { itemSearch } from "./itemsearch.js?v=bbf16a45";
+import { setupA11y } from "./a11y.js?v=bbf16a45";
+import { API, api, health, me, googleButton, validIgn } from "./account.js?v=bbf16a45";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -234,16 +234,25 @@ function mainTiers() {
   const fams = [...new Set(state.rows.filter((r) => r.successes > 0).map((r) => family(r.scroll)))];
   return scrollsForItem().filter((sc) => fams.includes(family(sc)) && MAIN_TIERS.includes(sc.tier) && !used.has(sc.id));
 }
+// Not scrolls on the item: other tiers of the same scroll, folded away. With their price, the estimate compares
+// making the same result with them, so items with the same final stats get the same price. Optional.
+let tiersOpen = false;
 function renderMainTiers() {
   const box = $("mainTiers");
   const list = mainTiers();
-  box.innerHTML = list.length ? `<p class="label">Also needed, so only the result counts: today's price of the common tiers</p>
+  const open = tiersOpen || list.some((sc) => getPrice(sc.id));
+  const names = list.map((sc) => esc(shortName(sc).split(":").pop().trim())).join(" and ");
+  box.innerHTML = list.length ? `<details class="tiers-box"${open ? " open" : ""}>
+    <summary><span class="tiers-sum">Optional: compare with the ${names} scroll for a fairer estimate</span></summary>
+    <p class="hint">These aren't scrolls on your item. FMCheck checks whether the same result is cheaper to make with them,
+      so items with the same final stats get the same price. Leave them empty if you don't know their price.</p>
     ${list.map((sc) => `<div class="scroll-row tier-row" data-id="${sc.id}">
       <img src="${scrollIcon(sc.id)}" alt="" />
       <span class="nm"><b>${esc(shortName(sc))}</b><small>${esc(scrollOdds(sc))} · ${esc(plusList(sc.stats))}</small></span><span></span>
       <span class="row-price price-input">${rangeFields(getPrice(sc.id), "k")}
         <a href="${priceLink(sc.id, sc.name)}" data-name="${esc(sc.name)}" target="_blank" rel="noopener">check price ↗</a></span>
-    </div>`).join("")}` : "";
+    </div>`).join("")}</details>` : "";
+  box.querySelector("details")?.addEventListener("toggle", (e) => { tiersOpen = e.target.open; });
 }
 function onTierPrice(e) {
   if (!["from", "to", "unit"].includes(e.target.dataset.f)) return;
@@ -444,7 +453,7 @@ function renderEstimate(used) {
       <span>Scrolls per clean item</span><span>${plan || "–"}</span>` : ""}`}
     </div>
     ${unpriced.length ? `<p class="warn">No price for ${unpriced.join(", ")}: left out of the cheapest way.</p>` : ""}
-    ${tiersMissing.length ? `<p class="hint">Add today's price of ${tiersMissing.join(" and ")} (under Scrolls) so the estimate depends only on the result.</p>` : ""}`;
+    ${tiersMissing.length ? `<p class="hint">Optional: for a fairer estimate, add today's price of ${tiersMissing.join(" and ")} under Scrolls ("compare with").</p>` : ""}`;
   return { lo: lo.value, hi: hi.value };
 }
 

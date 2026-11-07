@@ -1,11 +1,11 @@
 // The community page: players' scrolled items for sale, with the full picture of each one.
-import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=7adea26c";
-import { drawCard, cardBlob } from "./card.js?v=7adea26c";
-import { cardInfo, cardLabel, cardFmt, cardDate, rangeText, oneInText } from "./itemcard.js?v=7adea26c";
-import { setupA11y } from "./a11y.js?v=7adea26c";
-import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=7adea26c";
-import { itemSearch } from "./itemsearch.js?v=7adea26c";
-import { DISCORD_URL } from "./config.js?v=7adea26c";
+import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=bbf16a45";
+import { drawCard, cardBlob } from "./card.js?v=bbf16a45";
+import { cardInfo, cardLabel, cardFmt, cardDate, rangeText, oneInText } from "./itemcard.js?v=bbf16a45";
+import { setupA11y } from "./a11y.js?v=bbf16a45";
+import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=bbf16a45";
+import { itemSearch } from "./itemsearch.js?v=bbf16a45";
+import { DISCORD_URL } from "./config.js?v=bbf16a45";
 
 const $ = (id) => document.getElementById(id);
 const icon = (id) => `assets/items/${String(id).padStart(8, "0")}.png`;

@@ -625,3 +625,10 @@ a.ghost-btn { display: inline-block; padding: 8px 12px; border-radius: 10px; tex
 .pub-upsell a { color: #7a4a00; font-weight: 800; }
 @media (max-width: 520px) { .sup-table { font-size: 13px; } .sup-table th, .sup-table td { padding: 7px 6px; } }
 #supTitle:focus { outline: none; }
+
+/* other tiers of the same scroll: optional, folded away */
+.tiers-box { margin-top: 4px; }
+.tiers-box summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--muted); padding: 6px 2px; }
+.tiers-box summary:hover .tiers-sum { color: var(--accent-text); text-decoration: underline; }
+.tiers-box[open] summary { margin-bottom: 4px; }
+.tiers-box .hint { margin: 0 0 8px; }
