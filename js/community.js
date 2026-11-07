@@ -1,10 +1,10 @@
 // The community page: players' scrolled items, for sale or shown off, with the full picture of each one.
-import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=96802657";
-import { drawCard, cardBlob } from "./card.js?v=96802657";
-import { cardInfo, cardLabel, cardFmt, cardDate, rangeText, oneInText } from "./itemcard.js?v=96802657";
-import { setupA11y } from "./a11y.js?v=96802657";
-import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=96802657";
-import { DISCORD_URL } from "./config.js?v=96802657";
+import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=f6f72e36";
+import { drawCard, cardBlob } from "./card.js?v=f6f72e36";
+import { cardInfo, cardLabel, cardFmt, cardDate, rangeText, oneInText } from "./itemcard.js?v=f6f72e36";
+import { setupA11y } from "./a11y.js?v=f6f72e36";
+import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=f6f72e36";
+import { DISCORD_URL } from "./config.js?v=f6f72e36";
 
 const $ = (id) => document.getElementById(id);
 const icon = (id) => `assets/items/${String(id).padStart(8, "0")}.png`;
@@ -202,7 +202,7 @@ function renderAccount() {
       <button type="button" class="ghost-btn" id="signOut">Sign out</button>
       <button type="button" class="ghost-btn" id="deleteMe">Delete account</button>
     </form><p id="accountMsg" class="sale-msg" role="status">${user.ign ? "" : "Add your in-game name so buyers can find you."}</p>
-    ${user.supporter ? `<p class="sup-status">⭐ Supporter until ${cardDate(user.supporterUntil)} · ${user.boostsLeft} of ${user.perMonth} boosts left this month. Thank you!</p>` : ""}`;
+    ${user.supporter ? `<p class="sup-status">⭐ Supporter until ${cardDate(user.supporterUntil)} · ${user.monthlyLeft} of ${user.perMonth} monthly boosts left${user.extraBoosts ? ` + ${user.extraBoosts} extra` : ""}. Thank you!</p>` : ""}`;
   $("ignForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const ign = $("ign").value.trim();
@@ -239,7 +239,7 @@ function renderMine() {
         ${l.status === "active" ? `
         ${l.price ? `<button type="button" data-act="bump">🟢 Still selling</button>` : ""}
         ${l.featured ? `<span class="badge feat">⭐ Featured until ${new Date(l.featured).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>`
-          : `<button type="button" class="ghost-btn boost" data-act="boost">⭐ Feature for 24h${user.supporter ? ` (${user.boostsLeft} left)` : ""}</button>`}
+          : `<button type="button" class="ghost-btn boost" data-act="boost">⭐ Feature for 24h${user.supporter ? (user.boostsLeft ? ` (${user.boostsLeft} left)` : ` · $${healthInfo.boostPrice || 1}`) : ""}</button>`}
         <button type="button" class="ghost-btn" data-act="edit">✏️ Price & place</button>
         ${l.verified ? "" : `<button type="button" class="ghost-btn" data-act="verify">✓ Check on screen</button>`}
         ${l.price ? `<button type="button" class="ghost-btn" data-act="sold">💰 Sold</button>` : ""}` : `<span class="hint">Sold</span>`}
@@ -279,12 +279,17 @@ $("listings").addEventListener("click", async (e) => {
       toast("Featuring is a supporter perk.");
       return;
     }
-    if (!confirm(`Feature this item at the top for 24 hours? It uses 1 of your ${user.boostsLeft} boosts this month.`)) return;
+    if (!user.boostsLeft) {
+      $("buyBoost")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      toast(`No boosts left. Get an extra one for $${healthInfo.boostPrice || 1} below.`);
+      return;
+    }
+    if (!confirm(`Feature this item at the top for 24 hours? It uses 1 of your ${user.boostsLeft} boosts.`)) return;
     try {
       const j = await api(`/api/listings/${id}/boost`, { method: "POST", body: {} });
       myListings = myListings.map((x) => (x.id === id ? j.listing : x));
-      user.boostsLeft = j.boostsLeft;
-      renderMine(); renderAccount(); loadFeatured();
+      user = (await me(true)).user || user;
+      renderMine(); renderAccount(); renderSupporter(); loadFeatured();
       toast("⭐ Featured for 24 hours.");
     } catch (err) { toast(err.message); }
   }
@@ -321,18 +326,30 @@ function renderSupporter() {
   const card = $("supporterCard");
   if (!healthInfo.supporters) { card.hidden = true; return; }
   card.hidden = false;
-  const price = healthInfo.supporterPrice || 3;
+  const price = healthInfo.supporterPrice || 3, boostPrice = healthInfo.boostPrice || 1;
   const perks = `<ul class="perks">
-      <li><b>⭐ Feature your items:</b> 2 boosts a month. Each puts an item in the Featured row at the top for 24 hours, and on our Discord.</li>
+      <li><b>⭐ Feature your items:</b> 2 boosts a month. Each puts an item in the Featured row at the top for 24 hours, and on our Discord.
+        Need more? Extra boosts are $${boostPrice} each, no waiting.</li>
       <li><b>Longer on the list:</b> your for-sale items stay up 7 days instead of 3.</li>
-      <li><b>More items:</b> up to 100 at once instead of 40.</li>
+      <li><b>More items:</b> up to 10 at once instead of 3.</li>
       <li><b>⭐ Supporter badge</b> next to your name.</li>
       <li>And you keep FMCheck free and running. Thank you!</li>
     </ul>`;
   if (user && user.supporter) {
     $("supTitle").textContent = "⭐ You're an FMCheck supporter";
     $("supporterBody").innerHTML = `<p>Supporter until <b>${cardDate(user.supporterUntil)}</b>. Your monthly payment on Ko-fi keeps it going;
-      you can stop it there any time.</p>${perks}`;
+      you can stop it there any time.</p>
+      <p class="sup-status">Boosts: ${user.monthlyLeft} of ${user.perMonth} monthly left${user.extraBoosts ? ` + ${user.extraBoosts} extra` : ""}.</p>
+      <div class="buy-boost" id="buyBoost">
+        <h3>⭐ Need more boosts?</h3>
+        <ol class="sup-steps">
+          <li>Copy your code: <code>${esc(user.code)}</code> <button type="button" class="ghost-btn mini" data-copy-code>Copy</button></li>
+          <li><a class="btn-link" href="${esc(healthInfo.kofiUrl)}" target="_blank" rel="noopener">Buy on Ko-fi ↗</a>
+            as a one-time support: <b>$${boostPrice} per boost</b> (e.g. $3 = 3 boosts). Paste the code in the message box.</li>
+        </ol>
+        <p class="hint">Extra boosts are added within a minute and don't run out. Your monthly boosts are used first.</p>
+      </div>${perks}`;
+    for (const b of document.querySelectorAll("[data-copy-code]")) b.addEventListener("click", () => navigator.clipboard.writeText(user.code).then(() => toast("Code copied. Paste it in the Ko-fi message.")).catch(() => {}));
     return;
   }
   $("supTitle").textContent = "⭐ Become an FMCheck supporter";
@@ -340,7 +357,7 @@ function renderSupporter() {
     ${user ? `<ol class="sup-steps">
       <li>Copy your code: <code id="supCode">${esc(user.code)}</code> <button type="button" class="ghost-btn mini" id="copyCode">Copy</button></li>
       <li><a class="btn-link" href="${esc(healthInfo.kofiUrl)}" target="_blank" rel="noopener">Join on Ko-fi ↗</a>
-        and paste the code in the message box. Your perks turn on within a minute.</li>
+        (Membership, $${price} a month) and paste the code in the message box. Your perks turn on within a minute.</li>
     </ol>
     <details class="sup-claim"><summary>Already paid but no perks?</summary>
       <form id="claimForm" class="account-row"><label>Email you used on Ko-fi <input id="claimEmail" type="email" autocomplete="email" /></label>

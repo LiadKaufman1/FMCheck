@@ -576,3 +576,7 @@ a.ghost-btn { display: inline-block; padding: 8px 12px; border-radius: 10px; tex
 .sup-claim { margin: 10px 0; }
 .sup-claim form { margin-top: 8px; }
 .sup-claim input { width: 220px; }
+
+.buy-boost { margin: 12px 0; padding: 12px 14px; border-radius: 12px; background: #fff8e1; border: 1px solid #ffc94d; color: #3a2a00; }
+.buy-boost h3 { margin: 0 0 6px; font-size: 15px; }
+.buy-boost .hint { color: #5a4a20; }

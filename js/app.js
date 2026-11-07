@@ -1,10 +1,10 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=96802657";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readRange, readPrice } from "./calc.js?v=96802657";
-import { getPrice, setPrice } from "./prices.js?v=96802657";
-import { drawCard, cardBlob } from "./card.js?v=96802657";
-import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=96802657";
-import { setupA11y } from "./a11y.js?v=96802657";
-import { API, api, health, me, googleButton, validIgn } from "./account.js?v=96802657";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=f6f72e36";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readRange, readPrice } from "./calc.js?v=f6f72e36";
+import { getPrice, setPrice } from "./prices.js?v=f6f72e36";
+import { drawCard, cardBlob } from "./card.js?v=f6f72e36";
+import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=f6f72e36";
+import { setupA11y } from "./a11y.js?v=f6f72e36";
+import { API, api, health, me, googleButton, validIgn } from "./account.js?v=f6f72e36";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;

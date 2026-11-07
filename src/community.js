@@ -18,7 +18,8 @@
 //   POST   /api/listings/:id/flag   report a wrong or fake item
 //   POST   /api/listings/:id/boost  supporters: "Featured" at the top for 24 hours
 //   POST   /api/me/claim            { email }  link a Ko-fi payment made with that email
-//   POST   /api/kofi                Ko-fi's webhook (form field "data", checked with KOFI_TOKEN)
+//   POST   /api/kofi                Ko-fi's webhook (form field "data", checked with KOFI_TOKEN):
+//                                    a membership payment adds supporter days; a one-off payment buys extra boosts
 //   POST   /api/admin/supporter     { code, days }  admins: give supporter time by hand
 //
 // Supporters (Ko-fi membership): a badge, more items, items stay on the for-sale list longer,
@@ -30,13 +31,14 @@ import scrollData from "../data/scrolls.json";
 const DAY = 864e5;
 const SALE_FRESH = 3 * DAY;        // a for-sale item drops off the list after 3 days without "still selling"
 const SALE_FRESH_SUPPORTER = 7 * DAY;
-const MAX_ACTIVE = 40;             // items per account
-const MAX_ACTIVE_SUPPORTER = 100;
+const MAX_ACTIVE = 3;              // items up at once per account
+const MAX_ACTIVE_SUPPORTER = 10;
 const BOOSTS_PER_MONTH = 2;        // supporters: 24 hours as "Featured", per 30 days
+// Extra boosts: one-off Ko-fi payments, BOOST_PRICE dollars each (default $1), for supporters who used their monthly ones.
 const BOOST_HOURS = 24;
 const MAX_FEATURED = 6;            // Featured spots at once, so it stays special
 const SUPPORT_DAYS = 31;           // what one monthly payment gives
-const MAX_NEW_PER_DAY = 40;
+const MAX_NEW_PER_DAY = 20;
 const HIDE_AT_FLAGS = 3;           // reports from different players that hide an item
 const SESSION_DAYS = 30;
 const PAGE = 30;
@@ -63,12 +65,15 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS boosts (user_id TEXT NOT NULL, listing TEXT NOT NULL, t INTEGER NOT NULL)`,
   `CREATE INDEX IF NOT EXISTS boosts_user ON boosts(user_id, t)`,
   `CREATE TABLE IF NOT EXISTS payments (id TEXT PRIMARY KEY, email_hash TEXT, t INTEGER NOT NULL, days INTEGER NOT NULL, user_id TEXT)`,
+  `CREATE TABLE IF NOT EXISTS boost_credits (user_id TEXT PRIMARY KEY, n INTEGER NOT NULL DEFAULT 0)`,
   `CREATE INDEX IF NOT EXISTS payments_email ON payments(email_hash)`,
 ];
 // Columns added after the first version: added to existing tables when missing.
 const COLUMNS = {
   users: [["supporter_until", "INTEGER NOT NULL DEFAULT 0"], ["sup_code", "TEXT"], ["sup_email", "TEXT"]],
   listings: [["featured_until", "INTEGER NOT NULL DEFAULT 0"]],
+  payments: [["boosts", "INTEGER NOT NULL DEFAULT 0"]],
+  boosts: [["paid", "INTEGER NOT NULL DEFAULT 0"]],
 };
 async function migrate(env) {
   await env.DB.batch(SCHEMA.map((q) => env.DB.prepare(q)));
@@ -235,11 +240,22 @@ const newCode = () => `FMC-${[...crypto.getRandomValues(new Uint8Array(6))].map(
 const extend = (env, userId, days, now = Date.now()) => env.DB.prepare(
   `UPDATE users SET supporter_until = MAX(supporter_until, ?) + ? WHERE id = ?`).bind(now, days * DAY, userId);
 
+// Monthly boosts left (used ones come back 30 days later) and bought extra boosts (they don't run out).
+async function boostInfo(env, user) {
+  const [used, extra] = await Promise.all([
+    env.DB.prepare(`SELECT COUNT(*) AS n FROM boosts WHERE user_id = ? AND t > ? AND paid = 0`).bind(user.id, Date.now() - 30 * DAY).first(),
+    env.DB.prepare(`SELECT n FROM boost_credits WHERE user_id = ?`).bind(user.id).first(),
+  ]);
+  const monthly = isSupporter(user) ? Math.max(0, BOOSTS_PER_MONTH - (used.n || 0)) : 0;
+  return { monthly, extra: extra ? extra.n : 0 };
+}
 async function boostsLeft(env, user) {
   if (!isSupporter(user)) return 0;
-  const used = await env.DB.prepare(`SELECT COUNT(*) AS n FROM boosts WHERE user_id = ? AND t > ?`).bind(user.id, Date.now() - 30 * DAY).first();
-  return Math.max(0, BOOSTS_PER_MONTH - (used.n || 0));
+  const b = await boostInfo(env, user);
+  return b.monthly + b.extra;
 }
+const addCredits = (env, userId, n) => env.DB.prepare(
+  `INSERT INTO boost_credits (user_id, n) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET n = n + excluded.n`).bind(userId, n);
 
 async function meInfo(env, user) {
   let code = user.sup_code;
@@ -247,8 +263,10 @@ async function meInfo(env, user) {
     code = newCode();
     await env.DB.prepare(`UPDATE users SET sup_code = ? WHERE id = ?`).bind(code, user.id).run();
   }
+  const b = await boostInfo(env, user);
   return { id: user.id, ign: user.ign, supporter: isSupporter(user), supporterUntil: user.supporter_until || 0, code,
-    boostsLeft: await boostsLeft(env, user), perMonth: BOOSTS_PER_MONTH };
+    boostsLeft: isSupporter(user) ? b.monthly + b.extra : 0, monthlyLeft: b.monthly, extraBoosts: b.extra, perMonth: BOOSTS_PER_MONTH,
+    maxItems: isSupporter(user) ? MAX_ACTIVE_SUPPORTER : MAX_ACTIVE };
 }
 
 // Ko-fi calls this after each payment (one-off or monthly membership).
@@ -259,13 +277,16 @@ async function kofi(request, env, json) {
   if (!d || d.verification_token !== env.KOFI_TOKEN) return json({ error: "Not allowed." }, 403);
   const id = cleanText(d.kofi_transaction_id || d.message_id, 80);
   if (!id) return json({ ok: true });
-  const price = +(env.SUPPORTER_PRICE || 3);
   const amount = parseFloat(d.amount) || 0;
-  const days = d.type === "Subscription" || amount >= price ? SUPPORT_DAYS : 0;
-  if (!days) return json({ ok: true }); // a small tip: thanks, nothing to unlock
+  const boostPrice = +(env.BOOST_PRICE || 1);
+  // A membership payment: a month of supporter perks. A one-off payment (or shop order): extra boosts, one per BOOST_PRICE.
+  const days = d.type === "Subscription" ? SUPPORT_DAYS : 0;
+  const shopQty = Array.isArray(d.shop_items) ? d.shop_items.reduce((a, x) => a + (int(+x.quantity, 1, 100) || 1), 0) : 0;
+  const boosts = days ? 0 : d.type === "Shop Order" && shopQty ? shopQty : Math.floor(amount / boostPrice + 1e-9);
+  if (!days && !boosts) return json({ ok: true }); // a small tip: thanks, nothing to unlock
   const hash = d.email ? await emailHash(d.email) : null;
-  const fresh = await env.DB.prepare(`INSERT OR IGNORE INTO payments (id, email_hash, t, days) VALUES (?, ?, ?, ?)`)
-    .bind(id, hash, Date.now(), days).run();
+  const fresh = await env.DB.prepare(`INSERT OR IGNORE INTO payments (id, email_hash, t, days, boosts) VALUES (?, ?, ?, ?, ?)`)
+    .bind(id, hash, Date.now(), days, boosts).run();
   if (!fresh.meta.changes) return json({ ok: true }); // already counted
   // whose is it: the FMCheck code in the Ko-fi message, or the email of an earlier payment
   const code = /FMC-[A-Z0-9]{6}/i.exec(String(d.message || ""))?.[0]?.toUpperCase();
@@ -273,7 +294,8 @@ async function kofi(request, env, json) {
   if (!u && hash) u = await env.DB.prepare(`SELECT id FROM users WHERE sup_email = ?`).bind(hash).first();
   if (u) {
     await env.DB.batch([
-      extend(env, u.id, days),
+      ...(days ? [extend(env, u.id, days)] : []),
+      ...(boosts ? [addCredits(env, u.id, boosts)] : []),
       env.DB.prepare(`UPDATE payments SET user_id = ? WHERE id = ?`).bind(u.id, id),
       ...(hash ? [env.DB.prepare(`UPDATE users SET sup_email = ? WHERE id = ?`).bind(hash, u.id)] : []),
     ]);
@@ -358,23 +380,25 @@ export async function community(request, env, ctx, url, json, saveSale) {
     const hash = await emailHash(email);
     const owner = await env.DB.prepare(`SELECT id FROM users WHERE sup_email = ? AND id != ?`).bind(hash, user.id).first();
     if (owner) return json({ error: "Those payments are already linked to another FMCheck account." }, 409);
-    const open = await env.DB.prepare(`SELECT COALESCE(SUM(days), 0) AS days FROM payments WHERE email_hash = ? AND user_id IS NULL`).bind(hash).first();
+    const open = await env.DB.prepare(`SELECT COALESCE(SUM(days), 0) AS days, COALESCE(SUM(boosts), 0) AS boosts
+      FROM payments WHERE email_hash = ? AND user_id IS NULL`).bind(hash).first();
     await env.DB.batch([
       env.DB.prepare(`UPDATE users SET sup_email = ? WHERE id = ?`).bind(hash, user.id),
       env.DB.prepare(`UPDATE payments SET user_id = ? WHERE email_hash = ? AND user_id IS NULL`).bind(user.id, hash),
       ...(open.days ? [extend(env, user.id, open.days)] : []),
+      ...(open.boosts ? [addCredits(env, user.id, open.boosts)] : []),
     ]);
     const u = await env.DB.prepare(`SELECT id, ign, supporter_until, sup_code FROM users WHERE id = ?`).bind(user.id).first();
-    return json({ user: await meInfo(env, u), found: open.days > 0 });
+    return json({ user: await meInfo(env, u), found: open.days > 0 || open.boosts > 0 });
   }
 
   if (path === "/api/admin/supporter" && method === "POST") {
     if (!isAdmin(env, user)) return json({ error: "Admins only." }, 403);
-    const days = int(+body.days, -400, 400);
+    const days = int(+body.days, -400, 400) || 0, boosts = int(+body.boosts, -100, 100) || 0;
     const code = String(body.code || "").trim().toUpperCase();
     const u = await env.DB.prepare(`SELECT id FROM users WHERE sup_code = ? OR id = ?`).bind(code, code.toLowerCase()).first();
-    if (!u || !days) return json({ error: "Unknown code, or no days." }, 400);
-    await extend(env, u.id, days).run();
+    if (!u || (!days && !boosts)) return json({ error: "Unknown code, or nothing to add." }, 400);
+    await env.DB.batch([...(days ? [extend(env, u.id, days)] : []), ...(boosts ? [addCredits(env, u.id, boosts)] : [])]);
     return json({ ok: true });
   }
 
@@ -423,7 +447,9 @@ export async function community(request, env, ctx, url, json, saveSale) {
         SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS active, SUM(CASE WHEN created > ? THEN 1 ELSE 0 END) AS today
         FROM listings WHERE user_id = ?`).bind(Date.now() - DAY, user.id).first();
     const max = isSupporter(user) ? MAX_ACTIVE_SUPPORTER : MAX_ACTIVE;
-    if ((counts.active || 0) >= max) return json({ error: `You have ${max} items up. Remove one first.` }, 429);
+    if ((counts.active || 0) >= max) {
+      return json({ error: `You can have ${max} items up at once${isSupporter(user) ? "" : ` (${MAX_ACTIVE_SUPPORTER} as a supporter)`}. Remove or mark one as sold first.` }, 429);
+    }
     if ((counts.today || 0) >= MAX_NEW_PER_DAY) return json({ error: "That's enough new items for today." }, 429);
     const id = randomHex(6);
     const now = Date.now();
@@ -462,7 +488,10 @@ export async function community(request, env, ctx, url, json, saveSale) {
       if (!isSupporter(user)) return json({ error: "Boosts are a supporter perk." }, 403);
       if (row.status !== "active") return json({ error: "Only items that are up can be featured." }, 400);
       if (row.featured_until > Date.now()) return json({ error: "It's already featured." }, 400);
-      if ((await boostsLeft(env, user)) < 1) return json({ error: "No boosts left this month. They come back 30 days after each use." }, 429);
+      const b = await boostInfo(env, user);
+      if (b.monthly + b.extra < 1) {
+        return json({ error: `No boosts left. Get an extra one for $${+(env.BOOST_PRICE || 1)} (see Supporters), or wait: monthly boosts come back 30 days after each use.`, needBoost: true }, 429);
+      }
       const now = Date.now();
       const busy = await env.DB.prepare(`SELECT COUNT(*) AS n, MIN(featured_until) AS next FROM listings WHERE featured_until > ?`).bind(now).first();
       if (busy.n >= MAX_FEATURED) {
@@ -471,7 +500,9 @@ export async function community(request, env, ctx, url, json, saveSale) {
       }
       await env.DB.batch([
         env.DB.prepare(`UPDATE listings SET featured_until = ?, seen = ? WHERE id = ?`).bind(now + BOOST_HOURS * 3600e3, now, id),
-        env.DB.prepare(`INSERT INTO boosts (user_id, listing, t) VALUES (?, ?, ?)`).bind(user.id, id, now),
+        // the monthly ones first, then the bought ones
+        env.DB.prepare(`INSERT INTO boosts (user_id, listing, t, paid) VALUES (?, ?, ?, ?)`).bind(user.id, id, now, b.monthly > 0 ? 0 : 1),
+        ...(b.monthly > 0 ? [] : [env.DB.prepare(`UPDATE boost_credits SET n = n - 1 WHERE user_id = ? AND n > 0`).bind(user.id)]),
       ]);
       const l = publicListing(row, user);
       ctx.waitUntil(discordPost(env, l, row.ign, null, url.origin, true));
