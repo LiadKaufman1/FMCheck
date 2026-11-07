@@ -32,7 +32,7 @@
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
   <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="css/style.css?v=e0f53882" />
+  <link rel="stylesheet" href="css/style.css?v=7adea26c" />
 </head>
 <body>
   <a class="skip" href="#itemSearch">Skip to the calculator</a>
@@ -175,7 +175,7 @@
       <div id="estimate" class="estimate" aria-live="polite"></div>
       <div id="publish" class="publish" hidden>
         <h3><img class="h-ic" src="assets/ui/starpiece.png" alt="" /> Put it in the spotlight</h3>
-        <p class="hint">Show this item on the <a href="community.html">FMCheck community</a> page, for sale or just to show it off.
+        <p class="hint">Show this item on the <a href="community.html">FMCheck community</a> page, for sale.
           Buyers see its full stats, slots, scrolls and odds, and where to find you.
           <b>You set the price.</b> You don't need to enter any prices above to publish; the estimate is only a helper, and it's shown if you made one.</p>
         <p class="pub-upsell">⭐ Want it at the top? Supporters can feature it for 24 hours, first in every search and on our Discord.
@@ -184,8 +184,8 @@
         <form id="pubForm" class="pub-form" hidden>
           <label id="pubIgnRow">In-game name <input id="pubIgn" autocomplete="off" maxlength="13" placeholder="e.g. GuaiLan" /></label>
           <div class="pub-grid">
-            <label>Asking price <small>(empty = just showing it off)</small>
-              <span class="pub-price"><input id="pubPrice" inputmode="decimal" placeholder="price" />
+            <label>Asking price
+              <span class="pub-price"><input id="pubPrice" inputmode="decimal" placeholder="price" required aria-required="true" />
               <select id="pubUnit" aria-label="Unit"><option value="">mesos</option><option value="k">K</option><option value="m" selected>M</option><option value="b">B</option></select></span></label>
             <label>Channel <input id="pubChannel" inputmode="numeric" maxlength="2" placeholder="e.g. 3" /></label>
             <label>FM room <input id="pubRoom" inputmode="numeric" maxlength="2" placeholder="e.g. 7" /></label>
@@ -301,6 +301,6 @@ chance = clean roll × scrolls</pre>
   </div>
 
 
-  <script type="module" src="js/app.js?v=e0f53882"></script>
+  <script type="module" src="js/app.js?v=7adea26c"></script>
 </body>
 </html>

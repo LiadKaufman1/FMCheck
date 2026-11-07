@@ -91,7 +91,7 @@ for i, e in enumerate(items):
     attack = any(s in tiers["Lesser"]["stats"] for s in ("PAD", "MAD"))
     price = lvl * lvl * 900 * (1 + (pts ** 1.6) * (0.8 if attack else 0.12)) * (1 + 0.25 * inter) * rng.uniform(0.75, 1.25)
     seller, supporter = SELLERS[i % len(SELLERS)]
-    show = rng.random() < 0.2
+    show = False  # every example is for sale (no showcase)
     est = None
     if not show and rng.random() < 0.5:
         est = {"lo": nice(price * rng.uniform(0.8, 0.95)), "hi": nice(price * rng.uniform(1.0, 1.2))}

@@ -1,11 +1,11 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=e0f53882";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readRange, readPrice } from "./calc.js?v=e0f53882";
-import { getPrice, setPrice } from "./prices.js?v=e0f53882";
-import { drawCard, cardBlob } from "./card.js?v=e0f53882";
-import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=e0f53882";
-import { itemSearch } from "./itemsearch.js?v=e0f53882";
-import { setupA11y } from "./a11y.js?v=e0f53882";
-import { API, api, health, me, googleButton, validIgn } from "./account.js?v=e0f53882";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=7adea26c";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readRange, readPrice } from "./calc.js?v=7adea26c";
+import { getPrice, setPrice } from "./prices.js?v=7adea26c";
+import { drawCard, cardBlob } from "./card.js?v=7adea26c";
+import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=7adea26c";
+import { itemSearch } from "./itemsearch.js?v=7adea26c";
+import { setupA11y } from "./a11y.js?v=7adea26c";
+import { API, api, health, me, googleButton, validIgn } from "./account.js?v=7adea26c";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -473,8 +473,9 @@ $("pubForm").addEventListener("submit", async (e) => {
   if (!state.item) return;
   if (state.slots - state.left < passedTotal()) { msg.textContent = "Fix the slots first: more passed scrolls than used slots."; return; }
   const priceText = $("pubPrice").value.trim();
-  const price = priceText ? readPrice(priceText, $("pubUnit").value) : null;
-  if (priceText && !(price > 0)) { msg.textContent = "The price doesn't look right, e.g. 350 M."; return; }
+  const price = readPrice(priceText, $("pubUnit").value);
+  if (!priceText) { msg.textContent = "Enter your asking price, e.g. 350 M."; $("pubPrice").focus(); return; }
+  if (!(price > 0)) { msg.textContent = "The price doesn't look right, e.g. 350 M."; return; }
   $("pubSend").disabled = true;
   try {
     if (!pubUser.ign) {
@@ -587,7 +588,7 @@ const GUIDE = [
   ["assets/guide/2.webp?v=4", "2. Set its clean stats. For a price estimate, also enter what a clean one costs today (from – to). Tip: tap \"check price\" to see it on meso.watch."],
   ["assets/guide/3.webp?v=4", "3. Set the slots left and add the scrolls that passed (failed ones are worked out for you). For the estimate, add each scroll's price too."],
   ["assets/guide/4.webp?v=4", "4. See the odds of an item like this and, with prices, its price range. Save the item card to share it. Sold or bought one like it? Report the real price under the estimate."],
-  ["assets/guide/5.webp?v=4", "5. Put it in the spotlight: sign in with Google and publish the item, for sale or just to show it off. You set the price, prices aren't needed to publish: the estimate is only there to help."],
+  ["assets/guide/5.webp?v=4", "5. Put it in the spotlight: sign in with Google and publish the item for sale. You set the price; the prices above aren't needed to publish: the estimate is only there to help."],
   ["assets/guide/6.webp?v=4", "6. The Community page: buyers see each item's exact stats, slots, odds and how the price compares with the estimate, and can filter by stat. ⭐ Featured items sit on top."],
   ["assets/guide/7.webp?v=4", "7. Tap an item to see its full card, the seller and where to find them (channel, FM room). ✓ Checked on screen: the seller showed the item from the game."],
   ["assets/guide/8.webp?v=4", "8. Under My items: keep it up with Still selling, check it on screen, edit the price, mark it sold, or feature it for 24 hours (supporters)."],

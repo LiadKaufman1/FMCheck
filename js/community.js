@@ -1,11 +1,11 @@
-// The community page: players' scrolled items, for sale or shown off, with the full picture of each one.
-import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=e0f53882";
-import { drawCard, cardBlob } from "./card.js?v=e0f53882";
-import { cardInfo, cardLabel, cardFmt, cardDate, rangeText, oneInText } from "./itemcard.js?v=e0f53882";
-import { setupA11y } from "./a11y.js?v=e0f53882";
-import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=e0f53882";
-import { itemSearch } from "./itemsearch.js?v=e0f53882";
-import { DISCORD_URL } from "./config.js?v=e0f53882";
+// The community page: players' scrolled items for sale, with the full picture of each one.
+import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=7adea26c";
+import { drawCard, cardBlob } from "./card.js?v=7adea26c";
+import { cardInfo, cardLabel, cardFmt, cardDate, rangeText, oneInText } from "./itemcard.js?v=7adea26c";
+import { setupA11y } from "./a11y.js?v=7adea26c";
+import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=7adea26c";
+import { itemSearch } from "./itemsearch.js?v=7adea26c";
+import { DISCORD_URL } from "./config.js?v=7adea26c";
 
 const $ = (id) => document.getElementById(id);
 const icon = (id) => `assets/items/${String(id).padStart(8, "0")}.png`;
@@ -27,7 +27,7 @@ const market = itemSearch({
   isPicked: () => !!picked && fQ.value === picked[1],
   count: (key) => (key ? catCounts[key] || 0 : catTotal),
   badge: (e) => itemCounts[e[0]] || 0,
-  badgeText: (n) => `${n} ${tab === "show" ? "shown" : tab === "sale" ? "for sale" : "up"}`,
+  badgeText: (n) => `${n} ${tab === "sale" ? "for sale" : "up"}`,
 });
 let typeTimer;
 fQ.addEventListener("input", () => {
@@ -76,7 +76,7 @@ function tile(l) {
       <span class="tile-badges">${l.demo ? `<span class="badge demo" title="Not a real listing: an example while the community fills up">Example</span>` : ""}${l.featured ? `<span class="badge feat">⭐ Featured</span>` : ""}${verifiedBadge(l)}${fairness(l)}${supporterBadge(l)}${l.status === "sold" ? `<span class="badge">Sold</span>` : ""}</span>
     </span>
     <span class="tile-side">
-      ${l.price ? `<b class="tile-price">${mesos(l.price)}</b>` : `<span class="tile-show">Showcase</span>`}
+      ${l.price ? `<b class="tile-price">${mesos(l.price)}</b>` : ""}
       <small>${oneInText(l.oneIn)}</small>
     </span>
   </button></li>`;
@@ -111,7 +111,7 @@ async function load(more = false) {
     const demoNote = shown.some((l) => l.demo)
       ? `<p class="demo-note">Items tagged <span class="badge demo">Example</span> aren't real listings: they show how FMCheck works while the community fills up.</p>` : "";
     box.innerHTML = shown.length ? `${demoNote}<ul class="tiles">${shown.map(tile).join("")}</ul>` : `<p class="hint">${
-      tab === "sale" ? "Nothing for sale matches yet." : tab === "show" ? "No items shown off yet." : "No items this week yet."}
+      tab === "sale" ? "Nothing for sale matches yet." : "No items this week yet."}
       Be the first: work out your item in the <a href="./">calculator</a> and press Publish.</p>`;
   } catch (e) {
     box.innerHTML = `<p class="hint">${esc(e.status === 503 ? "The community opens soon." : e.message)}</p>`;
@@ -191,7 +191,7 @@ async function openDetail(id) {
         ${l.demo ? `<p class="demo-banner"><b>Example item.</b> This isn't a real listing and the seller isn't a real player:
           it shows how items look on FMCheck. Put up your own from the <a href="./">calculator</a>.</p>` : ""}
         ${l.status === "sold" ? `<p class="badge">Sold</p>` : ""}
-        <p class="detail-price">${l.price ? `<b>${mesos(l.price)}</b> asking` : "Showcase: not for sale"} ${fairness(l)}</p>
+        <p class="detail-price">${l.price ? `<b>${mesos(l.price)}</b> asking` : "No price"} ${fairness(l)}</p>
         ${l.estimate ? `<p class="hint">Seller's estimate: ${rangeText(l.estimate.lo, l.estimate.hi)}, from scroll prices the seller entered on ${cardDate(l.created)}.
           Check today's prices yourself in the <a href="./#i=${l.item}">calculator</a>.</p>` : ""}
         <p>${verifiedBadge(l) || `<span class="badge">Not checked on screen</span>`}</p>
@@ -241,7 +241,7 @@ function renderAccount() {
   const box = $("accountBody");
   document.querySelector('[data-tab="mine"]').hidden = !user;
   if (!user) {
-    box.innerHTML = `<div class="account-row"><p><b>Sell or show off your scrolled items.</b>
+    box.innerHTML = `<div class="account-row"><p><b>Sell your scrolled items.</b>
       Sign in to put your items up. No email or name is stored, only the in-game name you choose.</p><div id="gbtn"></div></div>`;
     googleButton($("gbtn"), (u) => { user = u; refreshMe(); });
     return;
@@ -297,7 +297,7 @@ function renderMine() {
         <button type="button" class="ghost-btn" data-act="remove">🗑 Remove</button>
       </div>
       <form class="mine-edit" hidden>
-        <label>Price <input name="price" inputmode="decimal" value="${l.price ? mesos(l.price) : ""}" placeholder="empty = showcase" /></label>
+        <label>Price <input name="price" inputmode="decimal" value="${l.price ? mesos(l.price) : ""}" placeholder="e.g. 350m" required /></label>
         <label>Channel <input name="channel" inputmode="numeric" value="${l.channel || ""}" maxlength="2" /></label>
         <label>FM room <input name="room" inputmode="numeric" value="${l.room || ""}" maxlength="2" /></label>
         <label>Note <input name="note" value="${esc(l.note || "")}" maxlength="140" /></label>
@@ -360,8 +360,8 @@ $("listings").addEventListener("submit", (e) => {
   if (!f) return;
   e.preventDefault();
   const id = f.closest("[data-id]").dataset.id;
-  const price = f.price.value.trim() ? readPrice(f.price.value, "") : null;
-  if (f.price.value.trim() && !(price > 0)) { toast("The price doesn't look right, e.g. 350m."); return; }
+  const price = readPrice(f.price.value, "");
+  if (!(price > 0)) { toast("Enter the asking price, e.g. 350m."); return; }
   patch(id, { price, channel: f.channel.value.trim(), room: f.room.value.trim(), note: f.note.value.trim() }, "Saved.");
 });
 
