@@ -1,10 +1,10 @@
 // The community page: players' scrolled items, for sale or shown off, with the full picture of each one.
-import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=42a349b7";
-import { drawCard, cardBlob } from "./card.js?v=42a349b7";
-import { cardInfo, cardLabel, cardFmt, cardDate, rangeText, oneInText } from "./itemcard.js?v=42a349b7";
-import { setupA11y } from "./a11y.js?v=42a349b7";
-import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=42a349b7";
-import { DISCORD_URL } from "./config.js?v=42a349b7";
+import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=8183b523";
+import { drawCard, cardBlob } from "./card.js?v=8183b523";
+import { cardInfo, cardLabel, cardFmt, cardDate, rangeText, oneInText } from "./itemcard.js?v=8183b523";
+import { setupA11y } from "./a11y.js?v=8183b523";
+import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=8183b523";
+import { DISCORD_URL } from "./config.js?v=8183b523";
 
 const $ = (id) => document.getElementById(id);
 const icon = (id) => `assets/items/${String(id).padStart(8, "0")}.png`;
@@ -26,12 +26,12 @@ function toast(text) {
 }
 
 // How the asking price compares with the estimate.
+// The estimate comes from prices the seller typed, so it can only warn: a seller could inflate it to make a price look good.
 function fairness(l) {
   if (!l.price || !l.estimate) return "";
   const { lo, hi } = l.estimate;
-  if (l.price < lo * 0.9) return `<span class="badge good" title="Below the estimate of ${rangeText(lo, hi)}">Below estimate</span>`;
-  if (l.price > hi * 1.1) return `<span class="badge high" title="Above the estimate of ${rangeText(lo, hi)}">Above estimate</span>`;
-  return `<span class="badge fair" title="Within the estimate of ${rangeText(lo, hi)}">Fair price</span>`;
+  if (l.price > hi * 1.1) return `<span class="badge high" title="Above the seller's own estimate of ${rangeText(lo, hi)}">Above estimate</span>`;
+  return "";
 }
 const verifiedBadge = (l) => (l.verified ? `<span class="badge ok" title="The seller showed the item's window from the game and it matched">✓ Checked on screen</span>` : "");
 
@@ -143,7 +143,8 @@ async function openDetail(id) {
       <div class="detail-info">
         ${l.status === "sold" ? `<p class="badge">Sold</p>` : ""}
         <p class="detail-price">${l.price ? `<b>${mesos(l.price)}</b> asking` : "Showcase: not for sale"} ${fairness(l)}</p>
-        ${l.estimate ? `<p class="hint">FMCheck estimate: ${rangeText(l.estimate.lo, l.estimate.hi)} (from the seller's prices on ${cardDate(l.created)})</p>` : ""}
+        ${l.estimate ? `<p class="hint">Seller's estimate: ${rangeText(l.estimate.lo, l.estimate.hi)}, from scroll prices the seller entered on ${cardDate(l.created)}.
+          Check today's prices yourself in the <a href="./#i=${l.item}">calculator</a>.</p>` : ""}
         <p>${verifiedBadge(l) || `<span class="badge">Not checked on screen</span>`}</p>
         <dl class="detail-facts">
           <dt>Seller</dt><dd>${l.ign ? `<b>${esc(l.ign)}</b> ${supporterBadge(l)} <button type="button" class="ghost-btn mini" id="copyIgn">Copy name</button>` : "–"}</dd>
@@ -272,7 +273,7 @@ $("listings").addEventListener("click", async (e) => {
   const id = li.dataset.id;
   const l = myListings.find((x) => x.id === id);
   const act = b.dataset.act;
-  if (act === "bump") patch(id, { bump: true }, `Up for ${user.supporter ? 7 : 3} more days.`);
+  if (act === "bump") patch(id, { bump: true }, `Kept up for ${user.supporter ? 7 : 3} more days.`);
   if (act === "boost") {
     if (!user.supporter) {
       if (!$("supporterCard").hidden) $("supporterCard").scrollIntoView({ behavior: "smooth" });
@@ -295,10 +296,8 @@ $("listings").addEventListener("click", async (e) => {
   }
   if (act === "edit") { const f = li.querySelector(".mine-edit"); f.hidden = !f.hidden; }
   if (act === "sold") {
-    const text = prompt("What did it sell for? (e.g. 350m) It's added to the reported sales, anonymously. Leave empty to skip.", l.price ? mesos(l.price) : "");
-    if (text === null) return;
-    const sold = text.trim() ? readPrice(text, "") : null;
-    patch(id, { status: "sold", soldPrice: sold }, "Marked as sold. Congrats!");
+    if (!confirm("Mark this item as sold? It comes off the lists.")) return;
+    patch(id, { status: "sold" }, "Marked as sold. Congrats!");
   }
   if (act === "remove") {
     if (!confirm("Remove this item from FMCheck?")) return;
@@ -328,7 +327,8 @@ function renderSupporter() {
   card.hidden = false;
   const price = healthInfo.supporterPrice || 3, boostPrice = healthInfo.boostPrice || 1;
   const perks = `<ul class="perks">
-      <li><b>⭐ Feature your items:</b> 2 boosts a month. Each puts an item in the Featured row at the top for 24 hours, and on our Discord.
+      <li><b>⭐ Feature your items:</b> 2 boosts a month. For 24 hours the item is in the Featured row at the top, comes first in every
+        list and search it matches, and is posted on our Discord.
         Need more? Extra boosts are $${boostPrice} each, no waiting.</li>
       <li><b>Longer on the list:</b> your for-sale items stay up 7 days instead of 3.</li>
       <li><b>More items:</b> up to 10 at once instead of 3.</li>

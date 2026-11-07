@@ -12,7 +12,7 @@
 //   GET    /api/listings            ?tab=sale|show|rare &q= &item= &cat= &stat=PAD &min= &left= &sort=new|rare|cheap &offset=
 //   GET    /api/listings/:id
 //   POST   /api/listings            a new item (from the calculator)
-//   PATCH  /api/listings/:id        { price, channel, room, note, bump, status: "sold", soldPrice }
+//   PATCH  /api/listings/:id        { price, channel, room, note, bump, status: "sold" }
 //   DELETE /api/listings/:id        owner or admin
 //   POST   /api/listings/:id/verify { stats, left }  read from the game screen; must match the listing
 //   POST   /api/listings/:id/flag   report a wrong or fake item
@@ -27,6 +27,7 @@
 
 import equips from "../data/equips.json";
 import scrollData from "../data/scrolls.json";
+import { statRange, rollAtLeast, groupOdds, allocateFailures } from "../js/calc.js";
 
 const DAY = 864e5;
 const SALE_FRESH = 3 * DAY;        // a for-sale item drops off the list after 3 days without "still selling"
@@ -38,7 +39,11 @@ const BOOSTS_PER_MONTH = 2;        // supporters: 24 hours as "Featured", per 30
 const BOOST_HOURS = 24;
 const MAX_FEATURED = 6;            // Featured spots at once, so it stays special
 const SUPPORT_DAYS = 31;           // what one monthly payment gives
-const MAX_NEW_PER_DAY = 20;
+const MAX_NEW_PER_DAY = 6;         // new items a day, counting ones removed again (so delete + re-post can't be used to bump)
+const MAX_NEW_PER_DAY_SUPPORTER = 20;
+const REPOST_DAYS = 14;            // the same item posted again within this time keeps its first date (no jumping to the top)
+const MAX_FEATURED_PER_USER = 2;   // so one player can't take every Featured spot
+const FLAG_MIN_AGE = 3 * DAY;      // reports count only from accounts this old, with an in-game name
 const HIDE_AT_FLAGS = 3;           // reports from different players that hide an item
 const SESSION_DAYS = 30;
 const PAGE = 30;
@@ -66,6 +71,9 @@ const SCHEMA = [
   `CREATE INDEX IF NOT EXISTS boosts_user ON boosts(user_id, t)`,
   `CREATE TABLE IF NOT EXISTS payments (id TEXT PRIMARY KEY, email_hash TEXT, t INTEGER NOT NULL, days INTEGER NOT NULL, user_id TEXT)`,
   `CREATE TABLE IF NOT EXISTS boost_credits (user_id TEXT PRIMARY KEY, n INTEGER NOT NULL DEFAULT 0)`,
+  `CREATE TABLE IF NOT EXISTS posts (user_id TEXT NOT NULL, fp TEXT NOT NULL, created INTEGER NOT NULL, t INTEGER NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS posts_user ON posts(user_id, t)`,
+  `CREATE INDEX IF NOT EXISTS users_ign ON users(ign COLLATE NOCASE)`,
   `CREATE INDEX IF NOT EXISTS payments_email ON payments(email_hash)`,
 ];
 // Columns added after the first version: added to existing tables when missing.
@@ -140,7 +148,7 @@ const sessionCookie = (token, maxAge) =>
 async function currentUser(req, env) {
   const m = new RegExp(`(?:^|;\\s*)${COOKIE}=([a-f0-9]{64})`).exec(req.headers.get("cookie") || "");
   if (!m) return null;
-  return env.DB.prepare(`SELECT u.id, u.ign, u.supporter_until, u.sup_code FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token = ? AND s.expires > ?`)
+  return env.DB.prepare(`SELECT u.id, u.ign, u.supporter_until, u.sup_code, u.created FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token = ? AND s.expires > ?`)
     .bind(await sha(m[1]), Date.now()).first();
 }
 const isAdmin = (env, user) => !!user && String(env.ADMIN_IDS || "").split(",").map((x) => x.trim()).includes(user.id);
@@ -167,7 +175,15 @@ function readListing(b) {
   const slots = e[4];
   const left = int(b.left, 0, slots);
   if (left == null) return { error: "Slots left doesn't fit this item." };
-  const clean = statMap(b.clean, -50, 2000);
+  // Clean stats: each one the item has, within what a drop can roll (anything else is ignored).
+  const base = e[5] || {};
+  const clean = {};
+  for (const [k, v] of Object.entries(base)) {
+    const [lo, hi] = statRange(k, v);
+    const want = b.clean && Number.isInteger(b.clean[k]) ? b.clean[k] : v;
+    if (want < lo || want > hi) return { error: `Clean ${k} can't be ${want} on this item (${lo}–${hi}).` };
+    if (want) clean[k] = want;
+  }
   const scrolls = (Array.isArray(b.scrolls) ? b.scrolls : []).slice(0, 10)
     .map((s) => ({ id: s && s.id, n: int(s && s.n, 0, slots) }))
     .filter((s) => s.n != null && scrollById.has(s.id) && scrollById.get(s.id).target === Math.floor(e[0] / 10000));
@@ -181,7 +197,12 @@ function readListing(b) {
     const v = (clean[k] || 0) + (gained[k] || 0);
     if (v) stats[k] = v;
   }
-  const chance = num(b.chance, 0, 1) ?? 1;
+  // The chance of an item like this, worked out here the same way as the calculator (the page's number isn't trusted).
+  const key = keyStat(e[0], base);
+  const roll = key ? rollAtLeast(key, base[key], clean[key] || 0) : 1;
+  const types = scrolls.map((s) => ({ successes: s.n, success: scrollById.get(s.id).success, boom: scrollById.get(s.id).boom }));
+  const fails = allocateFailures(types, slots - left - upgrades);
+  const chance = types.reduce((c, t, i) => c * groupOdds(t.successes + fails[i], t.successes, t.success, t.boom), roll);
   const est = b.estimate && num(b.estimate.lo, 0, 1e12) != null && num(b.estimate.hi, 0, 1e12) != null
     ? { lo: Math.round(b.estimate.lo), hi: Math.round(b.estimate.hi) } : null;
   return {
@@ -189,6 +210,15 @@ function readListing(b) {
     chance, oneIn: chance > 0 ? Math.min(1 / chance, 1e15) : 1e15, est,
   };
 }
+// Same rule as the calculator: the stat a clean drop's rarity is measured by.
+function keyStat(id, base) {
+  if (Math.floor(id / 10000) >= 130) return (base.MAD || 0) > (base.PAD || 0) ? "MAD" : (base.PAD ? "PAD" : "");
+  return ["PAD", "MAD", "STR", "DEX", "INT", "LUK", "ACC", "EVA", "Speed", "Jump"].find((k) => base[k])
+    || STAT_KEYS.find((k) => base[k]) || "";
+}
+// One item as a seller has it: same item, same stats, same slots left.
+const fingerprint = (l) => sha(`${l.item}|${JSON.stringify(Object.entries(l.stats).sort())}|${l.left}`);
+
 // The seller's part: price (empty = just showing it off) and where to find them.
 function readSeller(b) {
   const out = {};
@@ -307,7 +337,7 @@ async function kofi(request, env, json) {
 
 export const communityReady = (env) => !!(env.DB && env.GOOGLE_CLIENT_ID);
 
-export async function community(request, env, ctx, url, json, saveSale) {
+export async function community(request, env, ctx, url, json) {
   if (!communityReady(env)) return json({ error: "The community isn't set up yet." }, 503);
   await setup(env);
   const { pathname: path } = url;
@@ -359,6 +389,8 @@ export async function community(request, env, ctx, url, json, saveSale) {
     if (method === "PUT") {
       const ign = validIgn(body.ign);
       if (!ign) return json({ error: "In-game name: 2–13 letters or numbers." }, 400);
+      const taken = await env.DB.prepare(`SELECT id FROM users WHERE ign = ? COLLATE NOCASE AND id != ?`).bind(ign, user.id).first();
+      if (taken) return json({ error: "That in-game name is already used here. If it's your character, tell us on Discord." }, 409);
       await env.DB.prepare(`UPDATE users SET ign = ? WHERE id = ?`).bind(ign, user.id).run();
       return json({ user: await meInfo(env, { ...user, ign }) });
     }
@@ -429,7 +461,11 @@ export async function community(request, env, ctx, url, json, saveSale) {
     if (left) { where.push(`l.left_slots >= ?`); args.push(left); }
     if (p.get("verified") === "1") where.push(`l.verified = 1`);
     const sort = tab === "rare" ? "rare" : tab === "featured" ? "featured" : p.get("sort");
-    const order = sort === "featured" ? `l.featured_until DESC` : sort === "rare" ? `l.one_in DESC` : sort === "cheap" ? `l.price ASC` : sort === "pricey" ? `l.price DESC` : `l.seen DESC`;
+    // Newest = when the item was first posted. "Still selling" and edits keep an item on the list but don't move it up;
+    // only a boost does. Featured items come first in every list and search they match.
+    const by = sort === "featured" ? `l.featured_until DESC` : sort === "rare" ? `l.one_in DESC` : sort === "cheap" ? `l.price ASC`
+      : sort === "pricey" ? `l.price DESC` : `l.created DESC`;
+    const order = sort === "featured" || tab === "rare" ? by : `(l.featured_until > ${now}) DESC, ${by}`;
     const offset = int(+p.get("offset"), 0, 10000) || 0;
     const rows = await env.DB.prepare(`SELECT ${COLS} FROM listings l JOIN users u ON u.id = l.user_id WHERE ${where.join(" AND ")}
       ORDER BY ${order} LIMIT ${PAGE + 1} OFFSET ${offset}`).bind(...args).all();
@@ -450,20 +486,29 @@ export async function community(request, env, ctx, url, json, saveSale) {
     if ((counts.active || 0) >= max) {
       return json({ error: `You can have ${max} items up at once${isSupporter(user) ? "" : ` (${MAX_ACTIVE_SUPPORTER} as a supporter)`}. Remove or mark one as sold first.` }, 429);
     }
-    if ((counts.today || 0) >= MAX_NEW_PER_DAY) return json({ error: "That's enough new items for today." }, 429);
-    const id = randomHex(6);
     const now = Date.now();
+    const fp = await fingerprint(l);
+    const [posted, before] = await Promise.all([
+      env.DB.prepare(`SELECT COUNT(*) AS n FROM posts WHERE user_id = ? AND t > ?`).bind(user.id, now - DAY).first(),
+      env.DB.prepare(`SELECT MIN(created) AS created FROM posts WHERE user_id = ? AND fp = ? AND t > ?`).bind(user.id, fp, now - REPOST_DAYS * DAY).first(),
+    ]);
+    const perDay = isSupporter(user) ? MAX_NEW_PER_DAY_SUPPORTER : MAX_NEW_PER_DAY;
+    if ((posted.n || 0) >= perDay) return json({ error: `That's ${perDay} new items today (removed ones count too). Try again tomorrow.` }, 429);
+    const created = before.created || now; // posted again: it keeps its place, it doesn't jump to the top
+    const id = randomHex(6);
     await env.DB.prepare(`INSERT INTO listings (id, user_id, item, name, cat, clean, gained, stats, scrolls, upgrades, left_slots, slots,
         chance, one_in, est_lo, est_hi, price, channel, room, note, created, seen)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .bind(id, user.id, l.item, l.name, l.cat, JSON.stringify(l.clean), JSON.stringify(l.gained), JSON.stringify(l.stats),
         JSON.stringify(l.scrolls), l.upgrades, l.left, l.slots, l.chance, l.oneIn, l.est?.lo ?? null, l.est?.hi ?? null,
-        s.price ?? null, s.channel ?? null, s.room ?? null, s.note ?? null, now, now).run();
-    ctx.waitUntil(discordPost(env, { ...l, id, price: s.price }, user.ign, body.image, url.origin));
+        s.price ?? null, s.channel ?? null, s.room ?? null, s.note ?? null, created, now).run();
+    await env.DB.prepare(`INSERT INTO posts (user_id, fp, created, t) VALUES (?, ?, ?, ?)`).bind(user.id, fp, created, now).run();
+    // rare items go to Discord once, not again when re-posted
+    if (!before.created) ctx.waitUntil(discordPost(env, { ...l, id, price: s.price }, user.ign, body.image, url.origin));
     return json({ id });
   }
 
-  const m = /^\/api\/listings\/([a-f0-9]{12})(\/verify|\/flag|\/boost)?$/.exec(path);
+  const m = /^\/api\/listings\/([a-f0-9]{12})(\/verify|\/flag|\/boost|\/unflag)?$/.exec(path);
   if (m) {
     const [, id, action] = m;
     const row = await env.DB.prepare(`SELECT ${COLS} FROM listings l JOIN users u ON u.id = l.user_id WHERE l.id = ?`).bind(id).first();
@@ -475,9 +520,22 @@ export async function community(request, env, ctx, url, json, saveSale) {
     if (action === "/flag" && method === "POST") {
       if (needUser()) return needUser();
       if (mine) return json({ error: "That's your own item." }, 400);
+      // new or nameless accounts can't hide other players' items
+      if (!user.ign || Date.now() - (user.created || 0) < FLAG_MIN_AGE) {
+        return json({ error: "Thanks. Reports count from accounts that are a few days old; for now, tell us on Discord." }, 403);
+      }
       await env.DB.batch([
         env.DB.prepare(`INSERT OR IGNORE INTO flags (listing, who) VALUES (?, ?)`).bind(id, user.id),
         env.DB.prepare(`UPDATE listings SET flags = (SELECT COUNT(*) FROM flags WHERE listing = ?) WHERE id = ?`).bind(id, id),
+      ]);
+      return json({ ok: true });
+    }
+
+    if (action === "/unflag" && method === "POST") {
+      if (!isAdmin(env, user)) return json({ error: "Admins only." }, 403);
+      await env.DB.batch([
+        env.DB.prepare(`DELETE FROM flags WHERE listing = ?`).bind(id),
+        env.DB.prepare(`UPDATE listings SET flags = 0 WHERE id = ?`).bind(id),
       ]);
       return json({ ok: true });
     }
@@ -493,6 +551,10 @@ export async function community(request, env, ctx, url, json, saveSale) {
         return json({ error: `No boosts left. Get an extra one for $${+(env.BOOST_PRICE || 1)} (see Supporters), or wait: monthly boosts come back 30 days after each use.`, needBoost: true }, 429);
       }
       const now = Date.now();
+      const mineUp = await env.DB.prepare(`SELECT COUNT(*) AS n FROM listings WHERE user_id = ? AND featured_until > ?`).bind(user.id, now).first();
+      if (mineUp.n >= MAX_FEATURED_PER_USER) {
+        return json({ error: `You already have ${MAX_FEATURED_PER_USER} items featured. Boost another when one ends, so everyone gets a turn.` }, 429);
+      }
       const busy = await env.DB.prepare(`SELECT COUNT(*) AS n, MIN(featured_until) AS next FROM listings WHERE featured_until > ?`).bind(now).first();
       if (busy.n >= MAX_FEATURED) {
         const h = Math.max(1, Math.ceil((busy.next - now) / 3600e3));
@@ -525,18 +587,10 @@ export async function community(request, env, ctx, url, json, saveSale) {
       const sets = [], args = [];
       for (const [k, v] of Object.entries(s)) { sets.push(`${k} = ?`); args.push(v); }
       if (body.bump || Object.keys(s).length) { sets.push(`seen = ?`); args.push(Date.now()); }
-      let sale = null;
-      if (body.status === "sold") {
-        sets.push(`status = 'sold'`);
-        const sold = int(Math.round(+body.soldPrice), 1, 1e11);
-        if (sold) {
-          sale = { item: row.item, price: sold, kind: "sold", gained: parse(row.gained, {}), left: row.left_slots, slots: row.slots,
-            scrolls: parse(row.scrolls, []), estimate: row.est_lo != null ? { lo: row.est_lo, hi: row.est_hi } : null };
-        }
-      } else if (body.status === "active") sets.push(`status = 'active'`);
+      if (body.status === "sold") sets.push(`status = 'sold'`);
+      else if (body.status === "active") sets.push(`status = 'active'`);
       if (!sets.length) return json({ error: "Nothing to change." }, 400);
       await env.DB.prepare(`UPDATE listings SET ${sets.join(", ")} WHERE id = ?`).bind(...args, id).run();
-      if (sale && saveSale) await saveSale(sale);
       const fresh = await env.DB.prepare(`SELECT ${COLS} FROM listings l JOIN users u ON u.id = l.user_id WHERE l.id = ?`).bind(id).first();
       return json({ listing: publicListing(fresh, user) });
     }

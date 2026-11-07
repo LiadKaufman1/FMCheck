@@ -45,16 +45,9 @@ Scroll prices are remembered in the browser; the clean price isn't, since it dep
 Failed scrolls aren't entered: the page works them out from the slots left and spreads them over
 the passed scroll types in the most likely way.
 
-### Reported sales
+### Server
 
-Players can report what they really sold or bought an item for (under the estimate). The latest reports for the
-item show on the page, and they're collected to check and tune the formula against the market.
-
-The small server in `src/worker.js` (Cloudflare Worker) serves the site and the API:
-
-- `POST /api/sales` add a report · `GET /api/sales?item=ID` latest reports · `GET /api/sales/all` all reports, paged with `?cursor=`
-- Reports are kept in Workers KV (binding `SALES` in `wrangler.jsonc`). Without it, the API says so and the page hides the feature.
-- Anonymous: no names, accounts or IPs. Spam limit: 20 reports a day per visitor, counted by a one-way hash of the IP that expires after a day.
+The small server in `src/worker.js` (Cloudflare Worker) serves the site and the community API (`src/community.js`).
 
 ### Community
 
