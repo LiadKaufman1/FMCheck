@@ -1,0 +1,1287 @@
+[
+{
+"item": 1072038,
+"clean": {
+"DEX": 3,
+"PDD": 15,
+"EVA": 1
+},
+"left": 0,
+"scrolls": [
+{
+"id": 2040705,
+"n": 5
+}
+],
+"price": 5600000,
+"estimate": {
+"lo": 4600000,
+"hi": 6600000
+},
+"channel": 3,
+"room": 8,
+"note": "Clean roll, check it in game",
+"seller": "Kaitoru",
+"supporter": true,
+"verified": true,
+"featured": true,
+"minutesAgo": 52,
+"seenAgo": 28
+},
+{
+"item": 1102000,
+"clean": {
+"PDD": 12,
+"MDD": 4,
+"ACC": 1
+},
+"left": 0,
+"scrolls": [
+{
+"id": 2041009,
+"n": 5
+}
+],
+"price": 6200000,
+"estimate": null,
+"channel": 12,
+"room": 18,
+"note": "Can trade at FM",
+"seller": "MiloMesos",
+"supporter": false,
+"verified": false,
+"featured": false,
+"minutesAgo": 2234,
+"seenAgo": 12
+},
+{
+"item": 1032013,
+"clean": {
+"MDD": 41,
+"EVA": 3
+},
+"left": 0,
+"scrolls": [
+{
+"id": 2040308,
+"n": 1
+}
+],
+"price": 2600000,
+"estimate": {
+"lo": 2400000,
+"hi": 3000000
+},
+"channel": 16,
+"room": 4,
+"note": null,
+"seller": "Lunaria",
+"supporter": true,
+"verified": false,
+"featured": false,
+"minutesAgo": 186,
+"seenAgo": 174
+},
+{
+"item": 1040024,
+"clean": {
+"PDD": 20,
+"MDD": 27,
+"MHP": 19
+},
+"left": 0,
+"scrolls": [
+{
+"id": 2040401,
+"n": 5
+},
+{
+"id": 2040400,
+"n": 1
+}
+],
+"price": 4100000,
+"estimate": {
+"lo": 3400000,
+"hi": 4600000
+},
+"channel": 3,
+"room": 14,
+"note": null,
+"seller": "Bramblix",
+"supporter": false,
+"verified": false,
+"featured": false,
+"minutesAgo": 1586,
+"seenAgo": 46
+},
+{
+"item": 1092021,
+"clean": {
+"PDD": 201,
+"MMP": 39
+},
+"left": 0,
+"scrolls": [
+{
+"id": 2040901,
+"n": 2
+},
+{
+"id": 2040900,
+"n": 5
+}
+],
+"price": 35000000,
+"estimate": null,
+"channel": 15,
+"room": 21,
+"note": null,
+"seller": "SoraBean",
+"supporter": false,
+"verified": false,
+"featured": false,
+"minutesAgo": 3190,
+"seenAgo": 57
+},
+{
+"item": 1082099,
+"clean": {
+"LUK": 6,
+"PDD": 30,
+"CRT": 3
+},
+"left": 1,
+"scrolls": [
+{
+"id": 2040801,
+"n": 3
+}
+],
+"price": null,
+"estimate": null,
+"channel": 3,
+"room": 11,
+"note": "Can trade at FM",
+"seller": "Tobikage",
+"supporter": true,
+"verified": false,
+"featured": false,
+"minutesAgo": 714,
+"seenAgo": 156
+},
+{
+"item": 1051013,
+"clean": {
+"STR": 6,
+"PDD": 92,
+"MHP": 4
+},
+"left": 1,
+"scrolls": [
+{
+"id": 2040509,
+"n": 1
+},
+{
+"id": 2040508,
+"n": 7
+}
+],
+"price": 7500000,
+"estimate": {
+"lo": 6700000,
+"hi": 8100000
+},
+"channel": 11,
+"room": 20,
+"note": "Open to offers",
+"seller": "PeppyPig",
+"supporter": false,
+"verified": false,
+"featured": false,
+"minutesAgo": 678,
+"seenAgo": 93
+},
+{
+"item": 1332013,
+"clean": {
+"ACC": 0,
+"EVA": 2,
+"PAD": 56
+},
+"left": 1,
+"scrolls": [
+{
+"id": 2043301,
+"n": 3
+}
+],
+"price": 42000000,
+"estimate": {
+"lo": 40000000,
+"hi": 43000000
+},
+"channel": 14,
+"room": 20,
+"note": null,
+"seller": "Nyxelle",
+"supporter": false,
+"verified": true,
+"featured": false,
+"minutesAgo": 1472,
+"seenAgo": 158
+},
+{
+"item": 1092005,
+"clean": {
+"PDD": 21,
+"MDD": 43
+},
+"left": 0,
+"scrolls": [
+{
+"id": 2040901,
+"n": 6
+},
+{
+"id": 2040900,
+"n": 1
+}
+],
+"price": 6900000,
+"estimate": null,
+"channel": 16,
+"room": 5,
+"note": null,
+"seller": "Grumbo",
+"supporter": false,
+"verified": true,
+"featured": false,
+"minutesAgo": 3019,
+"seenAgo": 148
+},
+{
+"item": 1072020,
+"clean": {
+"PDD": 11,
+"MMP": 4,
+"EVA": 0,
+"Speed": 0
+},
+"left": 0,
+"scrolls": [
+{
+"id": 2040705,
+"n": 5
+}
+],
+"price": 3200000,
+"estimate": {
+"lo": 2900000,
+"hi": 3800000
+},
+"channel": 9,
+"room": 8,
+"note": null,
+"seller": "Vexaria",
+"supporter": true,
+"verified": true,
+"featured": true,
+"minutesAgo": 2279,
+"seenAgo": 82
+},
+{
+"item": 1002036,
+"clean": {
+"DEX": 2,
+"PDD": 26,
+"MDD": 8,
+"MHP": 16,
+"ACC": 1
+},
+"left": 3,
+"scrolls": [
+{
+"id": 2040005,
+"n": 4
+}
+],
+"price": 2000000,
+"estimate": null,
+"channel": 18,
+"room": 12,
+"note": "Can trade at FM",
+"seller": "Pudding22",
+"supporter": false,
+"verified": false,
+"featured": false,
+"minutesAgo": 331,
+"seenAgo": 101
+},
+{
+"item": 1322008,
+"clean": {
+"PAD": 42
+},
+"left": 0,
+"scrolls": [
+{
+"id": 2043201,
+"n": 6
+}
+],
+"price": null,
+"estimate": null,
+"channel": 2,
+"room": 16,
+"note": null,
+"seller": "Rokusan",
+"supporter": false,
+"verified": false,
+"featured": false,
+"minutesAgo": 1165,
+"seenAgo": 45
+},
+{
+"item": 1061060,
+"clean": {
+"STR": 4,
+"PDD": 54
+},
+"left": 0,
+"scrolls": [
+{
+"id": 2040600,
+"n": 3
+}
+],
+"price": 2500000,
+"estimate": null,
+"channel": 11,
+"room": 17,
+"note": "Can trade at FM",
+"seller": "Zephyrin",
+"supporter": false,
+"verified": true,
+"featured": false,
+"minutesAgo": 2825,
+"seenAgo": 149
+},
+{
+"item": 1462004,
+"clean": {
+"DEX": 1,
+"PAD": 51
+},
+"left": 1,
+"scrolls": [
+{
+"id": 2044601,
+"n": 4
+},
+{
+"id": 2044600,
+"n": 1
+}
+],
+"price": 53000000,
+"estimate": {
+"lo": 48000000,
+"hi": 54000000
+},
+"channel": 20,
+"room": 21,
+"note": "Trading for mesos only",
+"seller": "Mochiko",
+"supporter": true,
+"verified": true,
+"featured": true,
+"minutesAgo": 2576,
+"seenAgo": 73
+},
+{
+"item": 1050044,
+"clean": {
+"INT": 6,
+"PDD": 99,
+"MDD": 107,
+"MMP": 74
+},
+"left": 3,
+"scrolls": [
+{
+"id": 2040509,
+"n": 2
+}
+],
+"price": 16000000,
+"estimate": {
+"lo": 13000000,
+"hi": 19000000
+},
+"channel": 8,
+"room": 22,
+"note": "Whisper me",
+"seller": "Ardentia",
+"supporter": false,
+"verified": false,
+"featured": false,
+"minutesAgo": 1235,
+"seenAgo": 92
+},
+{
+"item": 1422002,
+"clean": {
+"PAD": 42
+},
+"left": 1,
+"scrolls": [
+{
+"id": 2044201,
+"n": 3
+},
+{
+"id": 2044200,
+"n": 1
+}
+],
+"price": 9400000,
+"estimate": {
+"lo": 8600000,
+"hi": 11000000
+},
+"channel": 20,
+"room": 6,
+"note": "Whisper me",
+"seller": "Kaitoru",
+"supporter": true,
+"verified": false,
+"featured": false,
+"minutesAgo": 1034,
+"seenAgo": 59
+},
+{
+"item": 1082053,
+"clean": {
+"DEX": 4,
+"PDD": 30,
+"ACC": 1,
+"CRT": 2
+},
+"left": 2,
+"scrolls": [
+{
+"id": 2040800,
+"n": 2
+}
+],
+"price": 5900000,
+"estimate": null,
+"channel": 13,
+"room": 17,
+"note": "Price is firm",
+"seller": "MiloMesos",
+"supporter": false,
+"verified": true,
+"featured": false,
+"minutesAgo": 620,
+"seenAgo": 72
+},
+{
+"item": 1002173,
+"clean": {
+"PDD": 39,
+"MHP": 51
+},
+"left": 0,
+"scrolls": [
+{
+"id": 2040005,
+"n": 3
+},
+{
+"id": 2040004,
+"n": 1
+}
+],
+"price": 12000000,
+"estimate": {
+"lo": 10000000,
+"hi": 12000000
+},
+"channel": 10,
+"room": 6,
+"note": null,
+"seller": "Lunaria",
+"supporter": true,
+"verified": false,
+"featured": false,
+"minutesAgo": 256,
+"seenAgo": 15
+},
+{
+"item": 1332019,
+"clean": {
+"PAD": 79
+},
+"left": 2,
+"scrolls": [
+{
+"id": 2043301,
+"n": 2
+},
+{
+"id": 2043300,
+"n": 2
+}
+],
+"price": 56000000,
+"estimate": {
+"lo": 46000000,
+"hi": 61000000
+},
+"channel": 16,
+"room": 9,
+"note": null,
+"seller": "Bramblix",
+"supporter": false,
+"verified": false,
+"featured": false,
+"minutesAgo": 1741,
+"seenAgo": 130
+},
+{
+"item": 1452012,
+"clean": {
+"CRT": 3,
+"PAD": 92
+},
+"left": 0,
+"scrolls": [
+{
+"id": 2044501,
+"n": 4
+},
+{
+"id": 2044500,
+"n": 1
+}
+],
+"price": 240000000,
+"estimate": null,
+"channel": 9,
+"room": 2,
+"note": "Trading for mesos only",
+"seller": "SoraBean",
+"supporter": false,
+"verified": true,
+"featured": false,
+"minutesAgo": 628,
+"seenAgo": 142
+},
+{
+"item": 1040045,
+"clean": {
+"STR": 3,
+"PDD": 43
+},
+"left": 1,
+"scrolls": [
+{
+"id": 2040401,
+"n": 2
+},
+{
+"id": 2040400,
+"n": 3
+}
+],
+"price": 4900000,
+"estimate": {
+"lo": 4600000,
+"hi": 5100000
+},
+"channel": 14,
+"room": 10,
+"note": null,
+"seller": "Tobikage",
+"supporter": true,
+"verified": false,
+"featured": false,
+"minutesAgo": 3322,
+"seenAgo": 74
+},
+{
+"item": 1002025,
+"clean": {
+"PDD": 17,
+"MMP": 9
+},
+"left": 0,
+"scrolls": [
+{
+"id": 2040005,
+"n": 1
+},
+{
+"id": 2040004,
+"n": 6
+}
+],
+"price": 370000,
+"estimate": null,
+"channel": 2,
+"room": 7,
+"note": "Clean roll, check it in game",
+"seller": "PeppyPig",
+"supporter": false,
+"verified": false,
+"featured": false,
+"minutesAgo": 2216,
+"seenAgo": 107
+},
+{
+"item": 1050036,
+"clean": {
+"INT": 6,
+"PDD": 79,
+"MDD": 95,
+"MHP": 63
+},
+"left": 1,
+"scrolls": [
+{
+"id": 2040508,
+"n": 7
+}
+],
+"price": 9800000,
+"estimate": null,
+"channel": 15,
+"room": 11,
+"note": "Can trade at FM",
+"seller": "Nyxelle",
+"supporter": false,
+"verified": false,
+"featured": false,
+"minutesAgo": 665,
+"seenAgo": 136
+},
+{
+"item": 1060059,
+"clean": {
+"LUK": 5,
+"PDD": 34
+},
+"left": 0,
+"scrolls": [
+{
+"id": 2040600,
+"n": 4
+}
+],
+"price": null,
+"estimate": null,
+"channel": 2,
+"room": 12,
+"note": null,
+"seller": "Grumbo",
+"supporter": false,
+"verified": false,
+"featured": false,
+"minutesAgo": 1618,
+"seenAgo": 172
+},
+{
+"item": 1332005,
+"clean": {
+"PAD": 38
+},
+"left": 1,
+"scrolls": [
+{
+"id": 2043300,
+"n": 1
+}
+],
+"price": 750000,
+"estimate": null,
+"channel": 2,
+"room": 18,
+"note": "Open to offers",
+"seller": "Vexaria",
+"supporter": true,
+"verified": false,
+"featured": false,
+"minutesAgo": 203,
+"seenAgo": 100
+},
+{
+"item": 1002179,
+"clean": {
+"LUK": 4,
+"PDD": 40
+},
+"left": 2,
+"scrolls": [
+{
+"id": 2040004,
+"n": 3
+}
+],
+"price": 3400000,
+"estimate": {
+"lo": 3000000,
+"hi": 3600000
+},
+"channel": 4,
+"room": 5,
+"note": "Will be on tonight",
+"seller": "Pudding22",
+"supporter": false,
+"verified": true,
+"featured": false,
+"minutesAgo": 2570,
+"seenAgo": 141
+},
+{
+"item": 1032016,
+"clean": {
+"MDD": 43,
+"MMP": 6,
+"EVA": 3
+},
+"left": 2,
+"scrolls": [
+{
+"id": 2040309,
+"n": 1
+},
+{
+"id": 2040308,
+"n": 2
+}
+],
+"price": 7700000,
+"estimate": null,
+"channel": 5,
+"room": 5,
+"note": "Can trade at FM",
+"seller": "Rokusan",
+"supporter": false,
+"verified": false,
+"featured": false,
+"minutesAgo": 967,
+"seenAgo": 30
+},
+{
+"item": 1072139,
+"clean": {
+"DEX": 2,
+"PDD": 31,
+"EVA": 7,
+"Jump": 2
+},
+"left": 1,
+"scrolls": [
+{
+"id": 2040705,
+"n": 4
+}
+],
+"price": 30000000,
+"estimate": {
+"lo": 29000000,
+"hi": 31000000
+},
+"channel": 11,
+"room": 3,
+"note": "Open to offers",
+"seller": "Zephyrin",
+"supporter": false,
+"verified": true,
+"featured": false,
+"minutesAgo": 1080,
+"seenAgo": 114
+},
+{
+"item": 1072127,
+"clean": {
+"DEX": 5,
+"PDD": 29,
+"EVA": 6
+},
+"left": 0,
+"scrolls": [
+{
+"id": 2040704,
+"n": 1
+}
+],
+"price": 2900000,
+"estimate": {
+"lo": 2700000,
+"hi": 3200000
+},
+"channel": 7,
+"room": 14,
+"note": null,
+"seller": "Mochiko",
+"supporter": true,
+"verified": false,
+"featured": false,
+"minutesAgo": 2563,
+"seenAgo": 153
+},
+{
+"item": 1082094,
+"clean": {
+"DEX": 7,
+"PDD": 32,
+"CRT": 5
+},
+"left": 0,
+"scrolls": [
+{
+"id": 2040801,
+"n": 3
+}
+],
+"price": 110000000,
+"estimate": null,
+"channel": 16,
+"room": 17,
+"note": "Open to offers",
+"seller": "Ardentia",
+"supporter": false,
+"verified": false,
+"featured": false,
+"minutesAgo": 3010,
+"seenAgo": 180
+},
+{
+"item": 1442000,
+"clean": {
+"PAD": 34
+},
+"left": 0,
+"scrolls": [
+{
+"id": 2044401,
+"n": 7
+}
+],
+"price": 16000000,
+"estimate": null,
+"channel": 15,
+"room": 1,
+"note": null,
+"seller": "Kaitoru",
+"supporter": true,
+"verified": true,
+"featured": true,
+"minutesAgo": 878,
+"seenAgo": 8
+},
+{
+"item": 1041035,
+"clean": {
+"LUK": 1,
+"PDD": 35
+},
+"left": 3,
+"scrolls": [
+{
+"id": 2040401,
+"n": 2
+},
+{
+"id": 2040400,
+"n": 1
+}
+],
+"price": 1200000,
+"estimate": null,
+"channel": 5,
+"room": 14,
+"note": "Can trade at FM",
+"seller": "MiloMesos",
+"supporter": false,
+"verified": false,
+"featured": false,
+"minutesAgo": 1821,
+"seenAgo": 35
+},
+{
+"item": 1102014,
+"clean": {
+"STR": 3,
+"PDD": 26,
+"MDD": 14,
+"ACC": 5
+},
+"left": 1,
+"scrolls": [
+{
+"id": 2041009,
+"n": 1
+},
+{
+"id": 2041008,
+"n": 1
+}
+],
+"price": 5300000,
+"estimate": null,
+"channel": 3,
+"room": 4,
+"note": "Will be on tonight",
+"seller": "Lunaria",
+"supporter": true,
+"verified": true,
+"featured": false,
+"minutesAgo": 2985,
+"seenAgo": 18
+},
+{
+"item": 1462005,
+"clean": {
+"PAD": 58
+},
+"left": 0,
+"scrolls": [
+{
+"id": 2044601,
+"n": 6
+},
+{
+"id": 2044600,
+"n": 1
+}
+],
+"price": 200000000,
+"estimate": {
+"lo": 160000000,
+"hi": 210000000
+},
+"channel": 3,
+"room": 21,
+"note": "Whisper me",
+"seller": "Bramblix",
+"supporter": false,
+"verified": true,
+"featured": false,
+"minutesAgo": 293,
+"seenAgo": 92
+},
+{
+"item": 1082068,
+"clean": {
+"INT": 4,
+"PDD": 10,
+"MDD": 12,
+"CRT": 2
+},
+"left": 1,
+"scrolls": [
+{
+"id": 2040801,
+"n": 2
+},
+{
+"id": 2040800,
+"n": 2
+}
+],
+"price": 60000000,
+"estimate": null,
+"channel": 4,
+"room": 17,
+"note": null,
+"seller": "SoraBean",
+"supporter": false,
+"verified": false,
+"featured": false,
+"minutesAgo": 2059,
+"seenAgo": 86
+},
+{
+"item": 1002136,
+"clean": {
+"PDD": 31,
+"MMP": 35
+},
+"left": 0,
+"scrolls": [
+{
+"id": 2040005,
+"n": 4
+}
+],
+"price": 9600000,
+"estimate": {
+"lo": 8400000,
+"hi": 12000000
+},
+"channel": 16,
+"room": 5,
+"note": "Can trade at FM",
+"seller": "Tobikage",
+"supporter": true,
+"verified": false,
+"featured": false,
+"minutesAgo": 1062,
+"seenAgo": 20
+},
+{
+"item": 1332012,
+"clean": {
+"PAD": 62
+},
+"left": 0,
+"scrolls": [
+{
+"id": 2043300,
+"n": 1
+}
+],
+"price": null,
+"estimate": null,
+"channel": 11,
+"room": 17,
+"note": "Whisper me",
+"seller": "PeppyPig",
+"supporter": false,
+"verified": false,
+"featured": false,
+"minutesAgo": 1738,
+"seenAgo": 112
+},
+{
+"item": 1472004,
+"clean": {
+"PAD": 18
+},
+"left": 0,
+"scrolls": [
+{
+"id": 2044701,
+"n": 4
+},
+{
+"id": 2044700,
+"n": 3
+}
+],
+"price": 28000000,
+"estimate": {
+"lo": 23000000,
+"hi": 31000000
+},
+"channel": 1,
+"room": 2,
+"note": "Price is firm",
+"seller": "Nyxelle",
+"supporter": false,
+"verified": false,
+"featured": false,
+"minutesAgo": 2067,
+"seenAgo": 8
+},
+{
+"item": 1051011,
+"clean": {
+"DEX": 6,
+"PDD": 120,
+"MDD": 10,
+"MHP": 5
+},
+"left": 2,
+"scrolls": [
+{
+"id": 2040509,
+"n": 8
+}
+],
+"price": 33000000,
+"estimate": null,
+"channel": 11,
+"room": 1,
+"note": null,
+"seller": "Grumbo",
+"supporter": false,
+"verified": false,
+"featured": false,
+"minutesAgo": 1522,
+"seenAgo": 167
+},
+{
+"item": 1032018,
+"clean": {
+"MDD": 46,
+"CRD": 6
+},
+"left": 2,
+"scrolls": [
+{
+"id": 2040309,
+"n": 2
+}
+],
+"price": 12000000,
+"estimate": null,
+"channel": 13,
+"room": 7,
+"note": "Whisper me",
+"seller": "Vexaria",
+"supporter": true,
+"verified": false,
+"featured": false,
+"minutesAgo": 2179,
+"seenAgo": 48
+},
+{
+"item": 1462001,
+"clean": {
+"PAD": 41
+},
+"left": 0,
+"scrolls": [
+{
+"id": 2044601,
+"n": 7
+}
+],
+"price": 36000000,
+"estimate": {
+"lo": 34000000,
+"hi": 41000000
+},
+"channel": 6,
+"room": 18,
+"note": "Clean roll, check it in game",
+"seller": "Pudding22",
+"supporter": false,
+"verified": true,
+"featured": false,
+"minutesAgo": 40,
+"seenAgo": 58
+},
+{
+"item": 1032004,
+"clean": {
+"MDD": 24,
+"MMP": 4,
+"EVA": 0
+},
+"left": 3,
+"scrolls": [
+{
+"id": 2040308,
+"n": 1
+}
+],
+"price": 760000,
+"estimate": {
+"lo": 690000,
+"hi": 860000
+},
+"channel": 6,
+"room": 4,
+"note": "Whisper me",
+"seller": "Rokusan",
+"supporter": false,
+"verified": false,
+"featured": false,
+"minutesAgo": 1547,
+"seenAgo": 70
+},
+{
+"item": 1302019,
+"clean": {
+"Speed": 2,
+"PAD": 30
+},
+"left": 0,
+"scrolls": [
+{
+"id": 2043001,
+"n": 1
+},
+{
+"id": 2043000,
+"n": 2
+}
+],
+"price": null,
+"estimate": null,
+"channel": 8,
+"room": 10,
+"note": null,
+"seller": "Zephyrin",
+"supporter": false,
+"verified": false,
+"featured": false,
+"minutesAgo": 2894,
+"seenAgo": 178
+},
+{
+"item": 1082024,
+"clean": {
+"STR": 0,
+"DEX": 2,
+"PDD": 11,
+"MMP": 6,
+"CRT": 0
+},
+"left": 0,
+"scrolls": [
+{
+"id": 2040801,
+"n": 2
+},
+{
+"id": 2040800,
+"n": 2
+}
+],
+"price": 9900000,
+"estimate": null,
+"channel": 12,
+"room": 12,
+"note": "Clean roll, check it in game",
+"seller": "Mochiko",
+"supporter": true,
+"verified": false,
+"featured": false,
+"minutesAgo": 636,
+"seenAgo": 58
+},
+{
+"item": 1082074,
+"clean": {
+"DEX": 4,
+"PDD": 25,
+"CRT": 4
+},
+"left": 0,
+"scrolls": [
+{
+"id": 2040801,
+"n": 1
+}
+],
+"price": 8600000,
+"estimate": null,
+"channel": 4,
+"room": 11,
+"note": null,
+"seller": "Ardentia",
+"supporter": false,
+"verified": false,
+"featured": false,
+"minutesAgo": 1646,
+"seenAgo": 141
+}
+]

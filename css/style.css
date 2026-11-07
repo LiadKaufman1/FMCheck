@@ -597,3 +597,14 @@ a.ghost-btn { display: inline-block; padding: 8px 12px; border-radius: 10px; tex
 .market-search .filters { grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); }
 .market-search .filters .pair { display: grid; grid-template-columns: minmax(0, 1fr) 52px; gap: 6px; }
 .market-search .filters .pair input { width: 100%; min-width: 0; }
+
+/* example items while the community is new */
+.badge.demo { background: transparent; border: 1px dashed var(--muted); color: var(--muted); font-weight: 700; }
+.demo-note { margin: 0 0 8px; font-size: 12px; color: var(--muted); }
+.demo-banner { margin: 0 0 10px; padding: 8px 10px; border-radius: 10px; border: 1px dashed var(--muted); font-size: 13px; }
+/* subscribe buttons */
+.top-actions .sup-btn { background: #ffc94d; color: #3a2a00; box-shadow: 0 3px 0 #d9a21b; }
+.top-actions .sup-btn:hover { filter: brightness(1.05); }
+.featured-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.featured-head h2 { margin: 0; }
+.sup-soon { margin: 10px 0 4px; padding: 8px 10px; border-radius: 10px; background: var(--accent-soft); font-weight: 700; }

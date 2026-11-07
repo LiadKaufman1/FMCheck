@@ -29,6 +29,7 @@
 import equips from "../data/equips.json";
 import scrollData from "../data/scrolls.json";
 import { statRange, rollAtLeast, groupOdds, allocateFailures } from "../js/calc.js";
+import demoItems from "./demo.json";
 
 const DAY = 864e5;
 const SALE_FRESH = 3 * DAY;        // a for-sale item drops off the list after 3 days without "still selling"
@@ -45,6 +46,10 @@ const MAX_NEW_PER_DAY_SUPPORTER = 20;
 const REPOST_DAYS = 5;             // the same item posted again within this time keeps its first date (no jumping to the top)
 const MAX_FEATURED_PER_USER = 2;   // so one player can't take every Featured spot
 const FLAG_MIN_AGE = 3 * DAY;      // reports count only from accounts this old, with an in-game name
+// Example items (src/demo.json, made by scripts/make_demo.py) fill the page while it's new. They're marked "Example",
+// rank below real items, are never posted or featured for real, and stop showing once DEMO_UNTIL real items are up.
+// Setting DEMO=off hides them at once.
+const DEMO_UNTIL = 30;
 const HIDE_AT_FLAGS = 3;           // reports from different players that hide an item
 const SESSION_DAYS = 30;
 const PAGE = 30;
@@ -78,12 +83,13 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS posts (user_id TEXT NOT NULL, fp TEXT NOT NULL, created INTEGER NOT NULL, t INTEGER NOT NULL)`,
   `CREATE INDEX IF NOT EXISTS posts_user ON posts(user_id, t)`,
   `CREATE INDEX IF NOT EXISTS users_ign ON users(ign COLLATE NOCASE)`,
+  `CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)`,
   `CREATE INDEX IF NOT EXISTS payments_email ON payments(email_hash)`,
 ];
 // Columns added after the first version: added to existing tables when missing.
 const COLUMNS = {
   users: [["supporter_until", "INTEGER NOT NULL DEFAULT 0"], ["sup_code", "TEXT"], ["sup_email", "TEXT"]],
-  listings: [["featured_until", "INTEGER NOT NULL DEFAULT 0"]],
+  listings: [["featured_until", "INTEGER NOT NULL DEFAULT 0"], ["demo", "INTEGER NOT NULL DEFAULT 0"], ["demo_seller", "TEXT"]],
   payments: [["boosts", "INTEGER NOT NULL DEFAULT 0"]],
   boosts: [["paid", "INTEGER NOT NULL DEFAULT 0"]],
 };
@@ -93,6 +99,45 @@ async function migrate(env) {
     const have = new Set((await env.DB.prepare(`PRAGMA table_info(${table})`).all()).results.map((c) => c.name));
     for (const [name, type] of cols) if (!have.has(name)) await env.DB.prepare(`ALTER TABLE ${table} ADD COLUMN ${name} ${type}`).run();
   }
+  await seedDemo(env);
+}
+
+// Puts the example items in once. For examples, created and seen hold "how long ago" (ms), so they always look recent.
+async function seedDemo(env) {
+  if (env.DEMO === "off") return;
+  const done = await env.DB.prepare(`SELECT v FROM meta WHERE k = 'demo'`).first();
+  if (done) return;
+  const q = [];
+  const sellers = new Map();
+  for (const [i, d] of demoItems.entries()) {
+    const l = readListing(d);
+    if (l.error) { console.warn("example item skipped:", d.item, l.error); continue; }
+    const uid = `demo-${d.seller.toLowerCase()}`;
+    if (!sellers.has(uid)) {
+      sellers.set(uid, true);
+      q.push(env.DB.prepare(`INSERT OR IGNORE INTO users (id, ign, created, supporter_until) VALUES (?, NULL, 0, ?)`)
+        .bind(uid, d.supporter ? 4102444800000 : 0));
+    }
+    q.push(env.DB.prepare(`INSERT OR IGNORE INTO listings (id, user_id, item, name, cat, clean, gained, stats, scrolls, upgrades,
+        left_slots, slots, chance, one_in, est_lo, est_hi, price, channel, room, note, verified, created, seen, demo, demo_seller)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .bind(`de${String(i).padStart(10, "0")}`, uid, l.item, l.name, l.cat, JSON.stringify(l.clean), JSON.stringify(l.gained),
+        JSON.stringify(l.stats), JSON.stringify(l.scrolls), l.upgrades, l.left, l.slots, l.chance, l.oneIn,
+        d.estimate?.lo ?? null, d.estimate?.hi ?? null, d.price ?? null, d.channel ?? null, d.room ?? null, d.note ?? null,
+        d.verified ? 1 : 0, d.minutesAgo * 60000, d.seenAgo * 60000, d.featured ? 2 : 1, d.seller));
+  }
+  q.push(env.DB.prepare(`INSERT OR REPLACE INTO meta (k, v) VALUES ('demo', ?)`).bind(String(Date.now())));
+  await env.DB.batch(q);
+}
+
+// Show the examples? Until enough real items are up (checked at most every 5 minutes).
+let demoCheck = { at: 0, on: true };
+async function demoOn(env) {
+  if (env.DEMO === "off") return false;
+  if (Date.now() - demoCheck.at < 5 * 60e3) return demoCheck.on;
+  const r = await env.DB.prepare(`SELECT COUNT(*) AS n FROM listings WHERE demo = 0 AND status = 'active'`).first();
+  demoCheck = { at: Date.now(), on: (r.n || 0) < DEMO_UNTIL };
+  return demoCheck.on;
 }
 let ready = null;
 const setup = (env) => (ready ||= migrate(env).catch((e) => { ready = null; throw e; }));
@@ -161,9 +206,15 @@ const isAdmin = (env, user) => !!user && String(env.ADMIN_IDS || "").split(",").
 
 const COLS = `l.id, l.item, l.name, l.cat, l.clean, l.gained, l.stats, l.scrolls, l.upgrades, l.left_slots, l.slots, l.chance, l.one_in,
   l.est_lo, l.est_hi, l.price, l.channel, l.room, l.note, l.verified, l.status, l.created, l.seen, l.featured_until, l.user_id, u.ign,
+  l.demo, l.demo_seller,
   u.supporter_until`;
 function publicListing(r, user) {
+  const now = Date.now();
+  if (r.demo) {
+    r = { ...r, ign: r.demo_seller, created: now - r.created, seen: now - r.seen, featured_until: r.demo === 2 ? now + 6 * 3600e3 : 0 };
+  }
   return {
+    demo: !!r.demo,
     id: r.id, item: r.item, name: r.name, cat: r.cat, clean: parse(r.clean, {}), gained: parse(r.gained, {}), stats: parse(r.stats, {}),
     scrolls: parse(r.scrolls, []), upgrades: r.upgrades, left: r.left_slots, slots: r.slots, chance: r.chance, oneIn: r.one_in,
     estimate: r.est_lo != null ? { lo: r.est_lo, hi: r.est_hi } : null, price: r.price, ign: r.ign, channel: r.channel, room: r.room,
@@ -338,17 +389,18 @@ async function kofi(request, env, json) {
 }
 
 // Which listings a tab and its filters cover. skipCat: leave the category out (to count items per category).
-function listWhere(p, now, skipCat = false) {
+function listWhere(p, now, skipCat = false, demo = false) {
   const where = [`l.status = 'active'`, `l.flags < ${HIDE_AT_FLAGS}`];
   const args = [];
+  if (!demo) where.push(`l.demo = 0`);
   const tab = p.get("tab") || "sale";
   if (tab === "sale") {
-    where.push(`l.price IS NOT NULL`, `l.seen > (CASE WHEN u.supporter_until > ? THEN ? ELSE ? END)`);
+    where.push(`l.price IS NOT NULL`, `(l.demo > 0 OR l.seen > (CASE WHEN u.supporter_until > ? THEN ? ELSE ? END))`);
     args.push(now, now - SALE_FRESH_SUPPORTER, now - SALE_FRESH);
   }
-  else if (tab === "featured") { where.push(`l.featured_until > ?`); args.push(now); }
+  else if (tab === "featured") { where.push(`(l.featured_until > ? OR l.demo = 2)`); args.push(now); }
   else if (tab === "show") where.push(`l.price IS NULL`);
-  else if (tab === "rare") { where.push(`l.created > ?`); args.push(now - 7 * DAY); }
+  else if (tab === "rare") { where.push(`(l.demo > 0 OR l.created > ?)`); args.push(now - 7 * DAY); }
   const q = cleanText(p.get("q"), 40);
   if (q) { where.push(`l.name LIKE ? ESCAPE '\\'`); args.push(`%${q.replace(/[%_\\]/g, "\\$&")}%`); }
   const item = int(+p.get("item"), 1000000, 1999999);
@@ -470,7 +522,8 @@ export async function community(request, env, ctx, url, json) {
   }
 
   if (path === "/api/listings/cats" && method === "GET") {
-    const { where, args } = listWhere(url.searchParams, Date.now(), true);
+    const demo = await demoOn(env);
+    const { where, args } = listWhere(url.searchParams, Date.now(), true, demo);
     const rows = await env.DB.prepare(`SELECT l.cat AS cat, COUNT(*) AS n FROM listings l JOIN users u ON u.id = l.user_id
       WHERE ${where.join(" AND ")} GROUP BY l.cat`).bind(...args).all();
     const counts = {};
@@ -478,7 +531,7 @@ export async function community(request, env, ctx, url, json) {
     // and per item (same filters, any category), for the search suggestions
     const p2 = new URLSearchParams(url.searchParams);
     p2.delete("item"); p2.delete("q"); p2.delete("cat");
-    const w2 = listWhere(p2, Date.now(), true);
+    const w2 = listWhere(p2, Date.now(), true, demo);
     const per = await env.DB.prepare(`SELECT l.item AS item, COUNT(*) AS n FROM listings l JOIN users u ON u.id = l.user_id
       WHERE ${w2.where.join(" AND ")} GROUP BY l.item`).bind(...w2.args).all();
     const items = {};
@@ -489,13 +542,15 @@ export async function community(request, env, ctx, url, json) {
   if (path === "/api/listings" && method === "GET") {
     const p = url.searchParams;
     const now = Date.now();
-    const { where, args, tab } = listWhere(p, now);
+    const { where, args, tab } = listWhere(p, now, false, await demoOn(env));
     const sort = tab === "rare" ? "rare" : tab === "featured" ? "featured" : p.get("sort");
     // Newest = when the item was first posted. "Still selling" and edits keep an item on the list but don't move it up;
     // only a boost does. Featured items come first in every list and search they match.
-    const by = sort === "featured" ? `l.featured_until DESC` : sort === "rare" ? `l.one_in DESC` : sort === "cheap" ? `l.price ASC`
-      : sort === "pricey" ? `l.price DESC` : `l.created DESC`;
-    const order = sort === "featured" || tab === "rare" ? by : `(l.featured_until > ${now}) DESC, ${by}`;
+    // Examples come after real items (for examples, "created" is how long ago, so they sort by that among themselves).
+    const by = sort === "featured" ? `l.demo ASC, l.featured_until DESC` : sort === "rare" ? `l.one_in DESC` : sort === "cheap" ? `l.price ASC`
+      : sort === "pricey" ? `l.price DESC` : `(CASE WHEN l.demo > 0 THEN ${now} - l.created ELSE l.created END) DESC`;
+    const featured = `(l.featured_until > ${now})`; // real boosts only: examples never get ahead of real items
+    const order = sort === "featured" ? by : tab === "rare" ? `l.demo ASC, ${by}` : `${featured} DESC, l.demo ASC, ${by}`;
     const offset = int(+p.get("offset"), 0, 10000) || 0;
     const rows = await env.DB.prepare(`SELECT ${COLS} FROM listings l JOIN users u ON u.id = l.user_id WHERE ${where.join(" AND ")}
       ORDER BY ${order} LIMIT ${PAGE + 1} OFFSET ${offset}`).bind(...args).all();
@@ -546,6 +601,8 @@ export async function community(request, env, ctx, url, json) {
     const mine = !!user && row.user_id === user.id;
 
     if (!action && method === "GET") return json({ listing: publicListing(row, user) });
+
+    if (row.demo && method !== "GET" && !isAdmin(env, user)) return json({ error: "This is an example item." }, 400);
 
     if (action === "/flag" && method === "POST") {
       if (needUser()) return needUser();

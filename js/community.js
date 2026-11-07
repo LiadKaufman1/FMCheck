@@ -1,11 +1,11 @@
 // The community page: players' scrolled items, for sale or shown off, with the full picture of each one.
-import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=ea2f0fb8";
-import { drawCard, cardBlob } from "./card.js?v=ea2f0fb8";
-import { cardInfo, cardLabel, cardFmt, cardDate, rangeText, oneInText } from "./itemcard.js?v=ea2f0fb8";
-import { setupA11y } from "./a11y.js?v=ea2f0fb8";
-import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=ea2f0fb8";
-import { itemSearch } from "./itemsearch.js?v=ea2f0fb8";
-import { DISCORD_URL } from "./config.js?v=ea2f0fb8";
+import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=d1f44908";
+import { drawCard, cardBlob } from "./card.js?v=d1f44908";
+import { cardInfo, cardLabel, cardFmt, cardDate, rangeText, oneInText } from "./itemcard.js?v=d1f44908";
+import { setupA11y } from "./a11y.js?v=d1f44908";
+import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=d1f44908";
+import { itemSearch } from "./itemsearch.js?v=d1f44908";
+import { DISCORD_URL } from "./config.js?v=d1f44908";
 
 const $ = (id) => document.getElementById(id);
 const icon = (id) => `assets/items/${String(id).padStart(8, "0")}.png`;
@@ -65,7 +65,7 @@ function tile(l) {
       <span class="tile-name">${esc(l.name)}${l.upgrades ? ` <b>(+${l.upgrades})</b>` : ""}</span>
       <span class="tile-stats">${esc(plus(l.gained)) || "clean"} · ${l.left} slot${l.left === 1 ? "" : "s"} left</span>
       <span class="tile-seller">${l.ign ? `<b>${esc(l.ign)}</b>` : ""}${place(l) ? ` · ${place(l)}` : ""} · ${ago(l.seen)}</span>
-      <span class="tile-badges">${l.featured ? `<span class="badge feat">⭐ Featured</span>` : ""}${verifiedBadge(l)}${fairness(l)}${supporterBadge(l)}${l.status === "sold" ? `<span class="badge">Sold</span>` : ""}</span>
+      <span class="tile-badges">${l.demo ? `<span class="badge demo" title="Not a real listing: an example while the community fills up">Example</span>` : ""}${l.featured ? `<span class="badge feat">⭐ Featured</span>` : ""}${verifiedBadge(l)}${fairness(l)}${supporterBadge(l)}${l.status === "sold" ? `<span class="badge">Sold</span>` : ""}</span>
     </span>
     <span class="tile-side">
       ${l.price ? `<b class="tile-price">${mesos(l.price)}</b>` : `<span class="tile-show">Showcase</span>`}
@@ -100,7 +100,9 @@ async function load(more = false) {
     shown = shown.concat(j.listings);
     offset = shown.length;
     $("more").hidden = !j.more;
-    box.innerHTML = shown.length ? `<ul class="tiles">${shown.map(tile).join("")}</ul>` : `<p class="hint">${
+    const demoNote = shown.some((l) => l.demo)
+      ? `<p class="demo-note">Items tagged <span class="badge demo">Example</span> aren't real listings: they show how FMCheck works while the community fills up.</p>` : "";
+    box.innerHTML = shown.length ? `${demoNote}<ul class="tiles">${shown.map(tile).join("")}</ul>` : `<p class="hint">${
       tab === "sale" ? "Nothing for sale matches yet." : tab === "show" ? "No items shown off yet." : "No items this week yet."}
       Be the first: work out your item in the <a href="./">calculator</a> and press Publish.</p>`;
   } catch (e) {
@@ -178,13 +180,16 @@ async function openDetail(id) {
     <div class="detail-grid">
       <canvas id="detailCard" class="item-card" role="img"></canvas>
       <div class="detail-info">
+        ${l.demo ? `<p class="demo-banner"><b>Example item.</b> This isn't a real listing and the seller isn't a real player:
+          it shows how items look on FMCheck. Put up your own from the <a href="./">calculator</a>.</p>` : ""}
         ${l.status === "sold" ? `<p class="badge">Sold</p>` : ""}
         <p class="detail-price">${l.price ? `<b>${mesos(l.price)}</b> asking` : "Showcase: not for sale"} ${fairness(l)}</p>
         ${l.estimate ? `<p class="hint">Seller's estimate: ${rangeText(l.estimate.lo, l.estimate.hi)}, from scroll prices the seller entered on ${cardDate(l.created)}.
           Check today's prices yourself in the <a href="./#i=${l.item}">calculator</a>.</p>` : ""}
         <p>${verifiedBadge(l) || `<span class="badge">Not checked on screen</span>`}</p>
         <dl class="detail-facts">
-          <dt>Seller</dt><dd>${l.ign ? `<b>${esc(l.ign)}</b> ${supporterBadge(l)} <button type="button" class="ghost-btn mini" id="copyIgn">Copy name</button>` : "–"}</dd>
+          <dt>Seller</dt><dd>${l.ign ? `<b>${esc(l.ign)}</b> ${supporterBadge(l)} ${l.demo ? `<span class="badge demo">Example</span>`
+            : `<button type="button" class="ghost-btn mini" id="copyIgn">Copy name</button>`}` : "–"}</dd>
           <dt>Where</dt><dd>${place(l) || "Ask the seller"}</dd>
           <dt>Last seen</dt><dd>${ago(l.seen)}</dd>
           ${l.note ? `<dt>Note</dt><dd>${esc(l.note)}</dd>` : ""}
@@ -194,7 +199,7 @@ async function openDetail(id) {
           <a class="ghost-btn" href="./#${calc}">Open in the calculator</a>
           <button type="button" class="ghost-btn" id="copyLink">Copy link</button>
           <button type="button" class="ghost-btn" id="saveCard">⬇ Image</button>
-          ${l.mine ? "" : `<button type="button" class="ghost-btn" id="flag">🚩 Report</button>`}
+          ${l.mine || l.demo ? "" : `<button type="button" class="ghost-btn" id="flag">🚩 Report</button>`}
         </div>
         <p id="detailMsg" class="sale-msg" role="status"></p>
       </div>
@@ -360,8 +365,8 @@ $("listings").addEventListener("submit", (e) => {
 
 function renderSupporter() {
   const card = $("supporterCard");
-  if (!healthInfo.supporters) { card.hidden = true; return; }
   card.hidden = false;
+  $("supBtn").textContent = user && user.supporter ? "⭐ Supporter" : "⭐ Become a supporter";
   const price = healthInfo.supporterPrice || 3, boostPrice = healthInfo.boostPrice || 1;
   const perks = `<ul class="perks">
       <li><b>⭐ Feature your items:</b> 2 boosts a month. For 24 hours the item is in the Featured row at the top, comes first in every
@@ -390,6 +395,12 @@ function renderSupporter() {
     return;
   }
   $("supTitle").textContent = "⭐ Become an FMCheck supporter";
+  if (!healthInfo.supporters) {
+    $("supporterBody").innerHTML = `<p><b>$${price} a month</b> on Ko-fi (card or PayPal). Cancel any time.</p>${perks}
+      <p class="sup-soon">⏳ Memberships open very soon. Keep an eye on our
+        <a href="${DISCORD_URL}" target="_blank" rel="noopener">Discord</a> for the launch.</p>`;
+    return;
+  }
   $("supporterBody").innerHTML = `<p><b>$${price} a month</b> on Ko-fi (card or PayPal). Cancel any time.</p>${perks}
     ${user ? `<ol class="sup-steps">
       <li>Copy your code: <code id="supCode">${esc(user.code)}</code> <button type="button" class="ghost-btn mini" id="copyCode">Copy</button></li>
@@ -414,6 +425,16 @@ function renderSupporter() {
     } catch (err) { $("claimMsg").textContent = err.message; }
   });
 }
+
+// Subscribe buttons: the header and the Featured row both lead to the supporter box.
+const toSupporters = () => {
+  $("supporterCard").hidden = false;
+  $("supporterCard").scrollIntoView({ behavior: "smooth", block: "start" });
+  $("supTitle").setAttribute("tabindex", "-1");
+  $("supTitle").focus({ preventScroll: true });
+};
+$("supBtn").addEventListener("click", toSupporters);
+$("featureYours").addEventListener("click", toSupporters);
 
 // ---------- start ----------
 
