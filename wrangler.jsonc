@@ -11,5 +11,6 @@
   },
   // The community: D1 database and the Google sign-in client id
   "d1_databases": [{ "binding": "DB", "database_name": "fmcheck-community", "database_id": "e40ee919-f3e1-4f2b-9d91-d91d85b30c9d" }],
-  "vars": { "GOOGLE_CLIENT_ID": "123250047088-qaj5de9sgejg2jqo35l6a9nqt8om0ja1.apps.googleusercontent.com" }
+  // DEMO off: example items hidden (their prices weren't realistic). Remove it to show them again.
+  "vars": { "GOOGLE_CLIENT_ID": "123250047088-qaj5de9sgejg2jqo35l6a9nqt8om0ja1.apps.googleusercontent.com", "DEMO": "off" }
 }
