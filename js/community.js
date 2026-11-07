@@ -1,17 +1,17 @@
 // The community page: players' scrolled items, for sale or shown off, with the full picture of each one.
-import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=7840d99d";
-import { drawCard, cardBlob } from "./card.js?v=7840d99d";
-import { cardInfo, cardLabel, cardFmt, cardDate, rangeText, oneInText } from "./itemcard.js?v=7840d99d";
-import { setupA11y } from "./a11y.js?v=7840d99d";
-import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=7840d99d";
-import { DISCORD_URL } from "./config.js?v=7840d99d";
+import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=96802657";
+import { drawCard, cardBlob } from "./card.js?v=96802657";
+import { cardInfo, cardLabel, cardFmt, cardDate, rangeText, oneInText } from "./itemcard.js?v=96802657";
+import { setupA11y } from "./a11y.js?v=96802657";
+import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=96802657";
+import { DISCORD_URL } from "./config.js?v=96802657";
 
 const $ = (id) => document.getElementById(id);
 const icon = (id) => `assets/items/${String(id).padStart(8, "0")}.png`;
 const plus = (stats) => Object.entries(stats).map(([k, v]) => `${v > 0 ? "+" : ""}${v} ${STAT_LABEL[k] || k}`).join(", ");
 
 let equipById = new Map(), scrollById = new Map();
-let user = null, myListings = [];
+let user = null, myListings = [], healthInfo = {};
 let tab = "sale", offset = 0, shown = [];
 
 setupA11y();
@@ -35,14 +35,15 @@ function fairness(l) {
 }
 const verifiedBadge = (l) => (l.verified ? `<span class="badge ok" title="The seller showed the item's window from the game and it matched">✓ Checked on screen</span>` : "");
 
+const supporterBadge = (l) => (l.supporter ? `<span class="badge sup" title="Supports FMCheck">⭐ Supporter</span>` : "");
 function tile(l) {
-  return `<li><button type="button" class="tile" data-id="${l.id}">
+  return `<li><button type="button" class="tile${l.featured ? " is-featured" : ""}" data-id="${l.id}">
     <span class="tile-icon"><img src="${icon(l.item)}" alt="" width="40" height="40" /></span>
     <span class="tile-main">
       <span class="tile-name">${esc(l.name)}${l.upgrades ? ` <b>(+${l.upgrades})</b>` : ""}</span>
       <span class="tile-stats">${esc(plus(l.gained)) || "clean"} · ${l.left} slot${l.left === 1 ? "" : "s"} left</span>
       <span class="tile-seller">${l.ign ? `<b>${esc(l.ign)}</b>` : ""}${place(l) ? ` · ${place(l)}` : ""} · ${ago(l.seen)}</span>
-      <span class="tile-badges">${verifiedBadge(l)}${fairness(l)}${l.status === "sold" ? `<span class="badge">Sold</span>` : ""}</span>
+      <span class="tile-badges">${l.featured ? `<span class="badge feat">⭐ Featured</span>` : ""}${verifiedBadge(l)}${fairness(l)}${supporterBadge(l)}${l.status === "sold" ? `<span class="badge">Sold</span>` : ""}</span>
     </span>
     <span class="tile-side">
       ${l.price ? `<b class="tile-price">${mesos(l.price)}</b>` : `<span class="tile-show">Showcase</span>`}
@@ -82,6 +83,15 @@ async function load(more = false) {
     box.innerHTML = `<p class="hint">${esc(e.status === 503 ? "The community opens soon." : e.message)}</p>`;
   }
 }
+
+async function loadFeatured() {
+  try {
+    const j = await api("/api/listings?tab=featured");
+    $("featured").hidden = !j.listings.length;
+    $("featuredList").innerHTML = j.listings.map(tile).join("");
+  } catch { $("featured").hidden = true; }
+}
+$("featuredList").addEventListener("click", (e) => { const b = e.target.closest(".tile"); if (b) openDetail(b.dataset.id); });
 
 function setTab(t) {
   tab = t;
@@ -136,7 +146,7 @@ async function openDetail(id) {
         ${l.estimate ? `<p class="hint">FMCheck estimate: ${rangeText(l.estimate.lo, l.estimate.hi)} (from the seller's prices on ${cardDate(l.created)})</p>` : ""}
         <p>${verifiedBadge(l) || `<span class="badge">Not checked on screen</span>`}</p>
         <dl class="detail-facts">
-          <dt>Seller</dt><dd>${l.ign ? `<b>${esc(l.ign)}</b> <button type="button" class="ghost-btn mini" id="copyIgn">Copy name</button>` : "–"}</dd>
+          <dt>Seller</dt><dd>${l.ign ? `<b>${esc(l.ign)}</b> ${supporterBadge(l)} <button type="button" class="ghost-btn mini" id="copyIgn">Copy name</button>` : "–"}</dd>
           <dt>Where</dt><dd>${place(l) || "Ask the seller"}</dd>
           <dt>Last seen</dt><dd>${ago(l.seen)}</dd>
           ${l.note ? `<dt>Note</dt><dd>${esc(l.note)}</dd>` : ""}
@@ -191,7 +201,8 @@ function renderAccount() {
       <span class="spacer"></span>
       <button type="button" class="ghost-btn" id="signOut">Sign out</button>
       <button type="button" class="ghost-btn" id="deleteMe">Delete account</button>
-    </form><p id="accountMsg" class="sale-msg" role="status">${user.ign ? "" : "Add your in-game name so buyers can find you."}</p>`;
+    </form><p id="accountMsg" class="sale-msg" role="status">${user.ign ? "" : "Add your in-game name so buyers can find you."}</p>
+    ${user.supporter ? `<p class="sup-status">⭐ Supporter until ${cardDate(user.supporterUntil)} · ${user.boostsLeft} of ${user.perMonth} boosts left this month. Thank you!</p>` : ""}`;
   $("ignForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const ign = $("ign").value.trim();
@@ -212,6 +223,7 @@ async function refreshMe() {
   user = m.user;
   myListings = m.listings || [];
   renderAccount();
+  renderSupporter();
   if (tab === "mine") renderMine();
 }
 
@@ -226,6 +238,8 @@ function renderMine() {
       <div class="mine-actions">
         ${l.status === "active" ? `
         ${l.price ? `<button type="button" data-act="bump">🟢 Still selling</button>` : ""}
+        ${l.featured ? `<span class="badge feat">⭐ Featured until ${new Date(l.featured).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>`
+          : `<button type="button" class="ghost-btn boost" data-act="boost">⭐ Feature for 24h${user.supporter ? ` (${user.boostsLeft} left)` : ""}</button>`}
         <button type="button" class="ghost-btn" data-act="edit">✏️ Price & place</button>
         ${l.verified ? "" : `<button type="button" class="ghost-btn" data-act="verify">✓ Check on screen</button>`}
         ${l.price ? `<button type="button" class="ghost-btn" data-act="sold">💰 Sold</button>` : ""}` : `<span class="hint">Sold</span>`}
@@ -258,7 +272,22 @@ $("listings").addEventListener("click", async (e) => {
   const id = li.dataset.id;
   const l = myListings.find((x) => x.id === id);
   const act = b.dataset.act;
-  if (act === "bump") patch(id, { bump: true }, "Up for 3 more days.");
+  if (act === "bump") patch(id, { bump: true }, `Up for ${user.supporter ? 7 : 3} more days.`);
+  if (act === "boost") {
+    if (!user.supporter) {
+      if (!$("supporterCard").hidden) $("supporterCard").scrollIntoView({ behavior: "smooth" });
+      toast("Featuring is a supporter perk.");
+      return;
+    }
+    if (!confirm(`Feature this item at the top for 24 hours? It uses 1 of your ${user.boostsLeft} boosts this month.`)) return;
+    try {
+      const j = await api(`/api/listings/${id}/boost`, { method: "POST", body: {} });
+      myListings = myListings.map((x) => (x.id === id ? j.listing : x));
+      user.boostsLeft = j.boostsLeft;
+      renderMine(); renderAccount(); loadFeatured();
+      toast("⭐ Featured for 24 hours.");
+    } catch (err) { toast(err.message); }
+  }
   if (act === "edit") { const f = li.querySelector(".mine-edit"); f.hidden = !f.hidden; }
   if (act === "sold") {
     const text = prompt("What did it sell for? (e.g. 350m) It's added to the reported sales, anonymously. Leave empty to skip.", l.price ? mesos(l.price) : "");
@@ -286,6 +315,52 @@ $("listings").addEventListener("submit", (e) => {
   patch(id, { price, channel: f.channel.value.trim(), room: f.room.value.trim(), note: f.note.value.trim() }, "Saved.");
 });
 
+// ---------- supporters (Ko-fi) ----------
+
+function renderSupporter() {
+  const card = $("supporterCard");
+  if (!healthInfo.supporters) { card.hidden = true; return; }
+  card.hidden = false;
+  const price = healthInfo.supporterPrice || 3;
+  const perks = `<ul class="perks">
+      <li><b>⭐ Feature your items:</b> 2 boosts a month. Each puts an item in the Featured row at the top for 24 hours, and on our Discord.</li>
+      <li><b>Longer on the list:</b> your for-sale items stay up 7 days instead of 3.</li>
+      <li><b>More items:</b> up to 100 at once instead of 40.</li>
+      <li><b>⭐ Supporter badge</b> next to your name.</li>
+      <li>And you keep FMCheck free and running. Thank you!</li>
+    </ul>`;
+  if (user && user.supporter) {
+    $("supTitle").textContent = "⭐ You're an FMCheck supporter";
+    $("supporterBody").innerHTML = `<p>Supporter until <b>${cardDate(user.supporterUntil)}</b>. Your monthly payment on Ko-fi keeps it going;
+      you can stop it there any time.</p>${perks}`;
+    return;
+  }
+  $("supTitle").textContent = "⭐ Become an FMCheck supporter";
+  $("supporterBody").innerHTML = `<p><b>$${price} a month</b> on Ko-fi (card or PayPal). Cancel any time.</p>${perks}
+    ${user ? `<ol class="sup-steps">
+      <li>Copy your code: <code id="supCode">${esc(user.code)}</code> <button type="button" class="ghost-btn mini" id="copyCode">Copy</button></li>
+      <li><a class="btn-link" href="${esc(healthInfo.kofiUrl)}" target="_blank" rel="noopener">Join on Ko-fi ↗</a>
+        and paste the code in the message box. Your perks turn on within a minute.</li>
+    </ol>
+    <details class="sup-claim"><summary>Already paid but no perks?</summary>
+      <form id="claimForm" class="account-row"><label>Email you used on Ko-fi <input id="claimEmail" type="email" autocomplete="email" /></label>
+      <button type="submit">Link my payment</button></form>
+      <p class="hint">The email is only used to find your payment: we keep a one-way code of it, never the email itself.</p>
+      <p id="claimMsg" class="sale-msg" role="status"></p>
+    </details>` : `<p class="hint">Sign in first (top of the page), so your perks go to your account.</p>`}
+    <p class="hint">Payments go through Ko-fi; FMCheck never sees your card. Supporting is voluntary and doesn't buy anything in the game.
+      Perks may change. <a href="terms.html#supporters">Supporter terms</a></p>`;
+  $("copyCode")?.addEventListener("click", () => navigator.clipboard.writeText(user.code).then(() => toast("Code copied. Paste it in the Ko-fi message.")).catch(() => {}));
+  $("claimForm")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    try {
+      const j = await api("/api/me/claim", { method: "POST", body: { email: $("claimEmail").value } });
+      if (j.found) { user = j.user; renderAccount(); renderSupporter(); toast("⭐ Linked! You're a supporter."); }
+      else $("claimMsg").textContent = "No payment found for that email yet. It can take a minute after paying. Renewals will link to it by themselves.";
+    } catch (err) { $("claimMsg").textContent = err.message; }
+  });
+}
+
 // ---------- start ----------
 
 (async function start() {
@@ -300,6 +375,7 @@ $("listings").addEventListener("submit", (e) => {
   const cats = [...new Set(eq.map((e) => (Math.floor(e[0] / 10000) >= 130 ? "Weapon" : e[3])))].sort();
   $("fCat").innerHTML += cats.map((c) => `<option>${esc(c)}</option>`).join("");
   $("fStat").innerHTML += STATS.filter(([k]) => !["CRT", "CRD"].includes(k)).map(([k, label]) => `<option value="${k}">${label}</option>`).join("");
+  healthInfo = h;
   if (!h.community) {
     $("accountBody").innerHTML = `<p class="hint">The community opens soon. Meanwhile, price your items in the <a href="./">calculator</a>.</p>`;
     $("listings").innerHTML = "";
@@ -307,8 +383,9 @@ $("listings").addEventListener("submit", (e) => {
     return;
   }
   if (canSignIn()) await refreshMe();
-  else renderAccount();
+  else { renderAccount(); renderSupporter(); }
   load();
+  loadFeatured();
   const id = /^#l=([a-f0-9]{12})$/.exec(location.hash)?.[1];
   if (id) openDetail(id);
 })();

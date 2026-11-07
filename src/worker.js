@@ -67,9 +67,10 @@ async function saveSale(env, rec) {
 async function api(request, env, ctx, url) {
   if (request.method === "OPTIONS") return json({});
   if (url.pathname === "/api/health") {
-    return json({ ok: true, sales: !!env.SALES, community: communityReady(env), googleClientId: env.GOOGLE_CLIENT_ID || null });
+    return json({ ok: true, sales: !!env.SALES, community: communityReady(env), googleClientId: env.GOOGLE_CLIENT_ID || null,
+      supporters: !!env.KOFI_TOKEN && !!env.KOFI_URL, kofiUrl: env.KOFI_URL || null, supporterPrice: +(env.SUPPORTER_PRICE || 3) });
   }
-  if (/^\/api\/(auth|me|listings)(\/|$)/.test(url.pathname)) {
+  if (/^\/api\/(auth|me|listings|kofi|admin)(\/|$)/.test(url.pathname)) {
     return community(request, env, ctx, url, json, env.SALES ? (rec) => saveSale(env, rec) : null);
   }
   if (!env.SALES) return json({ error: "Sale reports aren't set up yet." }, 503);

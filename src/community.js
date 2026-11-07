@@ -16,13 +16,26 @@
 //   DELETE /api/listings/:id        owner or admin
 //   POST   /api/listings/:id/verify { stats, left }  read from the game screen; must match the listing
 //   POST   /api/listings/:id/flag   report a wrong or fake item
+//   POST   /api/listings/:id/boost  supporters: "Featured" at the top for 24 hours
+//   POST   /api/me/claim            { email }  link a Ko-fi payment made with that email
+//   POST   /api/kofi                Ko-fi's webhook (form field "data", checked with KOFI_TOKEN)
+//   POST   /api/admin/supporter     { code, days }  admins: give supporter time by hand
+//
+// Supporters (Ko-fi membership): a badge, more items, items stay on the for-sale list longer,
+// and a few boosts a month. Ko-fi sends the payer's email; only a one-way hash of it is kept, to match renewals.
 
 import equips from "../data/equips.json";
 import scrollData from "../data/scrolls.json";
 
 const DAY = 864e5;
 const SALE_FRESH = 3 * DAY;        // a for-sale item drops off the list after 3 days without "still selling"
+const SALE_FRESH_SUPPORTER = 7 * DAY;
 const MAX_ACTIVE = 40;             // items per account
+const MAX_ACTIVE_SUPPORTER = 100;
+const BOOSTS_PER_MONTH = 2;        // supporters: 24 hours as "Featured", per 30 days
+const BOOST_HOURS = 24;
+const MAX_FEATURED = 6;            // Featured spots at once, so it stays special
+const SUPPORT_DAYS = 31;           // what one monthly payment gives
 const MAX_NEW_PER_DAY = 40;
 const HIDE_AT_FLAGS = 3;           // reports from different players that hide an item
 const SESSION_DAYS = 30;
@@ -47,9 +60,25 @@ const SCHEMA = [
   `CREATE INDEX IF NOT EXISTS listings_item ON listings(item, status)`,
   `CREATE INDEX IF NOT EXISTS listings_user ON listings(user_id)`,
   `CREATE TABLE IF NOT EXISTS flags (listing TEXT NOT NULL, who TEXT NOT NULL, PRIMARY KEY (listing, who))`,
+  `CREATE TABLE IF NOT EXISTS boosts (user_id TEXT NOT NULL, listing TEXT NOT NULL, t INTEGER NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS boosts_user ON boosts(user_id, t)`,
+  `CREATE TABLE IF NOT EXISTS payments (id TEXT PRIMARY KEY, email_hash TEXT, t INTEGER NOT NULL, days INTEGER NOT NULL, user_id TEXT)`,
+  `CREATE INDEX IF NOT EXISTS payments_email ON payments(email_hash)`,
 ];
+// Columns added after the first version: added to existing tables when missing.
+const COLUMNS = {
+  users: [["supporter_until", "INTEGER NOT NULL DEFAULT 0"], ["sup_code", "TEXT"], ["sup_email", "TEXT"]],
+  listings: [["featured_until", "INTEGER NOT NULL DEFAULT 0"]],
+};
+async function migrate(env) {
+  await env.DB.batch(SCHEMA.map((q) => env.DB.prepare(q)));
+  for (const [table, cols] of Object.entries(COLUMNS)) {
+    const have = new Set((await env.DB.prepare(`PRAGMA table_info(${table})`).all()).results.map((c) => c.name));
+    for (const [name, type] of cols) if (!have.has(name)) await env.DB.prepare(`ALTER TABLE ${table} ADD COLUMN ${name} ${type}`).run();
+  }
+}
 let ready = null;
-const setup = (env) => (ready ||= env.DB.batch(SCHEMA.map((s) => env.DB.prepare(s))).catch((e) => { ready = null; throw e; }));
+const setup = (env) => (ready ||= migrate(env).catch((e) => { ready = null; throw e; }));
 
 // ---------- small helpers ----------
 
@@ -106,7 +135,7 @@ const sessionCookie = (token, maxAge) =>
 async function currentUser(req, env) {
   const m = new RegExp(`(?:^|;\\s*)${COOKIE}=([a-f0-9]{64})`).exec(req.headers.get("cookie") || "");
   if (!m) return null;
-  return env.DB.prepare(`SELECT u.id, u.ign FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token = ? AND s.expires > ?`)
+  return env.DB.prepare(`SELECT u.id, u.ign, u.supporter_until, u.sup_code FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token = ? AND s.expires > ?`)
     .bind(await sha(m[1]), Date.now()).first();
 }
 const isAdmin = (env, user) => !!user && String(env.ADMIN_IDS || "").split(",").map((x) => x.trim()).includes(user.id);
@@ -114,13 +143,15 @@ const isAdmin = (env, user) => !!user && String(env.ADMIN_IDS || "").split(",").
 // ---------- listings ----------
 
 const COLS = `l.id, l.item, l.name, l.cat, l.clean, l.gained, l.stats, l.scrolls, l.upgrades, l.left_slots, l.slots, l.chance, l.one_in,
-  l.est_lo, l.est_hi, l.price, l.channel, l.room, l.note, l.verified, l.status, l.created, l.seen, l.user_id, u.ign`;
+  l.est_lo, l.est_hi, l.price, l.channel, l.room, l.note, l.verified, l.status, l.created, l.seen, l.featured_until, l.user_id, u.ign,
+  u.supporter_until`;
 function publicListing(r, user) {
   return {
     id: r.id, item: r.item, name: r.name, cat: r.cat, clean: parse(r.clean, {}), gained: parse(r.gained, {}), stats: parse(r.stats, {}),
     scrolls: parse(r.scrolls, []), upgrades: r.upgrades, left: r.left_slots, slots: r.slots, chance: r.chance, oneIn: r.one_in,
     estimate: r.est_lo != null ? { lo: r.est_lo, hi: r.est_hi } : null, price: r.price, ign: r.ign, channel: r.channel, room: r.room,
     note: r.note, verified: !!r.verified, status: r.status, created: r.created, seen: r.seen, mine: !!user && user.id === r.user_id,
+    supporter: r.supporter_until > Date.now(), featured: r.featured_until > Date.now() ? r.featured_until : 0,
   };
 }
 
@@ -163,10 +194,10 @@ function readSeller(b) {
   return out;
 }
 
-async function discordPost(env, l, ign, image, origin) {
+async function discordPost(env, l, ign, image, origin, featured = false) {
   if (!env.DISCORD_WEBHOOK) return;
   const min = +(env.DISCORD_MIN_ONE_IN || 50);
-  if (l.oneIn < min) return;
+  if (!featured && l.oneIn < min) return;
   const lines = Object.entries(l.gained).map(([k, v]) => `+${v} ${k}`).join(", ");
   const oneIn = l.oneIn < 1e6 ? Math.round(l.oneIn).toLocaleString("en-US") : l.oneIn.toExponential(1);
   const link = `${origin}/community.html#l=${l.id}`;
@@ -176,7 +207,9 @@ async function discordPost(env, l, ign, image, origin) {
       l.price ? `For sale: **${fmtMesos(l.price)}** by ${ign}` : `Shown off by ${ign}`].filter(Boolean).join("\n"),
     color: 0xffb83d,
   };
-  const payload = { username: "FMCheck", content: "✨ A rare item was just added", embeds: [embed], allowed_mentions: { parse: [] } };
+  if (featured) embed.thumbnail = { url: `${origin}/assets/items/${String(l.item).padStart(8, "0")}.png` };
+  const payload = { username: "FMCheck", content: featured ? "⭐ Featured by a supporter" : "✨ A rare item was just added",
+    embeds: [embed], allowed_mentions: { parse: [] } };
   let body, headers = {};
   const png = typeof image === "string" && image.startsWith("data:image/png;base64,") && image.length < 600000 ? image.slice(22) : null;
   if (png) {
@@ -192,6 +225,62 @@ async function discordPost(env, l, ign, image, origin) {
 }
 const fmtMesos = (n) => (n >= 1e9 ? `${+(n / 1e9).toFixed(2)}B` : n >= 1e6 ? `${+(n / 1e6).toFixed(2)}M` : n >= 1e3 ? `${+(n / 1e3).toFixed(1)}K` : String(n));
 
+// ---------- supporters ----------
+
+const isSupporter = (u) => !!u && u.supporter_until > Date.now();
+const emailHash = (email) => sha(`${String(email || "").trim().toLowerCase()}|fmcheck-kofi`);
+const newCode = () => `FMC-${[...crypto.getRandomValues(new Uint8Array(6))].map((b) => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[b % 32]).join("")}`;
+
+// Adds supporter days to a user, starting from today or from the end of their current time.
+const extend = (env, userId, days, now = Date.now()) => env.DB.prepare(
+  `UPDATE users SET supporter_until = MAX(supporter_until, ?) + ? WHERE id = ?`).bind(now, days * DAY, userId);
+
+async function boostsLeft(env, user) {
+  if (!isSupporter(user)) return 0;
+  const used = await env.DB.prepare(`SELECT COUNT(*) AS n FROM boosts WHERE user_id = ? AND t > ?`).bind(user.id, Date.now() - 30 * DAY).first();
+  return Math.max(0, BOOSTS_PER_MONTH - (used.n || 0));
+}
+
+async function meInfo(env, user) {
+  let code = user.sup_code;
+  if (!code) {
+    code = newCode();
+    await env.DB.prepare(`UPDATE users SET sup_code = ? WHERE id = ?`).bind(code, user.id).run();
+  }
+  return { id: user.id, ign: user.ign, supporter: isSupporter(user), supporterUntil: user.supporter_until || 0, code,
+    boostsLeft: await boostsLeft(env, user), perMonth: BOOSTS_PER_MONTH };
+}
+
+// Ko-fi calls this after each payment (one-off or monthly membership).
+async function kofi(request, env, json) {
+  if (!env.KOFI_TOKEN) return json({ error: "Not set up." }, 503);
+  const form = await request.formData().catch(() => null);
+  const d = parse(form && form.get("data"), null);
+  if (!d || d.verification_token !== env.KOFI_TOKEN) return json({ error: "Not allowed." }, 403);
+  const id = cleanText(d.kofi_transaction_id || d.message_id, 80);
+  if (!id) return json({ ok: true });
+  const price = +(env.SUPPORTER_PRICE || 3);
+  const amount = parseFloat(d.amount) || 0;
+  const days = d.type === "Subscription" || amount >= price ? SUPPORT_DAYS : 0;
+  if (!days) return json({ ok: true }); // a small tip: thanks, nothing to unlock
+  const hash = d.email ? await emailHash(d.email) : null;
+  const fresh = await env.DB.prepare(`INSERT OR IGNORE INTO payments (id, email_hash, t, days) VALUES (?, ?, ?, ?)`)
+    .bind(id, hash, Date.now(), days).run();
+  if (!fresh.meta.changes) return json({ ok: true }); // already counted
+  // whose is it: the FMCheck code in the Ko-fi message, or the email of an earlier payment
+  const code = /FMC-[A-Z0-9]{6}/i.exec(String(d.message || ""))?.[0]?.toUpperCase();
+  let u = code ? await env.DB.prepare(`SELECT id FROM users WHERE sup_code = ?`).bind(code).first() : null;
+  if (!u && hash) u = await env.DB.prepare(`SELECT id FROM users WHERE sup_email = ?`).bind(hash).first();
+  if (u) {
+    await env.DB.batch([
+      extend(env, u.id, days),
+      env.DB.prepare(`UPDATE payments SET user_id = ? WHERE id = ?`).bind(u.id, id),
+      ...(hash ? [env.DB.prepare(`UPDATE users SET sup_email = ? WHERE id = ?`).bind(hash, u.id)] : []),
+    ]);
+  }
+  return json({ ok: true });
+}
+
 // ---------- routes ----------
 
 export const communityReady = (env) => !!(env.DB && env.GOOGLE_CLIENT_ID);
@@ -201,6 +290,7 @@ export async function community(request, env, ctx, url, json, saveSale) {
   await setup(env);
   const { pathname: path } = url;
   const method = request.method;
+  if (path === "/api/kofi" && method === "POST") return kofi(request, env, json);
   // Changes only from the site itself (with the sign-in cookie), never from other sites.
   if (method !== "GET" && request.headers.get("origin") !== url.origin) return json({ error: "Not allowed." }, 403);
   const user = await currentUser(request, env);
@@ -241,14 +331,14 @@ export async function community(request, env, ctx, url, json, saveSale) {
       if (!user) return json({ user: null, listings: [] });
       const rows = await env.DB.prepare(`SELECT ${COLS} FROM listings l JOIN users u ON u.id = l.user_id WHERE l.user_id = ? ORDER BY l.created DESC`)
         .bind(user.id).all();
-      return json({ user, admin: isAdmin(env, user), listings: rows.results.map((r) => publicListing(r, user)) });
+      return json({ user: await meInfo(env, user), admin: isAdmin(env, user), listings: rows.results.map((r) => publicListing(r, user)) });
     }
     if (needUser()) return needUser();
     if (method === "PUT") {
       const ign = validIgn(body.ign);
       if (!ign) return json({ error: "In-game name: 2–13 letters or numbers." }, 400);
       await env.DB.prepare(`UPDATE users SET ign = ? WHERE id = ?`).bind(ign, user.id).run();
-      return json({ user: { ...user, ign } });
+      return json({ user: await meInfo(env, { ...user, ign }) });
     }
     if (method === "DELETE") {
       await env.DB.batch([
@@ -261,13 +351,44 @@ export async function community(request, env, ctx, url, json, saveSale) {
     }
   }
 
+  if (path === "/api/me/claim" && method === "POST") {
+    if (needUser()) return needUser();
+    const email = String(body.email || "").trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json({ error: "Enter the email you used on Ko-fi." }, 400);
+    const hash = await emailHash(email);
+    const owner = await env.DB.prepare(`SELECT id FROM users WHERE sup_email = ? AND id != ?`).bind(hash, user.id).first();
+    if (owner) return json({ error: "Those payments are already linked to another FMCheck account." }, 409);
+    const open = await env.DB.prepare(`SELECT COALESCE(SUM(days), 0) AS days FROM payments WHERE email_hash = ? AND user_id IS NULL`).bind(hash).first();
+    await env.DB.batch([
+      env.DB.prepare(`UPDATE users SET sup_email = ? WHERE id = ?`).bind(hash, user.id),
+      env.DB.prepare(`UPDATE payments SET user_id = ? WHERE email_hash = ? AND user_id IS NULL`).bind(user.id, hash),
+      ...(open.days ? [extend(env, user.id, open.days)] : []),
+    ]);
+    const u = await env.DB.prepare(`SELECT id, ign, supporter_until, sup_code FROM users WHERE id = ?`).bind(user.id).first();
+    return json({ user: await meInfo(env, u), found: open.days > 0 });
+  }
+
+  if (path === "/api/admin/supporter" && method === "POST") {
+    if (!isAdmin(env, user)) return json({ error: "Admins only." }, 403);
+    const days = int(+body.days, -400, 400);
+    const code = String(body.code || "").trim().toUpperCase();
+    const u = await env.DB.prepare(`SELECT id FROM users WHERE sup_code = ? OR id = ?`).bind(code, code.toLowerCase()).first();
+    if (!u || !days) return json({ error: "Unknown code, or no days." }, 400);
+    await extend(env, u.id, days).run();
+    return json({ ok: true });
+  }
+
   if (path === "/api/listings" && method === "GET") {
     const p = url.searchParams;
     const where = [`l.status = 'active'`, `l.flags < ${HIDE_AT_FLAGS}`];
     const args = [];
     const now = Date.now();
     const tab = p.get("tab") || "sale";
-    if (tab === "sale") { where.push(`l.price IS NOT NULL`, `l.seen > ?`); args.push(now - SALE_FRESH); }
+    if (tab === "sale") {
+      where.push(`l.price IS NOT NULL`, `l.seen > (CASE WHEN u.supporter_until > ? THEN ? ELSE ? END)`);
+      args.push(now, now - SALE_FRESH_SUPPORTER, now - SALE_FRESH);
+    }
+    else if (tab === "featured") { where.push(`l.featured_until > ?`); args.push(now); }
     else if (tab === "show") where.push(`l.price IS NULL`);
     else if (tab === "rare") { where.push(`l.created > ?`); args.push(now - 7 * DAY); }
     const q = cleanText(p.get("q"), 40);
@@ -283,8 +404,8 @@ export async function community(request, env, ctx, url, json, saveSale) {
     const left = int(+p.get("left"), 1, 20);
     if (left) { where.push(`l.left_slots >= ?`); args.push(left); }
     if (p.get("verified") === "1") where.push(`l.verified = 1`);
-    const sort = tab === "rare" ? "rare" : p.get("sort");
-    const order = sort === "rare" ? `l.one_in DESC` : sort === "cheap" ? `l.price ASC` : sort === "pricey" ? `l.price DESC` : `l.seen DESC`;
+    const sort = tab === "rare" ? "rare" : tab === "featured" ? "featured" : p.get("sort");
+    const order = sort === "featured" ? `l.featured_until DESC` : sort === "rare" ? `l.one_in DESC` : sort === "cheap" ? `l.price ASC` : sort === "pricey" ? `l.price DESC` : `l.seen DESC`;
     const offset = int(+p.get("offset"), 0, 10000) || 0;
     const rows = await env.DB.prepare(`SELECT ${COLS} FROM listings l JOIN users u ON u.id = l.user_id WHERE ${where.join(" AND ")}
       ORDER BY ${order} LIMIT ${PAGE + 1} OFFSET ${offset}`).bind(...args).all();
@@ -301,7 +422,8 @@ export async function community(request, env, ctx, url, json, saveSale) {
     const counts = await env.DB.prepare(`SELECT
         SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS active, SUM(CASE WHEN created > ? THEN 1 ELSE 0 END) AS today
         FROM listings WHERE user_id = ?`).bind(Date.now() - DAY, user.id).first();
-    if ((counts.active || 0) >= MAX_ACTIVE) return json({ error: `You have ${MAX_ACTIVE} items up. Remove one first.` }, 429);
+    const max = isSupporter(user) ? MAX_ACTIVE_SUPPORTER : MAX_ACTIVE;
+    if ((counts.active || 0) >= max) return json({ error: `You have ${max} items up. Remove one first.` }, 429);
     if ((counts.today || 0) >= MAX_NEW_PER_DAY) return json({ error: "That's enough new items for today." }, 429);
     const id = randomHex(6);
     const now = Date.now();
@@ -315,7 +437,7 @@ export async function community(request, env, ctx, url, json, saveSale) {
     return json({ id });
   }
 
-  const m = /^\/api\/listings\/([a-f0-9]{12})(\/verify|\/flag)?$/.exec(path);
+  const m = /^\/api\/listings\/([a-f0-9]{12})(\/verify|\/flag|\/boost)?$/.exec(path);
   if (m) {
     const [, id, action] = m;
     const row = await env.DB.prepare(`SELECT ${COLS} FROM listings l JOIN users u ON u.id = l.user_id WHERE l.id = ?`).bind(id).first();
@@ -335,6 +457,27 @@ export async function community(request, env, ctx, url, json, saveSale) {
     }
 
     if (!mine && !(method === "DELETE" && isAdmin(env, user))) return json({ error: user ? "Not your item." : "Sign in first." }, user ? 403 : 401);
+
+    if (action === "/boost" && method === "POST") {
+      if (!isSupporter(user)) return json({ error: "Boosts are a supporter perk." }, 403);
+      if (row.status !== "active") return json({ error: "Only items that are up can be featured." }, 400);
+      if (row.featured_until > Date.now()) return json({ error: "It's already featured." }, 400);
+      if ((await boostsLeft(env, user)) < 1) return json({ error: "No boosts left this month. They come back 30 days after each use." }, 429);
+      const now = Date.now();
+      const busy = await env.DB.prepare(`SELECT COUNT(*) AS n, MIN(featured_until) AS next FROM listings WHERE featured_until > ?`).bind(now).first();
+      if (busy.n >= MAX_FEATURED) {
+        const h = Math.max(1, Math.ceil((busy.next - now) / 3600e3));
+        return json({ error: `All ${MAX_FEATURED} Featured spots are taken. One frees up in about ${h} hour${h === 1 ? "" : "s"}.` }, 429);
+      }
+      await env.DB.batch([
+        env.DB.prepare(`UPDATE listings SET featured_until = ?, seen = ? WHERE id = ?`).bind(now + BOOST_HOURS * 3600e3, now, id),
+        env.DB.prepare(`INSERT INTO boosts (user_id, listing, t) VALUES (?, ?, ?)`).bind(user.id, id, now),
+      ]);
+      const l = publicListing(row, user);
+      ctx.waitUntil(discordPost(env, l, row.ign, null, url.origin, true));
+      const fresh = await env.DB.prepare(`SELECT ${COLS} FROM listings l JOIN users u ON u.id = l.user_id WHERE l.id = ?`).bind(id).first();
+      return json({ listing: publicListing(fresh, user), boostsLeft: await boostsLeft(env, user) });
+    }
 
     if (action === "/verify" && method === "POST") {
       // What the page read off the game's item window must match the listing exactly.

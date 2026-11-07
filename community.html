@@ -23,7 +23,7 @@
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
   <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="css/style.css?v=7840d99d" />
+  <link rel="stylesheet" href="css/style.css?v=96802657" />
 </head>
 <body>
   <a class="skip" href="#listings">Skip to the items</a>
@@ -77,6 +77,11 @@
       <div id="accountBody"><p class="hint">Loading…</p></div>
     </section>
 
+    <section class="card featured" id="featured" aria-labelledby="featuredTitle" hidden>
+      <h2 id="featuredTitle">⭐ Featured <small>by FMCheck supporters</small></h2>
+      <ul class="tiles" id="featuredList"></ul>
+    </section>
+
     <section class="card" aria-labelledby="listTitle">
       <h2 id="listTitle" class="sr-only">Items</h2>
       <div class="tabs" role="tablist" aria-label="Which items">
@@ -100,14 +105,20 @@
       <button id="more" type="button" class="ghost-btn more" hidden>Show more</button>
     </section>
 
+    <section class="card supporter" id="supporterCard" aria-labelledby="supTitle" hidden>
+      <h2 id="supTitle">⭐ Become an FMCheck supporter</h2>
+      <div id="supporterBody"></div>
+    </section>
+
     <section class="card how-community">
       <h2>How it works</h2>
       <ul>
         <li><b>Put an item up:</b> work it out in the <a href="./">calculator</a>, then press <i>Publish</i> under the estimate.</li>
-        <li><b>For sale</b> items stay on the list for 3 days. Press <i>Still selling</i> under My items to keep yours up.</li>
+        <li><b>For sale</b> items stay on the list for 3 days (7 for supporters). Press <i>Still selling</i> under My items to keep yours up.</li>
         <li><b>✓ Checked on screen:</b> the seller showed the item's window from the game, and the stats and slots matched.
           Reading happens in the seller's browser: the screen is never uploaded. It's a strong hint, not a guarantee, so look at the item in game before you pay.</li>
         <li><b>The estimate</b> comes from the seller's prices when they published. Compare it with the asking price.</li>
+        <li><b>⭐ Featured</b> items were boosted by FMCheck supporters for 24 hours. Featured is marked clearly; it doesn't change the stats, the badges or the estimate.</li>
         <li>Mesos only. Real-money trading isn't allowed. See something fake? Press <i>Report</i> on the item.</li>
       </ul>
     </section>
@@ -150,6 +161,6 @@
   </div>
 
 
-  <script type="module" src="js/community.js?v=7840d99d"></script>
+  <script type="module" src="js/community.js?v=96802657"></script>
 </body>
 </html>
