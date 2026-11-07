@@ -9,7 +9,8 @@
 //   GET    /api/me                  { user, listings }  (user is null when signed out)
 //   PUT    /api/me                  { ign }
 //   DELETE /api/me                  deletes the account and all its items
-//   GET    /api/listings            ?tab=sale|show|rare &q= &item= &cat= &stat=PAD &min= &left= &sort=new|rare|cheap &offset=
+//   GET    /api/listings            ?tab=sale|show|rare &q= &item= &cat= &job= &stat=PAD &min= &left= &sort=new|rare|cheap &offset=
+//   GET    /api/listings/cats       how many items each category has, for the same tab and filters
 //   GET    /api/listings/:id
 //   POST   /api/listings            a new item (from the calculator)
 //   PATCH  /api/listings/:id        { price, channel, room, note, bump, status: "sold" }
@@ -51,6 +52,9 @@ const STAT_KEYS = ["STR", "DEX", "INT", "LUK", "MHP", "MMP", "PAD", "MAD", "PDD"
 const equipById = new Map(equips.map((e) => [e[0], e]));
 const scrollById = new Map(scrollData.map((s) => [s.id, s]));
 const catOf = (e) => (Math.floor(e[0] / 10000) >= 130 ? "Weapon" : e[3]);
+// item ids each class can wear, for the class filter (numbers from the game data, safe to put in SQL)
+const JOB_ITEMS = Object.fromEntries(["Beginner", "Warrior", "Magician", "Bowman", "Thief"].map((j) =>
+  [j, equips.filter((e) => !(e[6] && e[6].jobs) || e[6].jobs.includes(j)).map((e) => e[0]).join(",")]));
 
 const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, ign TEXT, created INTEGER NOT NULL)`,
@@ -333,6 +337,37 @@ async function kofi(request, env, json) {
   return json({ ok: true });
 }
 
+// Which listings a tab and its filters cover. skipCat: leave the category out (to count items per category).
+function listWhere(p, now, skipCat = false) {
+  const where = [`l.status = 'active'`, `l.flags < ${HIDE_AT_FLAGS}`];
+  const args = [];
+  const tab = p.get("tab") || "sale";
+  if (tab === "sale") {
+    where.push(`l.price IS NOT NULL`, `l.seen > (CASE WHEN u.supporter_until > ? THEN ? ELSE ? END)`);
+    args.push(now, now - SALE_FRESH_SUPPORTER, now - SALE_FRESH);
+  }
+  else if (tab === "featured") { where.push(`l.featured_until > ?`); args.push(now); }
+  else if (tab === "show") where.push(`l.price IS NULL`);
+  else if (tab === "rare") { where.push(`l.created > ?`); args.push(now - 7 * DAY); }
+  const q = cleanText(p.get("q"), 40);
+  if (q) { where.push(`l.name LIKE ? ESCAPE '\\'`); args.push(`%${q.replace(/[%_\\]/g, "\\$&")}%`); }
+  const item = int(+p.get("item"), 1000000, 1999999);
+  if (item) { where.push(`l.item = ?`); args.push(item); }
+  const cat = skipCat ? "" : cleanText(p.get("cat"), 30);
+  if (cat) { where.push(`l.cat = ?`); args.push(cat); }
+  const stat = p.get("stat"), min = +p.get("min");
+  if (STAT_KEYS.includes(stat) && Number.isFinite(min) && p.get("min") !== "") {
+    where.push(`COALESCE(json_extract(l.stats, ?), 0) >= ?`); args.push(`$.${stat}`, min);
+  }
+  const left = int(+p.get("left"), 1, 20);
+  if (left) { where.push(`l.left_slots >= ?`); args.push(left); }
+  if (p.get("verified") === "1") where.push(`l.verified = 1`);
+  // class: items that class can wear (items with no class limit count for every class)
+  const job = p.get("job");
+  if (JOB_ITEMS[job]) where.push(`l.item IN (${JOB_ITEMS[job]})`);
+  return { where, args, tab };
+}
+
 // ---------- routes ----------
 
 export const communityReady = (env) => !!(env.DB && env.GOOGLE_CLIENT_ID);
@@ -434,32 +469,27 @@ export async function community(request, env, ctx, url, json) {
     return json({ ok: true });
   }
 
+  if (path === "/api/listings/cats" && method === "GET") {
+    const { where, args } = listWhere(url.searchParams, Date.now(), true);
+    const rows = await env.DB.prepare(`SELECT l.cat AS cat, COUNT(*) AS n FROM listings l JOIN users u ON u.id = l.user_id
+      WHERE ${where.join(" AND ")} GROUP BY l.cat`).bind(...args).all();
+    const counts = {};
+    for (const r of rows.results) counts[r.cat] = r.n;
+    // and per item (same filters, any category), for the search suggestions
+    const p2 = new URLSearchParams(url.searchParams);
+    p2.delete("item"); p2.delete("q"); p2.delete("cat");
+    const w2 = listWhere(p2, Date.now(), true);
+    const per = await env.DB.prepare(`SELECT l.item AS item, COUNT(*) AS n FROM listings l JOIN users u ON u.id = l.user_id
+      WHERE ${w2.where.join(" AND ")} GROUP BY l.item`).bind(...w2.args).all();
+    const items = {};
+    for (const r of per.results) items[r.item] = r.n;
+    return json({ counts, items });
+  }
+
   if (path === "/api/listings" && method === "GET") {
     const p = url.searchParams;
-    const where = [`l.status = 'active'`, `l.flags < ${HIDE_AT_FLAGS}`];
-    const args = [];
     const now = Date.now();
-    const tab = p.get("tab") || "sale";
-    if (tab === "sale") {
-      where.push(`l.price IS NOT NULL`, `l.seen > (CASE WHEN u.supporter_until > ? THEN ? ELSE ? END)`);
-      args.push(now, now - SALE_FRESH_SUPPORTER, now - SALE_FRESH);
-    }
-    else if (tab === "featured") { where.push(`l.featured_until > ?`); args.push(now); }
-    else if (tab === "show") where.push(`l.price IS NULL`);
-    else if (tab === "rare") { where.push(`l.created > ?`); args.push(now - 7 * DAY); }
-    const q = cleanText(p.get("q"), 40);
-    if (q) { where.push(`l.name LIKE ? ESCAPE '\\'`); args.push(`%${q.replace(/[%_\\]/g, "\\$&")}%`); }
-    const item = int(+p.get("item"), 1000000, 1999999);
-    if (item) { where.push(`l.item = ?`); args.push(item); }
-    const cat = cleanText(p.get("cat"), 30);
-    if (cat) { where.push(`l.cat = ?`); args.push(cat); }
-    const stat = p.get("stat"), min = +p.get("min");
-    if (STAT_KEYS.includes(stat) && Number.isFinite(min) && p.get("min") !== "") {
-      where.push(`COALESCE(json_extract(l.stats, ?), 0) >= ?`); args.push(`$.${stat}`, min);
-    }
-    const left = int(+p.get("left"), 1, 20);
-    if (left) { where.push(`l.left_slots >= ?`); args.push(left); }
-    if (p.get("verified") === "1") where.push(`l.verified = 1`);
+    const { where, args, tab } = listWhere(p, now);
     const sort = tab === "rare" ? "rare" : tab === "featured" ? "featured" : p.get("sort");
     // Newest = when the item was first posted. "Still selling" and edits keep an item on the list but don't move it up;
     // only a boost does. Featured items come first in every list and search they match.

@@ -1,10 +1,11 @@
 // The community page: players' scrolled items, for sale or shown off, with the full picture of each one.
-import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=8183b523";
-import { drawCard, cardBlob } from "./card.js?v=8183b523";
-import { cardInfo, cardLabel, cardFmt, cardDate, rangeText, oneInText } from "./itemcard.js?v=8183b523";
-import { setupA11y } from "./a11y.js?v=8183b523";
-import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=8183b523";
-import { DISCORD_URL } from "./config.js?v=8183b523";
+import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=ea2f0fb8";
+import { drawCard, cardBlob } from "./card.js?v=ea2f0fb8";
+import { cardInfo, cardLabel, cardFmt, cardDate, rangeText, oneInText } from "./itemcard.js?v=ea2f0fb8";
+import { setupA11y } from "./a11y.js?v=ea2f0fb8";
+import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=ea2f0fb8";
+import { itemSearch } from "./itemsearch.js?v=ea2f0fb8";
+import { DISCORD_URL } from "./config.js?v=ea2f0fb8";
 
 const $ = (id) => document.getElementById(id);
 const icon = (id) => `assets/items/${String(id).padStart(8, "0")}.png`;
@@ -13,6 +14,27 @@ const plus = (stats) => Object.entries(stats).map(([k, v]) => `${v > 0 ? "+" : "
 let equipById = new Map(), scrollById = new Map();
 let user = null, myListings = [], healthInfo = {};
 let tab = "sale", offset = 0, shown = [];
+
+// ---------- market search: the calculator's item search, filtering the list (js/itemsearch.js) ----------
+
+let picked = null;           // an item chosen from the suggestions: show only that item
+let catCounts = {}, catTotal = 0, itemCounts = {};
+const fQ = $("fQ");
+const market = itemSearch({
+  cats: $("mCats"), input: fQ, results: $("mResults"), job: $("fJob"), idPrefix: "mopt", noun: "up",
+  onPick: (e) => { picked = e; fQ.value = e[1]; load(); },
+  onChange: () => { picked = null; load(); },
+  isPicked: () => !!picked && fQ.value === picked[1],
+  count: (key) => (key ? catCounts[key] || 0 : catTotal),
+  badge: (e) => itemCounts[e[0]] || 0,
+  badgeText: (n) => `${n} ${tab === "show" ? "shown" : tab === "sale" ? "for sale" : "up"}`,
+});
+let typeTimer;
+fQ.addEventListener("input", () => {
+  if (picked && fQ.value !== picked[1]) picked = null;
+  clearTimeout(typeTimer);
+  typeTimer = setTimeout(() => load(), 350);
+});
 
 setupA11y();
 for (const a of document.querySelectorAll("[data-discord]")) a.href = DISCORD_URL;
@@ -57,8 +79,10 @@ function tile(l) {
 function query() {
   const q = new URLSearchParams({ tab, offset });
   const v = (id) => $(id).value.trim();
-  if (v("fQ")) q.set("q", v("fQ"));
-  if (v("fCat")) q.set("cat", v("fCat"));
+  if (picked) q.set("item", picked[0]);
+  else if (fQ.value.trim()) q.set("q", fQ.value.trim());
+  if (market.filter.cat) q.set("cat", market.filter.cat);
+  if (market.filter.job) q.set("job", market.filter.job);
   if (v("fStat") && v("fMin")) { q.set("stat", v("fStat")); q.set("min", v("fMin")); }
   if (v("fLeft")) q.set("left", v("fLeft"));
   if (tab !== "rare") q.set("sort", v("fSort"));
@@ -69,8 +93,8 @@ function query() {
 async function load(more = false) {
   const box = $("listings");
   if (tab === "mine") return renderMine();
-  $("filters").hidden = false;
-  if (!more) { offset = 0; shown = []; box.innerHTML = `<p class="hint">Loading…</p>`; }
+  $("market").hidden = false;
+  if (!more) { offset = 0; shown = []; box.innerHTML = `<p class="hint">Loading…</p>`; loadCounts(); }
   try {
     const j = await api(`/api/listings?${query()}`);
     shown = shown.concat(j.listings);
@@ -92,6 +116,19 @@ async function loadFeatured() {
   } catch { $("featured").hidden = true; }
 }
 $("featuredList").addEventListener("click", (e) => { const b = e.target.closest(".tile"); if (b) openDetail(b.dataset.id); });
+
+// The numbers on the category chips: how many items are up in this tab, with the other filters.
+async function loadCounts() {
+  const q = query();
+  q.delete("offset"); q.delete("sort"); q.delete("cat");
+  try {
+    const j = await api(`/api/listings/cats?${q}`);
+    catCounts = j.counts || {};
+    itemCounts = j.items || {};
+    catTotal = Object.values(catCounts).reduce((a, b) => a + b, 0);
+  } catch { catCounts = {}; catTotal = 0; itemCounts = {}; }
+  market.renderCats();
+}
 
 function setTab(t) {
   tab = t;
@@ -229,7 +266,7 @@ async function refreshMe() {
 }
 
 function renderMine() {
-  $("filters").hidden = true;
+  $("market").hidden = true;
   $("more").hidden = true;
   const box = $("listings");
   if (!user) { box.innerHTML = `<p class="hint">Sign in to see your items.</p>`; return; }
@@ -388,15 +425,13 @@ function renderSupporter() {
   ]);
   equipById = new Map(eq.map((e) => [e[0], e]));
   scrollById = new Map(sc.map((s) => [s.id, s]));
-  $("equipNames").innerHTML = eq.map((e) => `<option value="${esc(e[1])}"></option>`).join("");
-  const cats = [...new Set(eq.map((e) => (Math.floor(e[0] / 10000) >= 130 ? "Weapon" : e[3])))].sort();
-  $("fCat").innerHTML += cats.map((c) => `<option>${esc(c)}</option>`).join("");
+  market.setEquips(eq);
   $("fStat").innerHTML += STATS.filter(([k]) => !["CRT", "CRD"].includes(k)).map(([k, label]) => `<option value="${k}">${label}</option>`).join("");
   healthInfo = h;
   if (!h.community) {
     $("accountBody").innerHTML = `<p class="hint">The community opens soon. Meanwhile, price your items in the <a href="./">calculator</a>.</p>`;
     $("listings").innerHTML = "";
-    $("filters").hidden = true;
+    $("market").hidden = true;
     return;
   }
   if (canSignIn()) await refreshMe();

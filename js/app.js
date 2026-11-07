@@ -1,10 +1,11 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=8183b523";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readRange, readPrice } from "./calc.js?v=8183b523";
-import { getPrice, setPrice } from "./prices.js?v=8183b523";
-import { drawCard, cardBlob } from "./card.js?v=8183b523";
-import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=8183b523";
-import { setupA11y } from "./a11y.js?v=8183b523";
-import { API, api, health, me, googleButton, validIgn } from "./account.js?v=8183b523";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=ea2f0fb8";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readRange, readPrice } from "./calc.js?v=ea2f0fb8";
+import { getPrice, setPrice } from "./prices.js?v=ea2f0fb8";
+import { drawCard, cardBlob } from "./card.js?v=ea2f0fb8";
+import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=ea2f0fb8";
+import { itemSearch } from "./itemsearch.js?v=ea2f0fb8";
+import { setupA11y } from "./a11y.js?v=ea2f0fb8";
+import { API, api, health, me, googleButton, validIgn } from "./account.js?v=ea2f0fb8";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -62,100 +63,15 @@ document.addEventListener("error", (e) => {
   if (e.target.tagName === "IMG") e.target.style.visibility = "hidden";
 }, true);
 
-// ---------- item search: free text, category chips and class filter ----------
+// ---------- item search: free text, category chips and class filter (js/itemsearch.js) ----------
 
 const search = $("itemSearch"), results = $("itemResults");
-let matches = [], active = 0, hideTimer;
-const filter = { cat: "", job: "" };
-
-// Categories like the game's equip tabs. Icon = a typical item of that kind.
-const CATS = [["", "All", null], ["Weapon", "Weapons", 1302000], ["Hat", "Hats", 1002012], ["Top", "Tops", 1040002],
-  ["Bottom", "Bottoms", 1060001], ["Overall", "Overalls", 1050010], ["Shoes", "Shoes", 1072083], ["Glove", "Gloves", 1082000],
-  ["Shield", "Shields", 1092001], ["Cape", "Capes", 1102000], ["Earring", "Earrings", 1032007]];
-const catOf = (e) => (Math.floor(e[0] / 10000) >= 130 ? "Weapon" : e[3]);
-const jobOk = (e) => !filter.job || !(e[6] && e[6].jobs) || e[6].jobs.includes(filter.job);
-const inFilter = (e) => (!filter.cat || catOf(e) === filter.cat) && jobOk(e);
-
-function renderCats() {
-  $("cats").innerHTML = CATS.map(([key, label, id]) => {
-    const n = equips.filter((e) => (!key || catOf(e) === key) && jobOk(e)).length;
-    return `<button type="button" class="cat${filter.cat === key ? " on" : ""}" data-cat="${key}" title="${label}" aria-label="${label} ${n} items" aria-pressed="${filter.cat === key}">
-      ${id ? `<img src="${icon(id)}" alt="" />` : `<span class="all">ALL</span>`} <small>${n}</small></button>`;
-  }).join("");
-}
-
-// Text: name starts with it, then a word in the name starts with it, then anywhere (also the item type, e.g. "claw").
-// No text but a category or class picked: list them all by level.
-function findItems(q) {
-  q = q.trim().toLowerCase();
-  const pool = equips.filter(inFilter);
-  if (!q) return filter.cat || filter.job ? pool.slice().sort((a, b) => a[2] - b[2] || a[1].localeCompare(b[1])).slice(0, 300) : [];
-  const starts = [], word = [], has = [];
-  for (const e of pool) {
-    const n = e[1].toLowerCase(), t = e[3].toLowerCase();
-    if (n.startsWith(q)) starts.push(e);
-    else if (n.includes(" " + q) || n.includes("-" + q) || t.startsWith(q)) word.push(e);
-    else if (q.length > 1 && (n.includes(q) || t.includes(q))) has.push(e);
-  }
-  return starts.concat(word, has).slice(0, 60);
-}
-
-function showResults() {
-  clearTimeout(hideTimer);
-  matches = findItems(search.value);
-  active = 0;
-  results.hidden = !matches.length && !(filter.cat || filter.job || search.value.trim());
-  search.setAttribute("aria-expanded", String(!results.hidden));
-  if (matches.length) search.setAttribute("aria-activedescendant", "opt-0"); else search.removeAttribute("aria-activedescendant");
-  results.innerHTML = matches.length ? matches.map((e, i) =>
-    `<li role="option" id="opt-${i}" data-i="${i}" aria-selected="${i === 0}">
-      <img loading="lazy" src="${icon(e[0])}" alt="" /><span>${esc(e[1])}</span>
-      <span class="meta">Lv ${e[2]} · ${esc(e[3])}</span></li>`).join("")
-    : `<li class="none" role="option" aria-disabled="true">No items match. Try another category or class.</li>`;
-}
-
-function moveActive(d) {
-  if (!matches.length) return;
-  active = (active + d + matches.length) % matches.length;
-  [...results.children].forEach((li, i) => li.setAttribute("aria-selected", i === active));
-  search.setAttribute("aria-activedescendant", `opt-${active}`);
-  results.children[active].scrollIntoView({ block: "nearest" });
-}
-
-search.addEventListener("input", showResults);
-search.addEventListener("focus", () => { if (filter.cat || filter.job || search.value.trim()) showResults(); });
-search.addEventListener("keydown", (e) => {
-  if (e.key === "ArrowDown") { e.preventDefault(); moveActive(1); }
-  else if (e.key === "ArrowUp") { e.preventDefault(); moveActive(-1); }
-  else if (e.key === "Enter" && matches[active]) { e.preventDefault(); pickItem(matches[active][0]); }
-  else if (e.key === "Escape") { results.hidden = true; search.setAttribute("aria-expanded", "false"); }
+const picker = itemSearch({
+  cats: $("cats"), input: search, results, job: $("jobFilter"), idPrefix: "opt",
+  onPick: (e) => pickItem(e[0]),
+  isPicked: () => !!state.item && search.value === state.item.name,
 });
-results.addEventListener("mousedown", (e) => {
-  const li = e.target.closest("li[data-i]");
-  if (li) { e.preventDefault(); pickItem(matches[+li.dataset.i][0]); }
-});
-search.addEventListener("blur", () => {
-  hideTimer = setTimeout(() => { results.hidden = true; search.setAttribute("aria-expanded", "false"); }, 150);
-});
-
-// Chips keep the focus in the search box, so the list stays open while browsing.
-$("cats").addEventListener("mousedown", (e) => { if (e.target.closest(".cat")) e.preventDefault(); });
-$("cats").addEventListener("click", (e) => {
-  const b = e.target.closest(".cat");
-  if (!b) return;
-  filter.cat = filter.cat === b.dataset.cat ? "" : b.dataset.cat;
-  renderCats();
-  if (state.item && search.value === state.item.name) search.value = ""; // browsing again after a pick
-  search.focus();
-  showResults();
-});
-$("jobFilter").addEventListener("change", (e) => {
-  filter.job = e.target.value;
-  renderCats();
-  if (state.item && search.value === state.item.name) search.value = "";
-  search.focus();
-  showResults();
-});
+const showResults = picker.showResults;
 
 // ---------- pick an item ----------
 
@@ -737,7 +653,7 @@ if (DONATE_URL) {
   equips = eq;
   scrolls = sc;
   scrollById = new Map(sc.map((s) => [s.id, s]));
-  renderCats();
+  picker.setEquips(eq);
   $("equipNames").innerHTML = eq.map((e) => `<option value="${esc(e[1])}"></option>`).join("");
   health().then((j) => { if (j.community) setupPublish(); });
   const h = readHash();

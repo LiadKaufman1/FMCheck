@@ -23,7 +23,7 @@
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
   <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="css/style.css?v=8183b523" />
+  <link rel="stylesheet" href="css/style.css?v=ea2f0fb8" />
 </head>
 <body>
   <a class="skip" href="#listings">Skip to the items</a>
@@ -90,9 +90,22 @@
         <button role="tab" type="button" data-tab="rare" aria-selected="false"><img class="tab-ic" src="assets/ui/zakum-helmet.png" alt="" /> Rarest this week</button>
         <button role="tab" type="button" data-tab="mine" aria-selected="false" hidden><img class="tab-ic" src="assets/ui/inventory.png" alt="" /> My items</button>
       </div>
-      <form id="filters" class="filters" role="search">
-        <label>Item <input id="fQ" type="search" list="equipNames" placeholder="e.g. Work Gloves" autocomplete="off" /></label>
-        <label>Type <select id="fCat"><option value="">Any</option></select></label>
+      <div id="market" class="market-search" role="search" aria-labelledby="marketTitle">
+        <p class="market-title" id="marketTitle"><img src="assets/ui/meso.png" alt="" /> Search the market
+          <small>the numbers show how many are up in this tab</small></p>
+        <div id="mCats" class="cats" role="toolbar" aria-label="Item categories"></div>
+        <div class="search-row">
+          <div class="search">
+            <input id="fQ" type="search" placeholder="Filter by item, or pick a category above" autocomplete="off" spellcheck="false"
+              role="combobox" aria-label="Filter by item" aria-autocomplete="list" aria-controls="mResults" aria-expanded="false" />
+            <ul id="mResults" class="results" role="listbox" aria-label="Matching items" hidden></ul>
+          </div>
+          <select id="fJob" aria-label="Class">
+            <option value="">All classes</option><option>Beginner</option><option>Warrior</option>
+            <option>Magician</option><option>Bowman</option><option>Thief</option>
+          </select>
+        </div>
+      <form id="filters" class="filters">
         <label>Stat at least
           <span class="pair"><select id="fStat" aria-label="Stat"><option value="">Any</option></select>
           <input id="fMin" inputmode="numeric" aria-label="At least" placeholder="0" /></span></label>
@@ -100,7 +113,7 @@
         <label>Sort <select id="fSort"><option value="new">Newest</option><option value="cheap">Cheapest</option><option value="pricey">Priciest</option><option value="rare">Rarest</option></select></label>
         <label class="check"><input id="fVerified" type="checkbox" /> Checked on screen only</label>
       </form>
-      <datalist id="equipNames"></datalist>
+      </div>
       <div id="listings" class="listings" aria-live="polite"></div>
       <button id="more" type="button" class="ghost-btn more" hidden>Show more</button>
     </section>
@@ -169,6 +182,6 @@
   </div>
 
 
-  <script type="module" src="js/community.js?v=8183b523"></script>
+  <script type="module" src="js/community.js?v=ea2f0fb8"></script>
 </body>
 </html>

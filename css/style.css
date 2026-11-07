@@ -18,6 +18,10 @@
   --accent: #e8730c;
   --accent-soft: #fdf0e3;
   --accent-text: #a8460a;   /* orange for text: 4.5:1+ on white, cream and mint */
+  --market-bg: #eaf4ff;     /* the community's market search: blue, so it doesn't look like the calculator */
+  --market-line: #9cc8f5;
+  --market-on: #1f6fd1;
+  --market-text: #164f96;
   --btn-bg: #c2410c;        /* white text on it: 5:1+ */
   --btn-text: #ffffff;
   --good: #1f8a4c;
@@ -41,6 +45,10 @@
     --accent: #ff9a3d;
     --accent-soft: #33261a;
     --accent-text: #ffad5c;
+    --market-bg: #16263a;
+    --market-line: #2f5684;
+    --market-on: #5aa3ff;
+    --market-text: #9ccaff;
     --btn-bg: #ff9a3d;
     --btn-text: #1a1206;
     --good: #4cc77f;
@@ -573,3 +581,19 @@ a.ghost-btn { display: inline-block; padding: 8px 12px; border-radius: 10px; tex
 
 .h-ic { width: 26px; height: 26px; object-fit: contain; image-rendering: pixelated; vertical-align: -6px; margin-right: 4px; }
 .publish h3 { display: flex; align-items: center; gap: 6px; }
+
+/* community: the market search (same as the calculator's, in blue) */
+.market-search { background: var(--market-bg); border: 2px solid var(--market-line); border-radius: 14px; padding: 12px 12px 4px; margin-bottom: 12px; }
+.market-title { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 8px; font: 700 15px "Fredoka", "Nunito", sans-serif; color: var(--market-text); }
+.market-title img { width: 22px; height: 22px; image-rendering: pixelated; }
+.market-title small { font: 700 12px "Nunito", sans-serif; color: var(--muted); }
+.market-search .cat.on { background: var(--card); border-color: var(--market-on); box-shadow: 0 3px 0 var(--market-on); }
+.market-search .cat.on small { color: var(--market-text); }
+.market-search .results li[aria-selected="true"], .market-search .results li:hover { background: var(--market-bg); }
+.market-search .search-row { margin-bottom: 8px; }
+.market-search .filters { margin-bottom: 8px; }
+.results .meta b.up { color: var(--market-text); font-weight: 800; }
+.market-search input:focus-visible, .market-search select:focus-visible { outline-color: var(--market-on); }
+.market-search .filters { grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); }
+.market-search .filters .pair { display: grid; grid-template-columns: minmax(0, 1fr) 52px; gap: 6px; }
+.market-search .filters .pair input { width: 100%; min-width: 0; }
