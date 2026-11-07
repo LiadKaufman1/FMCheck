@@ -1,11 +1,11 @@
 // The community page: players' scrolled items, for sale or shown off, with the full picture of each one.
-import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=d1f44908";
-import { drawCard, cardBlob } from "./card.js?v=d1f44908";
-import { cardInfo, cardLabel, cardFmt, cardDate, rangeText, oneInText } from "./itemcard.js?v=d1f44908";
-import { setupA11y } from "./a11y.js?v=d1f44908";
-import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=d1f44908";
-import { itemSearch } from "./itemsearch.js?v=d1f44908";
-import { DISCORD_URL } from "./config.js?v=d1f44908";
+import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=e0f53882";
+import { drawCard, cardBlob } from "./card.js?v=e0f53882";
+import { cardInfo, cardLabel, cardFmt, cardDate, rangeText, oneInText } from "./itemcard.js?v=e0f53882";
+import { setupA11y } from "./a11y.js?v=e0f53882";
+import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=e0f53882";
+import { itemSearch } from "./itemsearch.js?v=e0f53882";
+import { DISCORD_URL } from "./config.js?v=e0f53882";
 
 const $ = (id) => document.getElementById(id);
 const icon = (id) => `assets/items/${String(id).padStart(8, "0")}.png`;
@@ -39,12 +39,20 @@ fQ.addEventListener("input", () => {
 setupA11y();
 for (const a of document.querySelectorAll("[data-discord]")) a.href = DISCORD_URL;
 
-function toast(text) {
+function toast(text, upsell = false) {
   const t = $("toast");
   t.textContent = text;
+  if (upsell) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "sup-link";
+    b.textContent = "⭐ See supporter perks";
+    b.addEventListener("click", () => { t.hidden = true; toSupporters(); });
+    t.append(" ", b);
+  }
   t.hidden = false;
   clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => { t.hidden = true; }, 3500);
+  toast.timer = setTimeout(() => { t.hidden = true; }, upsell ? 8000 : 3500);
 }
 
 // How the asking price compares with the estimate.
@@ -317,11 +325,7 @@ $("listings").addEventListener("click", async (e) => {
   const act = b.dataset.act;
   if (act === "bump") patch(id, { bump: true }, `Kept up for ${user.supporter ? 7 : 3} more days.`);
   if (act === "boost") {
-    if (!user.supporter) {
-      if (!$("supporterCard").hidden) $("supporterCard").scrollIntoView({ behavior: "smooth" });
-      toast("Featuring is a supporter perk.");
-      return;
-    }
+    if (!user.supporter) { toast("Featuring an item is a supporter perk.", true); return; }
     if (!user.boostsLeft) {
       $("buyBoost")?.scrollIntoView({ behavior: "smooth", block: "center" });
       toast(`No boosts left. Get an extra one for $${healthInfo.boostPrice || 1} below.`);
@@ -334,7 +338,7 @@ $("listings").addEventListener("click", async (e) => {
       user = (await me(true)).user || user;
       renderMine(); renderAccount(); renderSupporter(); loadFeatured();
       toast("⭐ Featured for 24 hours.");
-    } catch (err) { toast(err.message); }
+    } catch (err) { toast(err.message, !!err.upsell); }
   }
   if (act === "edit") { const f = li.querySelector(".mine-edit"); f.hidden = !f.hidden; }
   if (act === "sold") {
@@ -368,15 +372,20 @@ function renderSupporter() {
   card.hidden = false;
   $("supBtn").textContent = user && user.supporter ? "⭐ Supporter" : "⭐ Become a supporter";
   const price = healthInfo.supporterPrice || 3, boostPrice = healthInfo.boostPrice || 1;
-  const perks = `<ul class="perks">
-      <li><b>⭐ Feature your items:</b> 2 boosts a month. For 24 hours the item is in the Featured row at the top, comes first in every
-        list and search it matches, and is posted on our Discord.
-        Need more? Extra boosts are $${boostPrice} each, no waiting.</li>
-      <li><b>Longer on the list:</b> your for-sale items stay up 7 days instead of 3.</li>
-      <li><b>More items:</b> up to 10 at once instead of 3.</li>
-      <li><b>⭐ Supporter badge</b> next to your name.</li>
-      <li>And you keep FMCheck free and running. Thank you!</li>
-    </ul>`;
+  const perks = `<table class="sup-table">
+      <caption class="sr-only">Free and supporter accounts compared</caption>
+      <thead><tr><th scope="col"><span class="sr-only">Perk</span></th><th scope="col">Free</th><th scope="col">⭐ Supporter</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Items up at once</th><td>3</td><td><b>10</b></td></tr>
+        <tr><th scope="row">Days on the for-sale list</th><td>3</td><td><b>7</b></td></tr>
+        <tr><th scope="row">New items a day</th><td>4</td><td><b>20</b></td></tr>
+        <tr><th scope="row">⭐ Featured boosts</th><td>–</td><td><b>2 a month</b>, more for $${boostPrice} each</td></tr>
+        <tr><th scope="row">Badge next to your name</th><td>–</td><td><span class="badge sup">⭐ Supporter</span></td></tr>
+        <tr class="price-row"><th scope="row">Price</th><td>Free</td><td><b>$${price} / month</b></td></tr>
+      </tbody>
+    </table>
+    <p class="hint"><b>What a boost does:</b> for 24 hours the item sits in the Featured row at the top of this page, comes first in every
+      list and search it matches, and is posted on our Discord. And you keep FMCheck free and running. Thank you!</p>`;
   if (user && user.supporter) {
     $("supTitle").textContent = "⭐ You're an FMCheck supporter";
     $("supporterBody").innerHTML = `<p>Supporter until <b>${cardDate(user.supporterUntil)}</b>. Your monthly payment on Ko-fi keeps it going;
@@ -396,12 +405,12 @@ function renderSupporter() {
   }
   $("supTitle").textContent = "⭐ Become an FMCheck supporter";
   if (!healthInfo.supporters) {
-    $("supporterBody").innerHTML = `<p><b>$${price} a month</b> on Ko-fi (card or PayPal). Cancel any time.</p>${perks}
+    $("supporterBody").innerHTML = `<p>Paid monthly on Ko-fi (card or PayPal). Cancel any time.</p>${perks}
       <p class="sup-soon">⏳ Memberships open very soon. Keep an eye on our
         <a href="${DISCORD_URL}" target="_blank" rel="noopener">Discord</a> for the launch.</p>`;
     return;
   }
-  $("supporterBody").innerHTML = `<p><b>$${price} a month</b> on Ko-fi (card or PayPal). Cancel any time.</p>${perks}
+  $("supporterBody").innerHTML = `<p>Paid monthly on Ko-fi (card or PayPal). Cancel any time.</p>${perks}
     ${user ? `<ol class="sup-steps">
       <li>Copy your code: <code id="supCode">${esc(user.code)}</code> <button type="button" class="ghost-btn mini" id="copyCode">Copy</button></li>
       <li><a class="btn-link" href="${esc(healthInfo.kofiUrl)}" target="_blank" rel="noopener">Join on Ko-fi ↗</a>
@@ -459,6 +468,7 @@ $("featureYours").addEventListener("click", toSupporters);
   else { renderAccount(); renderSupporter(); }
   load();
   loadFeatured();
+  if (location.hash === "#supporters") setTimeout(toSupporters, 300);
   const id = /^#l=([a-f0-9]{12})$/.exec(location.hash)?.[1];
   if (id) openDetail(id);
 })();

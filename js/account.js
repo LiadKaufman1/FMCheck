@@ -11,7 +11,8 @@ export async function api(path, { method = "GET", body } = {}) {
     body: body ? JSON.stringify(body) : undefined,
   });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw Object.assign(new Error(j.error || "Couldn't reach FMCheck. Try again later."), { status: r.status });
+  // upsell: the limit was hit, and being a supporter would lift it
+  if (!r.ok) throw Object.assign(new Error(j.error || "Couldn't reach FMCheck. Try again later."), { status: r.status, upsell: !!j.upsell });
   return j;
 }
 

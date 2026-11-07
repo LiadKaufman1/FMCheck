@@ -1,11 +1,11 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=d1f44908";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readRange, readPrice } from "./calc.js?v=d1f44908";
-import { getPrice, setPrice } from "./prices.js?v=d1f44908";
-import { drawCard, cardBlob } from "./card.js?v=d1f44908";
-import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=d1f44908";
-import { itemSearch } from "./itemsearch.js?v=d1f44908";
-import { setupA11y } from "./a11y.js?v=d1f44908";
-import { API, api, health, me, googleButton, validIgn } from "./account.js?v=d1f44908";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=e0f53882";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readRange, readPrice } from "./calc.js?v=e0f53882";
+import { getPrice, setPrice } from "./prices.js?v=e0f53882";
+import { drawCard, cardBlob } from "./card.js?v=e0f53882";
+import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=e0f53882";
+import { itemSearch } from "./itemsearch.js?v=e0f53882";
+import { setupA11y } from "./a11y.js?v=e0f53882";
+import { API, api, health, me, googleButton, validIgn } from "./account.js?v=e0f53882";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -496,7 +496,7 @@ $("pubForm").addEventListener("submit", async (e) => {
       · <button type="button" class="ghost-btn" id="pubCopy">Copy link</button>`;
     $("pubCopy").addEventListener("click", () => navigator.clipboard.writeText(link).then(() => toast("Link copied.")).catch(() => {}));
   } catch (err) {
-    msg.textContent = err.message;
+    msg.innerHTML = esc(err.message) + (err.upsell ? ` <a class="sup-link" href="community.html#supporters">⭐ Become a supporter</a>` : "");
     if (err.status === 401) { pubUser = null; showPublish(null); }
   } finally {
     $("pubSend").disabled = false;

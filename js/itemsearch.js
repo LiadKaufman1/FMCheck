@@ -1,6 +1,6 @@
 // Item search shared by the calculator and the community page: category chips like the game's equip tabs,
 // a class filter, and a search box that suggests items (with their icons) as you type.
-import { iconUrl } from "./config.js?v=d1f44908";
+import { iconUrl } from "./config.js?v=e0f53882";
 
 // Categories like the game's equip tabs. Icon = a typical item of that kind.
 export const CATS = [["", "All", null], ["Weapon", "Weapons", 1302000], ["Hat", "Hats", 1002012], ["Top", "Tops", 1040002],

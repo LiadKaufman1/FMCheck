@@ -569,7 +569,8 @@ export async function community(request, env, ctx, url, json) {
         FROM listings WHERE user_id = ?`).bind(Date.now() - DAY, user.id).first();
     const max = isSupporter(user) ? MAX_ACTIVE_SUPPORTER : MAX_ACTIVE;
     if ((counts.active || 0) >= max) {
-      return json({ error: `You can have ${max} items up at once${isSupporter(user) ? "" : ` (${MAX_ACTIVE_SUPPORTER} as a supporter)`}. Remove or mark one as sold first.` }, 429);
+      return json({ error: `You can have ${max} items up at once${isSupporter(user) ? "" : ` (${MAX_ACTIVE_SUPPORTER} as a supporter)`}. Remove or mark one as sold first.`,
+        upsell: !isSupporter(user) }, 429);
     }
     const now = Date.now();
     const fp = await fingerprint(l);
@@ -578,7 +579,10 @@ export async function community(request, env, ctx, url, json) {
       env.DB.prepare(`SELECT MIN(created) AS created FROM posts WHERE user_id = ? AND fp = ? AND t > ?`).bind(user.id, fp, now - REPOST_DAYS * DAY).first(),
     ]);
     const perDay = isSupporter(user) ? MAX_NEW_PER_DAY_SUPPORTER : MAX_NEW_PER_DAY;
-    if ((posted.n || 0) >= perDay) return json({ error: `That's ${perDay} new items today (removed ones count too). Try again tomorrow.` }, 429);
+    if ((posted.n || 0) >= perDay) {
+      return json({ error: `That's ${perDay} new items today (removed ones count too). Try again tomorrow${isSupporter(user) ? "" : ` (supporters can post ${MAX_NEW_PER_DAY_SUPPORTER} a day)`}.`,
+        upsell: !isSupporter(user) }, 429);
+    }
     const created = before.created || now; // posted again: it keeps its place, it doesn't jump to the top
     const id = randomHex(6);
     await env.DB.prepare(`INSERT INTO listings (id, user_id, item, name, cat, clean, gained, stats, scrolls, upgrades, left_slots, slots,
@@ -630,7 +634,7 @@ export async function community(request, env, ctx, url, json) {
     if (!mine && !(method === "DELETE" && isAdmin(env, user))) return json({ error: user ? "Not your item." : "Sign in first." }, user ? 403 : 401);
 
     if (action === "/boost" && method === "POST") {
-      if (!isSupporter(user)) return json({ error: "Boosts are a supporter perk." }, 403);
+      if (!isSupporter(user)) return json({ error: "Boosts are a supporter perk.", upsell: true }, 403);
       if (row.status !== "active") return json({ error: "Only items that are up can be featured." }, 400);
       if (row.featured_until > Date.now()) return json({ error: "It's already featured." }, 400);
       const b = await boostInfo(env, user);

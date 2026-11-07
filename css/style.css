@@ -608,3 +608,20 @@ a.ghost-btn { display: inline-block; padding: 8px 12px; border-radius: 10px; tex
 .featured-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
 .featured-head h2 { margin: 0; }
 .sup-soon { margin: 10px 0 4px; padding: 8px 10px; border-radius: 10px; background: var(--accent-soft); font-weight: 700; }
+
+/* free vs supporter, and the links that lead there */
+.sup-table { width: 100%; border-collapse: collapse; margin: 6px 0 10px; font-size: 14px; }
+.sup-table th, .sup-table td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+.sup-table thead th { font: 700 14px "Fredoka", "Nunito", sans-serif; }
+.sup-table thead th:last-child, .sup-table td:last-child { background: #fff6dc; color: #3a2a00; }
+.sup-table thead th:last-child { border-radius: 10px 10px 0 0; }
+.sup-table tbody th { font-weight: 700; color: var(--muted); }
+.sup-table td:nth-child(2) { color: var(--muted); }
+.sup-table .price-row th, .sup-table .price-row td { border-bottom: 0; }
+.sup-table .price-row td:last-child { border-radius: 0 0 10px 10px; }
+.sup-link { display: inline-block; margin-left: 4px; padding: 3px 10px; border-radius: 999px; background: #ffc94d; color: #3a2a00 !important;
+  font-weight: 800; font-size: 13px; text-decoration: none; border: 0; cursor: pointer; }
+.pub-upsell { margin: 6px 0 4px; padding: 8px 10px; border-radius: 10px; background: #fff6dc; color: #3a2a00; font-size: 13px; }
+.pub-upsell a { color: #7a4a00; font-weight: 800; }
+@media (max-width: 520px) { .sup-table { font-size: 13px; } .sup-table th, .sup-table td { padding: 7px 6px; } }
+#supTitle:focus { outline: none; }
