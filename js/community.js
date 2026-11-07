@@ -1,10 +1,10 @@
 // The community page: players' scrolled items, for sale or shown off, with the full picture of each one.
-import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=f6f72e36";
-import { drawCard, cardBlob } from "./card.js?v=f6f72e36";
-import { cardInfo, cardLabel, cardFmt, cardDate, rangeText, oneInText } from "./itemcard.js?v=f6f72e36";
-import { setupA11y } from "./a11y.js?v=f6f72e36";
-import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=f6f72e36";
-import { DISCORD_URL } from "./config.js?v=f6f72e36";
+import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=d0bc7899";
+import { drawCard, cardBlob } from "./card.js?v=d0bc7899";
+import { cardInfo, cardLabel, cardFmt, cardDate, rangeText, oneInText } from "./itemcard.js?v=d0bc7899";
+import { setupA11y } from "./a11y.js?v=d0bc7899";
+import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=d0bc7899";
+import { DISCORD_URL } from "./config.js?v=d0bc7899";
 
 const $ = (id) => document.getElementById(id);
 const icon = (id) => `assets/items/${String(id).padStart(8, "0")}.png`;

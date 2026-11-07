@@ -580,3 +580,7 @@ a.ghost-btn { display: inline-block; padding: 8px 12px; border-radius: 10px; tex
 .buy-boost { margin: 12px 0; padding: 12px 14px; border-radius: 12px; background: #fff8e1; border: 1px solid #ffc94d; color: #3a2a00; }
 .buy-boost h3 { margin: 0 0 6px; font-size: 15px; }
 .buy-boost .hint { color: #5a4a20; }
+
+.tabs button { display: inline-flex; align-items: center; gap: 7px; }
+.tab-ic { width: 24px; height: 24px; object-fit: contain; image-rendering: pixelated; flex: none; }
+.tab-ic.tall { height: 28px; margin: -4px 0; }
