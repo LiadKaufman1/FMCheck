@@ -1,11 +1,11 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=45b8d865";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, rollValueFactor, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readPrice } from "./calc.js?v=45b8d865";
-import { getPrice, getUserPrice, setPrice, setSitePrices, sitePrice, siteDate } from "./prices.js?v=45b8d865";
-import { drawCard, cardBlob } from "./card.js?v=45b8d865";
-import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=45b8d865";
-import { itemSearch } from "./itemsearch.js?v=45b8d865";
-import { setupA11y } from "./a11y.js?v=45b8d865";
-import { API, api, health, me, googleButton, validIgn } from "./account.js?v=45b8d865";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=edab64f9";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, rollValueFactor, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readPrice } from "./calc.js?v=edab64f9";
+import { getPrice, getUserPrice, setPrice, setSitePrices, sitePrice, siteDate } from "./prices.js?v=edab64f9";
+import { drawCard, cardBlob } from "./card.js?v=edab64f9";
+import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=edab64f9";
+import { itemSearch } from "./itemsearch.js?v=edab64f9";
+import { setupA11y } from "./a11y.js?v=edab64f9";
+import { API, api, health, me, googleButton, validIgn } from "./account.js?v=edab64f9";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -619,6 +619,7 @@ function renderEstimate(used) {
 }
 
 let lastEstimate = null, lastOdds = null; // for publishing
+let supportersOn = false; // memberships open (Ko-fi set up): only then is anything about them shown
 
 // ---------- put the item up on the Market ----------
 
@@ -667,7 +668,7 @@ $("pubForm").addEventListener("submit", async (e) => {
       · <button type="button" class="ghost-btn" id="pubCopy">Copy link</button>`;
     $("pubCopy").addEventListener("click", () => navigator.clipboard.writeText(link).then(() => toast("Link copied.")).catch(() => {}));
   } catch (err) {
-    msg.innerHTML = esc(err.message) + (err.upsell ? ` <a class="sup-link" href="community.html#supporters"><img class="ic" src="assets/ui/starpiece.png" alt="" /> Become a supporter</a>` : "");
+    msg.innerHTML = esc(err.message) + (err.upsell && supportersOn ? ` <a class="sup-link" href="community.html#supporters"><img class="ic" src="assets/ui/starpiece.png" alt="" /> Become a supporter</a>` : "");
     if (err.status === 401) { pubUser = null; showPublish(null); }
   } finally {
     $("pubSend").disabled = false;
@@ -759,7 +760,7 @@ const GUIDE = [
   ["assets/guide/5.webp?v=4", "5. Put it in the spotlight: sign in with Google and publish the item for sale. You set the price; the prices above aren't needed to publish: the estimate is only there to help."],
   ["assets/guide/6.webp?v=4", "6. The Market: buyers see each item's exact stats, slots, odds and how the price compares with the estimate, and can filter by stat. Featured items sit on top."],
   ["assets/guide/7.webp?v=4", "7. Tap an item to see its full card, the seller and where to find them (channel, FM room). Checked on screen: the seller showed the item from the game."],
-  ["assets/guide/8.webp?v=4", "8. Under My items: keep it up with Still selling, check it on screen, edit the price, mark it sold, or feature it for 24 hours (supporters)."],
+  ["assets/guide/8.webp?v=4", "8. Under My items: keep it up with Still selling, check it on screen, edit the price or mark it sold."],
 ];
 const GUIDE_KEY = "fmcheck-guide-seen";
 let guideStep = 0, guideTimer = null;
@@ -824,7 +825,11 @@ if (DONATE_URL) {
   scrollById = new Map(sc.map((s) => [s.id, s]));
   picker.setEquips(eq);
   $("equipNames").innerHTML = eq.map((e) => `<option value="${esc(e[1])}"></option>`).join("");
-  health().then((j) => { if (j.community) setupPublish(); });
+  health().then((j) => {
+    if (j.community) setupPublish();
+    supportersOn = !!j.supporters;
+    document.documentElement.classList.toggle("sup-on", supportersOn);
+  });
   // FMCheck's price list fills the price fields left empty
   fetch(`${API}/api/prices`).then((r) => r.json()).then((j) => {
     setSitePrices(j.prices, j.updated);

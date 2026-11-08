@@ -346,6 +346,7 @@ const fmtMesos = (n) => (n >= 1e9 ? `${+(n / 1e9).toFixed(2)}B` : n >= 1e6 ? `${
 // ---------- supporters ----------
 
 const isSupporter = (u) => !!u && u.supporter_until > Date.now();
+const supportersOpen = (env) => !!(env.KOFI_TOKEN && env.KOFI_URL); // memberships switched on
 const emailHash = (email) => sha(`${String(email || "").trim().toLowerCase()}|fmcheck-kofi`);
 const newCode = () => `FMC-${[...crypto.getRandomValues(new Uint8Array(6))].map((b) => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[b % 32]).join("")}`;
 
@@ -654,8 +655,9 @@ export async function community(request, env, ctx, url, json) {
         FROM listings WHERE user_id = ?`).bind(Date.now() - DAY, user.id).first();
     const max = isSupporter(user) ? MAX_ACTIVE_SUPPORTER : MAX_ACTIVE;
     if ((counts.active || 0) >= max) {
-      return json({ error: `You can have ${max} items up at once${isSupporter(user) ? "" : ` (${MAX_ACTIVE_SUPPORTER} as a supporter)`}. Remove or mark one as sold first.`,
-        upsell: !isSupporter(user) }, 429);
+      const upsell = supportersOpen(env) && !isSupporter(user);
+      return json({ error: `You can have ${max} items up at once${upsell ? ` (${MAX_ACTIVE_SUPPORTER} as a supporter)` : ""}. Remove or mark one as sold first.`,
+        upsell }, 429);
     }
     const now = Date.now();
     const fp = await fingerprint(l);
@@ -665,8 +667,9 @@ export async function community(request, env, ctx, url, json) {
     ]);
     const perDay = isSupporter(user) ? MAX_NEW_PER_DAY_SUPPORTER : MAX_NEW_PER_DAY;
     if ((posted.n || 0) >= perDay) {
-      return json({ error: `That's ${perDay} new items today (removed ones count too). Try again tomorrow${isSupporter(user) ? "" : ` (supporters can post ${MAX_NEW_PER_DAY_SUPPORTER} a day)`}.`,
-        upsell: !isSupporter(user) }, 429);
+      const upsell = supportersOpen(env) && !isSupporter(user);
+      return json({ error: `That's ${perDay} new items today (removed ones count too). Try again tomorrow${upsell ? ` (supporters can post ${MAX_NEW_PER_DAY_SUPPORTER} a day)` : ""}.`,
+        upsell }, 429);
     }
     const created = before.created || now; // posted again: it keeps its place, it doesn't jump to the top
     const id = randomHex(6);

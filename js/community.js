@@ -1,11 +1,11 @@
 // The community page: players' scrolled items for sale, with the full picture of each one.
-import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=45b8d865";
-import { drawCard, cardBlob } from "./card.js?v=45b8d865";
-import { cardInfo, cardLabel, cardFmt, cardDate, rangeText, oneInText } from "./itemcard.js?v=45b8d865";
-import { setupA11y } from "./a11y.js?v=45b8d865";
-import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=45b8d865";
-import { itemSearch } from "./itemsearch.js?v=45b8d865";
-import { DISCORD_URL } from "./config.js?v=45b8d865";
+import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=edab64f9";
+import { drawCard, cardBlob } from "./card.js?v=edab64f9";
+import { cardInfo, cardLabel, cardFmt, cardDate, rangeText, oneInText } from "./itemcard.js?v=edab64f9";
+import { setupA11y } from "./a11y.js?v=edab64f9";
+import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=edab64f9";
+import { itemSearch } from "./itemsearch.js?v=edab64f9";
+import { DISCORD_URL } from "./config.js?v=edab64f9";
 
 const $ = (id) => document.getElementById(id);
 // a small MapleStory icon next to a label (assets/ui/)
@@ -42,6 +42,7 @@ setupA11y();
 for (const a of document.querySelectorAll("[data-discord]")) a.href = DISCORD_URL;
 
 function toast(text, upsell = false) {
+  upsell = upsell && !!healthInfo.supporters;
   const t = $("toast");
   t.textContent = text;
   if (upsell) {
@@ -294,7 +295,7 @@ function renderMine() {
         ${l.status === "active" ? `
         ${l.price ? `<button type="button" data-act="bump">${IC("clock")} Still selling</button>` : ""}
         ${l.featured ? `<span class="badge feat">${IC("starpiece")} Featured until ${new Date(l.featured).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>`
-          : `<button type="button" class="ghost-btn boost" data-act="boost">${IC("starpiece")} Feature for 24h${user.supporter ? (user.boostsLeft ? ` (${user.boostsLeft} left)` : ` · $${healthInfo.boostPrice || 1}`) : ""}</button>`}
+          : `<button type="button" class="ghost-btn boost sup-only" data-act="boost">${IC("starpiece")} Feature for 24h${user.supporter ? (user.boostsLeft ? ` (${user.boostsLeft} left)` : ` · $${healthInfo.boostPrice || 1}`) : ""}</button>`}
         <button type="button" class="ghost-btn" data-act="edit">${IC("feather")} Price & place</button>
         ${l.verified ? "" : `<button type="button" class="ghost-btn" data-act="verify">${IC("mirror")} Check on screen</button>`}
         ${l.price ? `<button type="button" class="ghost-btn" data-act="sold">${IC("meso-bundle")} Sold</button>` : ""}` : `<span class="hint">Sold</span>`}
@@ -373,6 +374,8 @@ $("listings").addEventListener("submit", (e) => {
 
 function renderSupporter() {
   const card = $("supporterCard");
+  document.documentElement.classList.toggle("sup-on", !!healthInfo.supporters);
+  if (!healthInfo.supporters) return; // memberships aren't open: nothing about them shows
   card.hidden = false;
   $("supBtn").innerHTML = `${IC("starpiece")} ${user && user.supporter ? "Supporter" : "Become a supporter"}`;
   const price = healthInfo.supporterPrice || 3, boostPrice = healthInfo.boostPrice || 1;
@@ -472,7 +475,7 @@ $("featureYours").addEventListener("click", toSupporters);
   else { renderAccount(); renderSupporter(); }
   load();
   loadFeatured();
-  if (location.hash === "#supporters") setTimeout(toSupporters, 300);
+  if (location.hash === "#supporters" && h.supporters) setTimeout(toSupporters, 300);
   const id = /^#l=([a-f0-9]{12})$/.exec(location.hash)?.[1];
   if (id) openDetail(id);
 })();
