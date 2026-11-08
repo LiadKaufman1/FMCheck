@@ -1,11 +1,11 @@
 // The community page: players' scrolled items for sale, with the full picture of each one.
-import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=28ef07c7";
-import { drawCard, cardBlob } from "./card.js?v=28ef07c7";
-import { cardInfo, cardLabel, cardFmt, cardDate, rangeText, oneInText } from "./itemcard.js?v=28ef07c7";
-import { setupA11y } from "./a11y.js?v=28ef07c7";
-import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=28ef07c7";
-import { itemSearch } from "./itemsearch.js?v=28ef07c7";
-import { DISCORD_URL } from "./config.js?v=28ef07c7";
+import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=51c9eb3a";
+import { drawCard, cardBlob } from "./card.js?v=51c9eb3a";
+import { cardInfo, cardLabel, cardFmt, cardDate, rangeText, oneInText } from "./itemcard.js?v=51c9eb3a";
+import { setupA11y } from "./a11y.js?v=51c9eb3a";
+import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=51c9eb3a";
+import { itemSearch } from "./itemsearch.js?v=51c9eb3a";
+import { DISCORD_URL } from "./config.js?v=51c9eb3a";
 
 const $ = (id) => document.getElementById(id);
 // a small MapleStory icon next to a label (assets/ui/)
@@ -14,7 +14,7 @@ const icon = (id) => `assets/items/${String(id).padStart(8, "0")}.png`;
 const plus = (stats) => Object.entries(stats).map(([k, v]) => `${v > 0 ? "+" : ""}${v} ${STAT_LABEL[k] || k}`).join(", ");
 
 let equipById = new Map(), scrollById = new Map();
-let user = null, myListings = [], healthInfo = {};
+let user = null, myListings = [], healthInfo = {}, me_admin = false;
 let tab = "sale", offset = 0, shown = [];
 
 // ---------- market search: the calculator's item search, filtering the list (js/itemsearch.js) ----------
@@ -252,6 +252,7 @@ function renderAccount() {
       <label>In-game name <input id="ign" value="${esc(user.ign || "")}" maxlength="13" placeholder="e.g. GuaiLan" /></label>
       <button type="submit">Save</button>
       <span class="spacer"></span>
+      ${me_admin ? `<a class="ghost-btn" href="admin.html">Price list</a>` : ""}
       <button type="button" class="ghost-btn" id="signOut">Sign out</button>
       <button type="button" class="ghost-btn" id="deleteMe">Delete account</button>
     </form><p id="accountMsg" class="sale-msg" role="status">${user.ign ? "" : "Add your in-game name so buyers can find you."}</p>
@@ -274,6 +275,7 @@ function renderAccount() {
 async function refreshMe() {
   const m = await me(true);
   user = m.user;
+  me_admin = !!m.admin;
   myListings = m.listings || [];
   renderAccount();
   renderSupporter();

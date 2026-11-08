@@ -22,6 +22,8 @@
 //   POST   /api/kofi                Ko-fi's webhook (form field "data", checked with KOFI_TOKEN):
 //                                    a membership payment adds supporter days; a one-off payment buys extra boosts
 //   POST   /api/admin/supporter     { code, days }  admins: give supporter time by hand
+//   GET    /api/prices              FMCheck's price list: average prices of scrolls and clean items, kept by hand by admins
+//   PUT    /api/prices              { prices: { id: price | null } }  admins: set or remove prices
 //
 // Supporters (Ko-fi membership): a badge, more items, items stay on the for-sale list longer,
 // and a few boosts a month. Ko-fi sends the payer's email; only a one-way hash of it is kept, to match renewals.
@@ -84,6 +86,7 @@ const SCHEMA = [
   `CREATE INDEX IF NOT EXISTS posts_user ON posts(user_id, t)`,
   `CREATE INDEX IF NOT EXISTS users_ign ON users(ign COLLATE NOCASE)`,
   `CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)`,
+  `CREATE TABLE IF NOT EXISTS site_prices (id INTEGER PRIMARY KEY, price INTEGER NOT NULL, t INTEGER NOT NULL)`,
   `CREATE INDEX IF NOT EXISTS payments_email ON payments(email_hash)`,
 ];
 // Columns added after the first version: added to existing tables when missing.
@@ -509,6 +512,29 @@ export async function community(request, env, ctx, url, json) {
     ]);
     const u = await env.DB.prepare(`SELECT id, ign, supporter_until, sup_code FROM users WHERE id = ?`).bind(user.id).first();
     return json({ user: await meInfo(env, u), found: open.days > 0 || open.boosts > 0 });
+  }
+
+  if (path === "/api/prices" && method === "GET") {
+    const rows = await env.DB.prepare(`SELECT id, price, t FROM site_prices`).all();
+    const prices = {};
+    let updated = 0;
+    for (const r of rows.results) { prices[r.id] = r.price; updated = Math.max(updated, r.t); }
+    return json({ prices, updated });
+  }
+  if (path === "/api/prices" && method === "PUT") {
+    if (!isAdmin(env, user)) return json({ error: "Admins only." }, 403);
+    const now = Date.now();
+    const q = [];
+    for (const [k, v] of Object.entries((body && body.prices) || {}).slice(0, 2000)) {
+      const id = +k;
+      if (!equipById.has(id) && !scrollById.has(id)) continue;
+      const price = v == null || v === "" ? null : int(Math.round(+v), 1, 1e11);
+      q.push(price ? env.DB.prepare(`INSERT INTO site_prices (id, price, t) VALUES (?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET price = excluded.price, t = excluded.t`).bind(id, price, now)
+        : env.DB.prepare(`DELETE FROM site_prices WHERE id = ?`).bind(id));
+    }
+    if (q.length) await env.DB.batch(q);
+    return json({ ok: true, saved: q.length });
   }
 
   if (path === "/api/admin/supporter" && method === "POST") {

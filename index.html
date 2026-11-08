@@ -32,7 +32,7 @@
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
   <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="css/style.css?v=28ef07c7" />
+  <link rel="stylesheet" href="css/style.css?v=51c9eb3a" />
 </head>
 <body>
   <a class="skip" href="#itemSearch">Skip to selling an item</a>
@@ -111,6 +111,17 @@
     <!-- 1. Item -->
     <section class="card" id="itemCard">
       <h2><b>1</b> Item</h2>
+      <div class="shot" id="shotBox">
+        <img class="shot-ic" src="assets/ui/vip-mirror.png" alt="" />
+        <div class="shot-text">
+          <b>Have a picture of the item?</b> Hover it in the game and take a screenshot (or a phone photo of the screen),
+          then <label class="shot-pick" for="shotFile">choose the picture</label>, drop it here or paste it (Ctrl+V).
+          FMCheck fills everything in for you to check.
+          <input type="file" id="shotFile" accept="image/*" class="sr-only" />
+        </div>
+      </div>
+      <div id="shotResult" class="shot-result" role="status" aria-live="polite" hidden></div>
+      <p class="or-line"><span>or find it yourself</span></p>
       <div id="cats" class="cats" role="toolbar" aria-label="Item categories"></div>
       <div class="search-row">
       <div class="search">
@@ -300,6 +311,6 @@ chance = clean roll × scrolls</pre>
   </div>
 
 
-  <script type="module" src="js/app.js?v=28ef07c7"></script>
+  <script type="module" src="js/app.js?v=51c9eb3a"></script>
 </body>
 </html>

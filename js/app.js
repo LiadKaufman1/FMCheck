@@ -1,11 +1,11 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=28ef07c7";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readPrice } from "./calc.js?v=28ef07c7";
-import { getPrice, setPrice } from "./prices.js?v=28ef07c7";
-import { drawCard, cardBlob } from "./card.js?v=28ef07c7";
-import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=28ef07c7";
-import { itemSearch } from "./itemsearch.js?v=28ef07c7";
-import { setupA11y } from "./a11y.js?v=28ef07c7";
-import { API, api, health, me, googleButton, validIgn } from "./account.js?v=28ef07c7";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=51c9eb3a";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readPrice } from "./calc.js?v=51c9eb3a";
+import { getPrice, getUserPrice, setPrice, setSitePrices, sitePrice, siteDate } from "./prices.js?v=51c9eb3a";
+import { drawCard, cardBlob } from "./card.js?v=51c9eb3a";
+import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=51c9eb3a";
+import { itemSearch } from "./itemsearch.js?v=51c9eb3a";
+import { setupA11y } from "./a11y.js?v=51c9eb3a";
+import { API, api, health, me, googleButton, validIgn } from "./account.js?v=51c9eb3a";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -13,7 +13,7 @@ const rangeText = (lo, hi) => (lo === hi ? mesos(lo) : `${mesos(lo)} – ${mesos
 
 // A price field: one average price and a unit dropdown.
 // `p` is a saved { lo, hi } to fill in (an older saved range shows as its middle), or null; `unit` is the default unit.
-function rangeFields(p, unit) {
+function rangeFields(p, unit, fallback = null) {
   let value = "";
   if (p) {
     const avg = (p.lo + p.hi) / 2;
@@ -21,7 +21,9 @@ function rangeFields(p, unit) {
     unit = u[0];
     value = String(+(avg / u[2]).toPrecision(4));
   }
-  return `<input inputmode="decimal" placeholder="average price" aria-label="Average price" value="${value}" data-f="price" />
+  const hint = fallback ? `FMCheck: ${mesos(fallback)}` : "average price";
+  if (!p && fallback) unit = (UNITS.slice().reverse().find(([, , m]) => m > 1 && fallback >= m) || UNITS[0])[0];
+  return `<input inputmode="decimal" placeholder="${hint}" aria-label="Average price${fallback ? `, FMCheck's price ${mesos(fallback)} if left empty` : ""}" value="${value}" data-f="price" />
     ${unitSelect(unit, 'data-f="unit"')}`;
 }
 // The price typed, as { lo, hi } with both the same (the estimate's math works with ranges), or null.
@@ -72,6 +74,94 @@ const picker = itemSearch({
   isPicked: () => !!state.item && search.value === state.item.name,
 });
 const showResults = picker.showResults;
+
+// ---------- read the item from a picture (js/shot.js, js/itemread.js) ----------
+
+let shotBusy = false, lastShot = null;
+const scrollName = (id) => shortName(scrollById.get(id));
+const rowsText = (rows) => rows.length ? rows.map((r) => `${r.n}× ${esc(scrollName(r.id))}`).join(", ") : "no scrolls passed";
+
+async function readShot(file) {
+  if (!file || !/^image\//.test(file.type) || shotBusy) return;
+  const box = $("shotResult");
+  box.hidden = false;
+  box.innerHTML = `<p class="hint">Getting the reader ready…</p>`;
+  shotBusy = true;
+  try {
+    const { readItemPicture } = await import(new URL(`./shot.js${new URL(import.meta.url).search}`, import.meta.url));
+    const res = await readItemPicture(file, equips, scrolls, (t) => { box.innerHTML = `<p class="hint">${esc(t)}</p>`; });
+    lastShot = res;
+    const top = res.items[0];
+    if (!top || top.s < 2.5 || !res.guess) {
+      box.innerHTML = `<p class="warn">Couldn't read an item window in that picture. Try a screenshot where the item's window is clear,
+        or find the item below.</p>${readDetails(res.text)}`;
+      return;
+    }
+    applyShot(top.e, res.guess.best, res.guess.left);
+  } catch (e) {
+    box.innerHTML = `<p class="warn">Couldn't read the picture: ${esc(e.message || "try again")}.</p>`;
+  } finally {
+    shotBusy = false;
+  }
+}
+const readDetails = (text) => `<details class="shot-read"><summary>What was read</summary><pre>${esc(text.trim())}</pre></details>`;
+
+// Fill the steps with what was read, and offer the other likely items and scroll guesses.
+function applyShot(equip, guess, left) {
+  const res = lastShot;
+  const restore = guess ? {
+    clean: guess.clean,
+    rows: guess.rows.map((r) => ({ scroll: scrollById.get(r.id), successes: r.n })).filter((r) => r.scroll),
+    left,
+  } : { left };
+  pickItem(equip[0], restore);
+  const g = guessScrolls_(equip);
+  const otherItems = res.items.filter((x) => x.e[0] !== equip[0] && x.s > res.items[0].s - 2).slice(0, 3);
+  const otherGuesses = (g ? [g.best, ...g.others] : []).filter((x) => x && JSON.stringify(x.rows) !== JSON.stringify(guess?.rows)).slice(0, 2);
+  $("shotResult").innerHTML = `
+    <p><b>Read from your picture:</b> ${esc(equip[1])}${guess && guess.passes ? ` (+${guess.passes})` : ""}, ${left} slot${left === 1 ? "" : "s"} left.
+      ${guess ? `Likely scrolls: <b>${rowsText(guess.rows)}</b>.` : "Couldn't tell which scrolls passed: add them under Scrolls."}
+      Check the steps below and fix anything that's off.</p>
+    ${otherItems.length ? `<p class="shot-alt">Not this item? ${otherItems.map((x) => `<button type="button" class="ghost-btn mini" data-shot-item="${x.e[0]}">${esc(x.e[1])}</button>`).join(" ")}</p>` : ""}
+    ${otherGuesses.length ? `<p class="shot-alt">Other scrolls that fit: ${otherGuesses.map((x, i) => `<button type="button" class="ghost-btn mini" data-shot-guess="${i}">${rowsText(x.rows)}</button>`).join(" ")}</p>` : ""}
+    ${readDetails(res.text)}`;
+  $("shotResult").onclick = (e) => {
+    const it = e.target.closest("[data-shot-item]");
+    if (it) {
+      const eq = equips.find((x) => x[0] === +it.dataset.shotItem);
+      const gg = guessScrolls_(eq);
+      applyShot(eq, gg && gg.best, gg ? gg.left : eq[4]);
+      return;
+    }
+    const gb = e.target.closest("[data-shot-guess]");
+    if (gb) applyShot(equip, otherGuesses[+gb.dataset.shotGuess], left);
+  };
+}
+let guessFn = null;
+const guessScrolls_ = (equip) => (guessFn && lastShot ? guessFn(equip, lastShot.read, scrolls) : null);
+
+$("shotFile").addEventListener("change", async (e) => {
+  if (!guessFn) guessFn = (await import(new URL(`./itemread.js${new URL(import.meta.url).search}`, import.meta.url))).guessScrolls;
+  readShot(e.target.files[0]);
+  e.target.value = "";
+});
+const shotBox = $("shotBox");
+shotBox.addEventListener("dragover", (e) => { e.preventDefault(); shotBox.classList.add("over"); });
+shotBox.addEventListener("dragleave", () => shotBox.classList.remove("over"));
+shotBox.addEventListener("drop", async (e) => {
+  e.preventDefault();
+  shotBox.classList.remove("over");
+  if (!guessFn) guessFn = (await import(new URL(`./itemread.js${new URL(import.meta.url).search}`, import.meta.url))).guessScrolls;
+  readShot(e.dataTransfer.files[0]);
+});
+document.addEventListener("paste", async (e) => {
+  const f = [...(e.clipboardData?.files || [])].find((x) => /^image\//.test(x.type));
+  if (!f) return;
+  e.preventDefault();
+  if (!guessFn) guessFn = (await import(new URL(`./itemread.js${new URL(import.meta.url).search}`, import.meta.url))).guessScrolls;
+  shotBox.scrollIntoView({ behavior: "smooth", block: "center" });
+  readShot(f);
+});
 
 // ---------- pick an item ----------
 
@@ -240,7 +330,7 @@ let tiersOpen = false;
 function renderMainTiers() {
   const box = $("mainTiers");
   const list = mainTiers();
-  const open = tiersOpen || list.some((sc) => getPrice(sc.id));
+  const open = tiersOpen || list.some((sc) => getUserPrice(sc.id));
   const names = list.map((sc) => esc(shortName(sc).split(":").pop().trim())).join(" and ");
   box.innerHTML = list.length ? `<details class="tiers-box"${open ? " open" : ""}>
     <summary><span class="tiers-sum">Optional: compare with the ${names} scroll for a fairer estimate</span></summary>
@@ -249,7 +339,7 @@ function renderMainTiers() {
     ${list.map((sc) => `<div class="scroll-row tier-row" data-id="${sc.id}">
       <img src="${scrollIcon(sc.id)}" alt="" />
       <span class="nm"><b>${esc(shortName(sc))}</b><small>${esc(scrollOdds(sc))} · ${esc(plusList(sc.stats))}</small></span><span></span>
-      <span class="row-price price-input">${rangeFields(getPrice(sc.id), "k")}
+      <span class="row-price price-input">${rangeFields(getUserPrice(sc.id), "k", sitePrice(sc.id))}
         <a href="${priceLink(sc.id, sc.name)}" data-name="${esc(sc.name)}" target="_blank" rel="noopener">check price ↗</a></span>
     </div>`).join("")}</details>` : "";
   box.querySelector("details")?.addEventListener("toggle", (e) => { tiersOpen = e.target.open; });
@@ -269,7 +359,7 @@ function renderRows() {
     return;
   }
   box.innerHTML = state.rows.map((r, i) => {
-    const p = getPrice(r.scroll.id);
+    const p = getUserPrice(r.scroll.id);
     return `<div class="scroll-row" data-i="${i}">
       <img src="${scrollIcon(r.scroll.id)}" alt="" />
       <span class="nm"><b>${esc(shortName(r.scroll))}</b><small>${esc(scrollOdds(r.scroll))} · ${esc(plusList(r.scroll.stats))}</small></span>
@@ -321,10 +411,12 @@ $("scrollRows").addEventListener("click", (e) => {
 // ---------- clean price ----------
 
 // The clean price depends on the rolled stats, so it isn't remembered between items.
-let cleanPrice = null; // { lo, hi } or null
+let cleanPrice = null; // { lo, hi } typed by the player, or null
+// The clean price to use: typed, else FMCheck's price list.
+const effectiveClean = () => cleanPrice || (state.item && sitePrice(state.item.id) ? { lo: sitePrice(state.item.id), hi: sitePrice(state.item.id), site: true } : null);
 function renderCleanPrice() {
   cleanPrice = null;
-  $("cleanPrice").innerHTML = rangeFields(null, "k");
+  $("cleanPrice").innerHTML = rangeFields(null, "k", sitePrice(state.item.id));
   $("cleanLink").href = priceLink(state.item.id, state.item.name);
   $("cleanLink").dataset.name = state.item.name;
 }
@@ -402,7 +494,8 @@ function update() {
 // The price estimate; returns { lo, hi } or null when it can't be worked out yet.
 function renderEstimate(used) {
   const out = $("estimate");
-  if (!cleanPrice) { out.innerHTML = `<p class="hint">Want an estimate? Enter the clean item price (step 1) and the scroll prices. It's optional: you can publish the item without it.</p>`; return null; }
+  const cleanP = effectiveClean();
+  if (!cleanP) { out.innerHTML = `<p class="hint">Want an estimate? Enter the clean item price (step 1) and the scroll prices. It's optional: you can publish the item without it.</p>`; return null; }
 
   // What the item gained, per scroll family, and the scrolls the user entered (with a price).
   const needs = {};
@@ -416,7 +509,7 @@ function renderEstimate(used) {
 
   // Worked out with the "lo" and "hi" ends; with one price per field they're the same.
   const run = (end) => {
-    const clean = cleanPrice[end], tiers = tiersAt(end);
+    const clean = cleanP[end], tiers = tiersAt(end);
     if (!pointsGained && failed > 0) {
       // Nothing passed: a clean item that lost part of its slots (see failedItemValue).
       const f = failedItemValue({ cleanPrice: clean, slots: state.slots, left: state.left });
@@ -431,6 +524,7 @@ function renderEstimate(used) {
   };
   const lo = run("lo"), hi = run("hi");
   const unpriced = state.rows.filter((r) => !getPrice(r.scroll.id)).map((r) => esc(shortName(r.scroll)));
+  const usedSite = cleanP.site || [...state.rows.map((r) => r.scroll), ...mainTiers()].some((sc) => getPrice(sc.id)?.site);
   const tiersMissing = mainTiers().filter((sc) => !getPrice(sc.id)).map((sc) => esc(shortName(sc)));
   if (!lo || !hi) {
     out.innerHTML = `<p class="hint">${unpriced.length ? `Enter a price for ${unpriced.join(", ")} to get an estimate.` : "Enter the scroll prices to get an estimate."}</p>`;
@@ -453,6 +547,7 @@ function renderEstimate(used) {
       <span>Scrolls per clean item</span><span>${plan || "–"}</span>` : ""}`}
     </div>
     ${unpriced.length ? `<p class="warn">No price for ${unpriced.join(", ")}: left out of the cheapest way.</p>` : ""}
+    ${usedSite ? `<p class="hint site-note">Where you didn't enter a price, FMCheck's price list is used${siteDate() ? ` (updated ${new Date(siteDate()).toLocaleDateString("en-GB", { day: "numeric", month: "short" })})` : ""}. Type your own price to change it.</p>` : ""}
     ${tiersMissing.length ? `<p class="hint">Optional: for a fairer estimate, add today's price of ${tiersMissing.join(" and ")} under Scrolls ("compare with").</p>` : ""}`;
   return { lo: lo.value, hi: hi.value };
 }
@@ -524,7 +619,7 @@ function renderCard(fin, odds, price) {
     left: state.left,
     upgrades: passedTotal(),
     price,
-    priceHint: !cleanPrice ? "Enter the clean item price"
+    priceHint: !effectiveClean() ? "Enter the clean item price"
       : state.rows.some((r) => !getPrice(r.scroll.id)) ? `Enter a price for ${shortName(state.rows.find((r) => !getPrice(r.scroll.id)).scroll).split(":").pop().trim()} scrolls`
       : "Check the prices you entered",
     chance: odds ? odds.chance : 1,
@@ -666,6 +761,11 @@ if (DONATE_URL) {
   picker.setEquips(eq);
   $("equipNames").innerHTML = eq.map((e) => `<option value="${esc(e[1])}"></option>`).join("");
   health().then((j) => { if (j.community) setupPublish(); });
+  // FMCheck's price list fills the price fields left empty
+  fetch(`${API}/api/prices`).then((r) => r.json()).then((j) => {
+    setSitePrices(j.prices, j.updated);
+    if (state.item) { if (!cleanPrice) renderCleanPrice(); renderRows(); update(); }
+  }).catch(() => {});
   const h = readHash();
   if (h) pickItem(h.id, h.restore);
   else if (search.value.trim()) showResults(); // typed before the list loaded

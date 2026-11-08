@@ -25,7 +25,7 @@ async function api(request, env, ctx, url) {
       supporters: !!env.KOFI_TOKEN && !!env.KOFI_URL, kofiUrl: env.KOFI_URL || null,
       supporterPrice: +(env.SUPPORTER_PRICE || 3), boostPrice: +(env.BOOST_PRICE || 1) });
   }
-  if (/^\/api\/(auth|me|listings|kofi|admin)(\/|$)/.test(url.pathname)) return community(request, env, ctx, url, json);
+  if (/^\/api\/(auth|me|listings|kofi|admin|prices)(\/|$)/.test(url.pathname)) return community(request, env, ctx, url, json);
   return json({ error: "Not found" }, 404);
 }
 

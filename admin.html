@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <script>
+    if (location.hostname === "www.fmcheck.org") location.replace("https://fmcheck.org/admin.html" + location.search + location.hash);
+    if (/(\.github\.io|\.workers\.dev)$/.test(location.hostname)) document.documentElement.classList.add("old-address");
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FMCheck · Price list</title>
+  <meta name="robots" content="noindex" />
+  <meta name="theme-color" content="#5ccfc0" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="64x64" href="assets/favicon-64.png" />
+  <link rel="apple-touch-icon" href="assets/favicon-180.png" />
+  <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="css/style.css?v=51c9eb3a" />
+</head>
+<body>
+  <header class="top">
+    <a class="logo-link" href="./"><h1 class="logo" aria-label="FMCheck">
+      <span class="word" data-text="FM">FM</span><img class="logo-scroll" src="assets/scroll.png" alt="" /><span class="word" data-text="Check">Check</span>
+    </h1></a>
+    <p class="tagline">Price list (admins)</p>
+    <div class="top-actions">
+      <a class="guide-btn" href="community.html"><img class="ic" src="assets/ui/market.png" alt="" /> Market</a>
+      <a class="guide-btn" href="./"><img class="ic" src="assets/ui/scroll.png" alt="" /> Sell an item</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2><img class="ic ic-big" src="assets/ui/meso-pouch.png" alt="" /> FMCheck price list</h2>
+      <p class="hint">Average prices of scrolls and clean items. Wherever a player leaves a price empty, the estimate uses these.
+        Look them up yourself (for example on meso.watch) and type them here. Only admins can change them.</p>
+      <div id="adminBody"><p class="hint">Loading…</p></div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <!-- Accessibility options (bottom right), saved in this browser. -->
+  <div class="a11y-wrap">
+<button id="a11yBtn" class="a11y-btn" type="button" aria-expanded="false" aria-controls="a11yPanel" aria-label="Accessibility options">
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="4" r="2" fill="currentColor"/><path d="M4 8.5 12 10l8-1.5M12 10v4.5m0 0-3.5 6.5m3.5-6.5 3.5 6.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <div id="a11yPanel" class="a11y-panel" role="dialog" aria-label="Accessibility options" hidden>
+    <b>Accessibility</b>
+    <label><input type="checkbox" data-a11y="big" /> Larger text</label>
+    <label><input type="checkbox" data-a11y="still" /> Stop animations</label>
+    <label><input type="checkbox" data-a11y="contrast" /> High contrast</label>
+    <label><input type="checkbox" data-a11y="links" /> Underline links</label>
+    <a href="terms.html#accessibility">Accessibility statement</a>
+  </div>
+  
+  </div>
+
+
+  <script type="module" src="js/admin.js?v=51c9eb3a"></script>
+</body>
+</html>
