@@ -52,7 +52,7 @@ The small server in `src/worker.js` (Cloudflare Worker) serves the site and the 
 ### Community
 
 `community.html` lists players' scrolled items for sale, with the full picture: stats, slots, scrolls,
-odds, the estimate and where to find the seller. Items are put up from the calculator ("Put it in the spotlight").
+odds, the estimate and where to find the seller. Items are put up from the Sell an item page ("Put it in the spotlight").
 
 - Sign-in with Google (Google Identity Services). The Worker checks Google's token itself; it stores only a hash of the
   Google account id and the in-game name the player types. Sessions are random tokens in an HttpOnly cookie.

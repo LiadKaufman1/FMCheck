@@ -8,12 +8,12 @@
   </script>
   <link rel="canonical" href="https://fmcheck.org/community.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>FMCheck Community · Scrolled items for sale</title>
+  <title>FMCheck Market · Scrolled items for sale</title>
   <meta name="description" content="Scrolled MapleStory Classic items players are selling or showing off: full stats, slots left, scrolls, odds and a price estimate, and where to find the seller." />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="FMCheck" />
   <meta property="og:url" content="https://fmcheck.org/community.html" />
-  <meta property="og:title" content="FMCheck Community · Know exactly what you're buying" />
+  <meta property="og:title" content="FMCheck Market · Know exactly what you're buying" />
   <meta property="og:description" content="Scrolled items with full stats, slots, scrolls, odds and a price estimate. Sell yours." />
   <meta property="og:image" content="https://fmcheck.org/assets/og-image.png" />
   <meta name="twitter:card" content="summary_large_image" />
@@ -23,7 +23,7 @@
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
   <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="css/style.css?v=bbf16a45" />
+  <link rel="stylesheet" href="css/style.css?v=28ef07c7" />
 </head>
 <body>
   <a class="skip" href="#listings">Skip to the items</a>
@@ -61,10 +61,10 @@
     <a class="logo-link" href="./"><h1 class="logo" aria-label="FMCheck">
       <span class="word" data-text="FM">FM</span><img class="logo-scroll" src="assets/scroll.png" alt="" /><span class="word" data-text="Check">Check</span>
     </h1></a>
-    <p class="tagline">Community: know exactly what you're buying.</p>
+    <p class="tagline">Market: know exactly what you're buying.</p>
     <div class="top-actions">
-      <a class="guide-btn" href="./">🧮 Calculator</a>
-      <button type="button" class="guide-btn sup-btn" id="supBtn">⭐ Become a supporter</button>
+      <a class="guide-btn" href="./"><img class="ic" src="assets/ui/scroll.png" alt="" /> Sell an item</a>
+      <button type="button" class="guide-btn sup-btn" id="supBtn"><img class="ic" src="assets/ui/starpiece.png" alt="" /> Become a supporter</button>
       <a class="discord" data-discord href="https://discord.gg/hWYs9vxhRv" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M5 5.5C7 4.4 9 4 9 4l.6 1.2a15 15 0 0 1 4.8 0L15 4s2 .4 4 1.5c2 3 2.6 6.4 2.4 10.5-1.6 1.3-3.3 2-5 2.5l-1-1.7c.7-.3 1.3-.6 1.9-1-3.8 1.8-8.8 1.8-12.6 0 .6.4 1.2.7 1.9 1l-1 1.7c-1.7-.5-3.4-1.2-5-2.5C2.4 11.9 3 8.5 5 5.5Z"/><circle cx="9" cy="12" r="1.6" fill="#5865f2"/><circle cx="15" cy="12" r="1.6" fill="#5865f2"/></svg>
         Discord</a>
@@ -80,7 +80,7 @@
 
     <section class="card featured" id="featured" aria-labelledby="featuredTitle" hidden>
       <div class="featured-head">
-        <h2 id="featuredTitle">⭐ Featured <small>by FMCheck supporters</small></h2>
+        <h2 id="featuredTitle"><img class="ic ic-big" src="assets/ui/starpiece.png" alt="" /> Featured <small>by FMCheck supporters</small></h2>
         <button type="button" class="ghost-btn mini" id="featureYours">Feature yours here →</button>
       </div>
       <ul class="tiles" id="featuredList"></ul>
@@ -122,27 +122,27 @@
     </section>
 
     <section class="card supporter" id="supporterCard" aria-labelledby="supTitle" hidden>
-      <h2 id="supTitle">⭐ Become an FMCheck supporter</h2>
+      <h2 id="supTitle"><img class="ic ic-big" src="assets/ui/starpiece.png" alt="" /> <span id="supTitleText">Become an FMCheck supporter</span></h2>
       <div id="supporterBody"></div>
     </section>
 
     <section class="card how-community">
       <h2>How it works</h2>
       <ul>
-        <li><b>Put an item up:</b> enter it in the <a href="./">calculator</a> (item, clean stats, slots left, scrolls that passed),
+        <li><b>Put an item up:</b> enter it under <a href="./">Sell an item</a> (item, clean stats, slots left, scrolls that passed),
           then press <i>Publish</i>. You set the asking price, or leave it empty to just show the item off.
           Entering prices for an estimate is optional. You can have 3 items up at once (10 as a supporter).</li>
         <li><b>The tabs:</b> <i>For sale</i> is what's up for sale now.
           <i>Rarest this week</i> is everything added in the last 7 days, rarest first. <i>My items</i> is yours, with the buttons to manage them.</li>
         <li><b>For sale</b> items stay on the list for 3 days (7 for supporters). Press <i>Still selling</i> under My items to keep yours up.
           Items are listed by when they were first posted: <i>Still selling</i>, edits or posting the same item again don't move it up.</li>
-        <li><b>✓ Checked on screen:</b> the seller showed the item's window from the game, and the stats and slots matched.
+        <li><b><img class="ic" src="assets/ui/mirror.png" alt="" /> Checked on screen:</b> the seller showed the item's window from the game, and the stats and slots matched.
           The chance shown for each item is worked out by FMCheck from its stats, not typed by the seller.
           Reading happens in the seller's browser: the screen is never uploaded. It's a strong hint, not a guarantee, so look at the item in game before you pay.</li>
         <li><b>The estimate</b>, when there is one, comes from prices the seller entered when publishing, so treat it as theirs.
           Sellers set any price they like; "Above estimate" warns when the asking price is above even their own estimate.
-          For your own check, open the item in the calculator with today's prices.</li>
-        <li><b>⭐ Featured</b> items were boosted by FMCheck supporters for 24 hours: they're in the Featured row and first in every list and search they match. Featured is marked clearly; it doesn't change the stats, the badges or the estimate.</li>
+          For your own check, open the item under Sell an item and enter today's prices.</li>
+        <li><b><img class="ic" src="assets/ui/starpiece.png" alt="" /> Featured</b> items were boosted by FMCheck supporters for 24 hours: they're in the Featured row and first in every list and search they match. Featured is marked clearly; it doesn't change the stats, the badges or the estimate.</li>
         <li>Mesos only. Real-money trading isn't allowed. See something fake? Press <i>Report</i> on the item.</li>
       </ul>
     </section>
@@ -159,7 +159,7 @@
   </dialog>
 
   <footer>
-    <p class="community">💬 Ideas or bugs? <a data-discord href="https://discord.gg/hWYs9vxhRv" target="_blank" rel="noopener">Join the FMCheck Discord</a>.</p>
+    <p class="community"><img class="ic" src="assets/ui/letter.png" alt="" /> Ideas or bugs? <a data-discord href="https://discord.gg/hWYs9vxhRv" target="_blank" rel="noopener">Join the FMCheck Discord</a>.</p>
     <p>Item data and icons from <a href="https://osmsdataexplorer.com" target="_blank" rel="noopener">OSMS Data Explorer</a>
       by @ohmi, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>.
       Game content © Nexon. Not affiliated with Nexon.</p>
@@ -185,6 +185,6 @@
   </div>
 
 
-  <script type="module" src="js/community.js?v=bbf16a45"></script>
+  <script type="module" src="js/community.js?v=28ef07c7"></script>
 </body>
 </html>

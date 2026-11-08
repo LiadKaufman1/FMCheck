@@ -1,34 +1,34 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=bbf16a45";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readRange, readPrice } from "./calc.js?v=bbf16a45";
-import { getPrice, setPrice } from "./prices.js?v=bbf16a45";
-import { drawCard, cardBlob } from "./card.js?v=bbf16a45";
-import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=bbf16a45";
-import { itemSearch } from "./itemsearch.js?v=bbf16a45";
-import { setupA11y } from "./a11y.js?v=bbf16a45";
-import { API, api, health, me, googleButton, validIgn } from "./account.js?v=bbf16a45";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=28ef07c7";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readPrice } from "./calc.js?v=28ef07c7";
+import { getPrice, setPrice } from "./prices.js?v=28ef07c7";
+import { drawCard, cardBlob } from "./card.js?v=28ef07c7";
+import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=28ef07c7";
+import { itemSearch } from "./itemsearch.js?v=28ef07c7";
+import { setupA11y } from "./a11y.js?v=28ef07c7";
+import { API, api, health, me, googleButton, validIgn } from "./account.js?v=28ef07c7";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
 const rangeText = (lo, hi) => (lo === hi ? mesos(lo) : `${mesos(lo)} – ${mesos(hi)}`);
 
-// Price range fields: "from" and "to" boxes sharing one unit dropdown.
-// `p` is a saved { lo, hi } to fill in, or null; `unit` is the default unit.
+// A price field: one average price and a unit dropdown.
+// `p` is a saved { lo, hi } to fill in (an older saved range shows as its middle), or null; `unit` is the default unit.
 function rangeFields(p, unit) {
-  let from = "", to = "";
+  let value = "";
   if (p) {
-    const u = UNITS.slice().reverse().find(([, , m]) => m > 1 && p.hi >= m) || UNITS[0];
+    const avg = (p.lo + p.hi) / 2;
+    const u = UNITS.slice().reverse().find(([, , m]) => m > 1 && avg >= m) || UNITS[0];
     unit = u[0];
-    const num = (v) => String(+(v / u[2]).toPrecision(6));
-    from = num(p.lo);
-    to = p.hi !== p.lo ? num(p.hi) : "";
+    value = String(+(avg / u[2]).toPrecision(4));
   }
-  return `<input inputmode="decimal" placeholder="from" aria-label="Lowest price" value="${from}" data-f="from" />
-    <span class="dash">–</span>
-    <input inputmode="decimal" placeholder="to" aria-label="Highest price" value="${to}" data-f="to" />
+  return `<input inputmode="decimal" placeholder="average price" aria-label="Average price" value="${value}" data-f="price" />
     ${unitSelect(unit, 'data-f="unit"')}`;
 }
-const readFields = (box) => readRange(
-  box.querySelector('[data-f="from"]').value, box.querySelector('[data-f="to"]').value, box.querySelector('[data-f="unit"]').value);
+// The price typed, as { lo, hi } with both the same (the estimate's math works with ranges), or null.
+const readFields = (box) => {
+  const v = readPrice(box.querySelector('[data-f="price"]').value, box.querySelector('[data-f="unit"]').value);
+  return Number.isFinite(v) && v > 0 ? { lo: v, hi: v } : null;
+};
 // <select> of price units; `unit` is preselected.
 const unitSelect = (unit, attrs = "") => `<select ${attrs} aria-label="Unit">${UNITS.map(([v, label]) =>
   `<option value="${v}"${v === unit ? " selected" : ""}>${label}</option>`).join("")}</select>`;
@@ -255,7 +255,7 @@ function renderMainTiers() {
   box.querySelector("details")?.addEventListener("toggle", (e) => { tiersOpen = e.target.open; });
 }
 function onTierPrice(e) {
-  if (!["from", "to", "unit"].includes(e.target.dataset.f)) return;
+  if (!["price", "unit"].includes(e.target.dataset.f)) return;
   const row = e.target.closest(".tier-row");
   setPrice(+row.dataset.id, readFields(row));
   update();
@@ -287,7 +287,7 @@ function renderRows() {
 }
 
 function onScrollPrice(e) {
-  if (!["from", "to", "unit"].includes(e.target.dataset.f)) return;
+  if (!["price", "unit"].includes(e.target.dataset.f)) return;
   const row = e.target.closest(".scroll-row");
   setPrice(state.rows[+row.dataset.i].scroll.id, readFields(row));
   update();
@@ -414,7 +414,7 @@ function renderEstimate(used) {
 
   const failed = used - passedTotal();
 
-  // Worked out twice: with every "from" price, then with every "to" price.
+  // Worked out with the "lo" and "hi" ends; with one price per field they're the same.
   const run = (end) => {
     const clean = cleanPrice[end], tiers = tiersAt(end);
     if (!pointsGained && failed > 0) {
@@ -459,7 +459,7 @@ function renderEstimate(used) {
 
 let lastEstimate = null, lastOdds = null; // for publishing
 
-// ---------- publish to the community ----------
+// ---------- put the item up on the Market ----------
 
 let pubUser = null;
 async function setupPublish() {
@@ -506,7 +506,7 @@ $("pubForm").addEventListener("submit", async (e) => {
       · <button type="button" class="ghost-btn" id="pubCopy">Copy link</button>`;
     $("pubCopy").addEventListener("click", () => navigator.clipboard.writeText(link).then(() => toast("Link copied.")).catch(() => {}));
   } catch (err) {
-    msg.innerHTML = esc(err.message) + (err.upsell ? ` <a class="sup-link" href="community.html#supporters">⭐ Become a supporter</a>` : "");
+    msg.innerHTML = esc(err.message) + (err.upsell ? ` <a class="sup-link" href="community.html#supporters"><img class="ic" src="assets/ui/starpiece.png" alt="" /> Become a supporter</a>` : "");
     if (err.status === 401) { pubUser = null; showPublish(null); }
   } finally {
     $("pubSend").disabled = false;
@@ -594,12 +594,12 @@ function readHash() {
 
 const GUIDE = [
   ["assets/guide/1.webp?v=4", "1. Pick your item: search it, or tap a category and a class to browse."],
-  ["assets/guide/2.webp?v=4", "2. Set its clean stats. For a price estimate, also enter what a clean one costs today (from – to). Tip: tap \"check price\" to see it on meso.watch."],
+  ["assets/guide/2.webp?v=4", "2. Set its clean stats. For a price estimate, also enter what a clean one costs today (one average price). Tip: tap \"check price\" to see it on meso.watch."],
   ["assets/guide/3.webp?v=4", "3. Set the slots left and add the scrolls that passed (failed ones are worked out for you). For the estimate, add each scroll's price too."],
-  ["assets/guide/4.webp?v=4", "4. See the odds of an item like this and, with prices, its price range. Save the item card to share it. Sold or bought one like it? Report the real price under the estimate."],
+  ["assets/guide/4.webp?v=4", "4. See the odds of an item like this and, with prices, an estimate to help you set your price. Save the item card to share it."],
   ["assets/guide/5.webp?v=4", "5. Put it in the spotlight: sign in with Google and publish the item for sale. You set the price; the prices above aren't needed to publish: the estimate is only there to help."],
-  ["assets/guide/6.webp?v=4", "6. The Community page: buyers see each item's exact stats, slots, odds and how the price compares with the estimate, and can filter by stat. ⭐ Featured items sit on top."],
-  ["assets/guide/7.webp?v=4", "7. Tap an item to see its full card, the seller and where to find them (channel, FM room). ✓ Checked on screen: the seller showed the item from the game."],
+  ["assets/guide/6.webp?v=4", "6. The Market: buyers see each item's exact stats, slots, odds and how the price compares with the estimate, and can filter by stat. Featured items sit on top."],
+  ["assets/guide/7.webp?v=4", "7. Tap an item to see its full card, the seller and where to find them (channel, FM room). Checked on screen: the seller showed the item from the game."],
   ["assets/guide/8.webp?v=4", "8. Under My items: keep it up with Still selling, check it on screen, edit the price, mark it sold, or feature it for 24 hours (supporters)."],
 ];
 const GUIDE_KEY = "fmcheck-guide-seen";

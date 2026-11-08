@@ -425,7 +425,7 @@ function listWhere(p, now, skipCat = false, demo = false) {
 export const communityReady = (env) => !!(env.DB && env.GOOGLE_CLIENT_ID);
 
 export async function community(request, env, ctx, url, json) {
-  if (!communityReady(env)) return json({ error: "The community isn't set up yet." }, 503);
+  if (!communityReady(env)) return json({ error: "The Market isn't set up yet." }, 503);
   await setup(env);
   const { pathname: path } = url;
   const method = request.method;

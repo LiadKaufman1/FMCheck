@@ -632,3 +632,12 @@ a.ghost-btn { display: inline-block; padding: 8px 12px; border-radius: 10px; tex
 .tiers-box summary:hover .tiers-sum { color: var(--accent-text); text-decoration: underline; }
 .tiers-box[open] summary { margin-bottom: 4px; }
 .tiers-box .hint { margin: 0 0 8px; }
+
+/* MapleStory icons next to labels (assets/ui/) */
+.ic { width: 18px; height: 18px; object-fit: contain; image-rendering: pixelated; vertical-align: -4px; flex: none; }
+.ic-big { width: 26px; height: 26px; vertical-align: -6px; }
+.badge .ic { width: 14px; height: 14px; vertical-align: -3px; }
+.guide-btn .ic, .discord .ic, .donate .ic { width: 16px; height: 16px; }
+.top-actions .guide-btn, .top-actions .donate { display: inline-flex; align-items: center; gap: 5px; }
+.top-actions { flex-wrap: wrap; justify-content: flex-end; row-gap: 6px; }
+@media (max-width: 720px) { .top-actions { justify-content: flex-start; } }

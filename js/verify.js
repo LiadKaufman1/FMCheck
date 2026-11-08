@@ -1,8 +1,8 @@
 // "Check it on screen": the seller shares the game window (the browser asks them first), hovers the item,
 // and this page reads the item's window with text recognition. Everything runs in this browser:
 // the picture is never uploaded. Only the numbers read (stats and slots left) go to FMCheck to compare.
-import { api, esc } from "./account.js?v=bbf16a45";
-import { GAME_LABEL, GAME_ORDER } from "./itemcard.js?v=bbf16a45";
+import { api, esc } from "./account.js?v=28ef07c7";
+import { GAME_LABEL, GAME_ORDER } from "./itemcard.js?v=28ef07c7";
 
 const $ = (id) => document.getElementById(id);
 const VENDOR = new URL("../assets/vendor/tesseract/", import.meta.url).href;
@@ -99,7 +99,7 @@ export function startVerify(listing, equip, onDone) {
     <p class="hint">Looking for: ${esc(want)}, ${listing.left} slot${listing.left === 1 ? "" : "s"} left.
       The picture stays in this browser; only the numbers read are sent to compare.</p>
     <div class="verify-controls">
-      <button type="button" id="vStart">🖥 Share the game</button>
+      <button type="button" id="vStart"><img class="ic" src="assets/ui/vip-mirror.png" alt="" /> Share the game</button>
       <button type="button" class="ghost-btn" id="vStop" hidden>Stop sharing</button>
     </div>
     <p class="hint" id="vPickHint" hidden>Reading is faster if you drag a box around the item window on the picture below.</p>

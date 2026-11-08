@@ -10,21 +10,21 @@
   </script>
   <link rel="canonical" href="https://fmcheck.org/" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>FMCheck · What's your scrolled item worth?</title>
-  <meta name="description" content="Free price check for scrolled MapleStory Classic items: enter the clean price and the scrolls that passed, get a price range, the odds of an item like it, and a shareable item card." />
+  <title>FMCheck · Sell your scrolled item</title>
+  <meta name="description" content="Put your scrolled MapleStory Classic item up for sale on the FMCheck Market: its exact stats, slots, scrolls and odds, with a price estimate to help you set the price." />
   <!-- Link previews (Discord, Facebook, WhatsApp, X) -->
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="FMCheck" />
   <meta property="og:url" content="https://fmcheck.org/" />
-  <meta property="og:title" content="FMCheck · What's your scrolled item worth?" />
-  <meta property="og:description" content="Free price check for scrolled MapleStory Classic items. Price range, odds and a shareable item card." />
+  <meta property="og:title" content="FMCheck · Sell your scrolled item" />
+  <meta property="og:description" content="Sell scrolled MapleStory Classic items on the FMCheck Market: exact stats, slots, scrolls, odds and a price estimate." />
   <meta property="og:image" content="https://fmcheck.org/assets/og-image.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="FMCheck logo next to an item card showing an estimated price" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="FMCheck · What's your scrolled item worth?" />
-  <meta name="twitter:description" content="Free price check for scrolled MapleStory Classic items. Price range, odds and a shareable item card." />
+  <meta name="twitter:title" content="FMCheck · Sell your scrolled item" />
+  <meta name="twitter:description" content="Sell scrolled MapleStory Classic items on the FMCheck Market: exact stats, slots, scrolls, odds and a price estimate." />
   <meta name="twitter:image" content="https://fmcheck.org/assets/og-image.png" />
   <meta name="theme-color" content="#5ccfc0" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
@@ -32,10 +32,10 @@
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
   <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="css/style.css?v=bbf16a45" />
+  <link rel="stylesheet" href="css/style.css?v=28ef07c7" />
 </head>
 <body>
-  <a class="skip" href="#itemSearch">Skip to the calculator</a>
+  <a class="skip" href="#itemSearch">Skip to selling an item</a>
   <!-- Moving background: meso drops, Maple items and monsters floating up. Stars at night (dark mode). -->
   <div class="sky" aria-hidden="true">
     <span class="float" style="--x:3%;--w:30px;--d:21s;--delay:-3s"><img src="assets/float/meso-gold.png" alt="" /></span>
@@ -70,15 +70,15 @@
     <h1 class="logo" aria-label="FMCheck">
       <span class="word" data-text="FM">FM</span><img class="logo-scroll" src="assets/scroll.png" alt="" /><span class="word" data-text="Check">Check</span>
     </h1>
-    <p class="tagline">Know what your scrolled item is worth.</p>
+    <p class="tagline">Sell an item: show exactly what you're selling.</p>
     <div class="top-actions">
-      <a class="guide-btn" href="community.html">🏪 Community</a>
-      <button id="guideBtn" class="guide-btn" type="button" aria-controls="guide" aria-expanded="false">❓ How it works</button>
+      <a class="guide-btn" href="community.html"><img class="ic" src="assets/ui/market.png" alt="" /> Market</a>
+      <button id="guideBtn" class="guide-btn" type="button" aria-controls="guide" aria-expanded="false"><img class="ic" src="assets/ui/book.png" alt="" /> How it works</button>
       <a class="discord" data-discord href="https://discord.gg/hWYs9vxhRv" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M5 5.5C7 4.4 9 4 9 4l.6 1.2a15 15 0 0 1 4.8 0L15 4s2 .4 4 1.5c2 3 2.6 6.4 2.4 10.5-1.6 1.3-3.3 2-5 2.5l-1-1.7c.7-.3 1.3-.6 1.9-1-3.8 1.8-8.8 1.8-12.6 0 .6.4 1.2.7 1.9 1l-1 1.7c-1.7-.5-3.4-1.2-5-2.5C2.4 11.9 3 8.5 5 5.5Z"/><circle cx="9" cy="12" r="1.6" fill="#5865f2"/><circle cx="15" cy="12" r="1.6" fill="#5865f2"/></svg>
         Discord</a>
 
-      <a class="donate" data-donate hidden target="_blank" rel="noopener" title="Voluntary, helps cover the site's running costs">☕ Support FMCheck</a>
+      <a class="donate" data-donate hidden target="_blank" rel="noopener" title="Voluntary, helps cover the site's running costs"><img class="ic" src="assets/ui/meso-pouch.png" alt="" /> Support FMCheck</a>
     </div>
   </header>
 
@@ -124,7 +124,7 @@
         </select>
       </div>
       <div id="itemInfo" class="item-info" hidden></div>
-      <label class="price-field" id="cleanField" hidden>Clean item price (from – to)
+      <label class="price-field" id="cleanField" hidden>Clean item price (average, optional)
         <span class="price-input">
           <span id="cleanPrice" class="range-fields"></span>
           <a id="cleanLink" target="_blank" rel="noopener">check price ↗</a>
@@ -162,11 +162,11 @@
 
     <!-- 4. Result -->
     <section class="card result" id="resultCard" hidden>
-      <h2><b>4</b> Estimate</h2>
+      <h2><b>4</b> Price and put it up</h2>
       <div class="card-wrap">
         <canvas id="card" class="item-card" role="img" aria-label="Item card with the estimate"></canvas>
         <div class="card-actions">
-          <button id="cardDownload" type="button">⬇ Download image</button>
+          <button id="cardDownload" type="button"><img class="ic" src="assets/ui/map-piece.png" alt="" /> Download image</button>
           <button id="cardCopy" type="button" class="ghost-btn">Copy image</button>
           <button id="cardShare" type="button" class="ghost-btn">Share</button>
         </div>
@@ -175,10 +175,10 @@
       <div id="estimate" class="estimate" aria-live="polite"></div>
       <div id="publish" class="publish" hidden>
         <h3><img class="h-ic" src="assets/ui/starpiece.png" alt="" /> Put it in the spotlight</h3>
-        <p class="hint">Show this item on the <a href="community.html">FMCheck community</a> page, for sale.
+        <p class="hint">Put this item up on the <a href="community.html">FMCheck Market</a>.
           Buyers see its full stats, slots, scrolls and odds, and where to find you.
           <b>You set the price.</b> You don't need to enter any prices above to publish; the estimate is only a helper, and it's shown if you made one.</p>
-        <p class="pub-upsell">⭐ Want it at the top? Supporters can feature it for 24 hours, first in every search and on our Discord.
+        <p class="pub-upsell"><img class="ic" src="assets/ui/starpiece.png" alt="" /> Want it at the top? Supporters can feature it for 24 hours, first in every search and on our Discord.
           <a href="community.html#supporters">See supporter perks →</a></p>
         <div id="pubSignIn" class="pub-signin"></div>
         <form id="pubForm" class="pub-form" hidden>
@@ -257,7 +257,6 @@ chance = clean roll × scrolls</pre>
 
         <p><b>3. Estimate</b></p>
         <pre class="formula">estimate = M + open slots</pre>
-        <p>It's worked out once with every "from" price and once with every "to" price, which gives the range.</p>
 
         <p><b>Scroll rates in MapleStory Classic</b>: Lesser 100% (+1), Intermediate 60% (+2), Greater 10% (+3; +4 weapon attack),
           Chaos 10% (+4; +5 weapon attack) and half of Chaos failures destroy the item. Exact gains per scroll come from the game data.</p>
@@ -271,7 +270,7 @@ chance = clean roll × scrolls</pre>
   </main>
 
   <footer>
-    <p class="community">💬 Ideas or bugs? <a data-discord href="https://discord.gg/hWYs9vxhRv" target="_blank" rel="noopener">Join the FMCheck Discord</a>
+    <p class="community"><img class="ic" src="assets/ui/letter.png" alt="" /> Ideas or bugs? <a data-discord href="https://discord.gg/hWYs9vxhRv" target="_blank" rel="noopener">Join the FMCheck Discord</a>
       to suggest a feature or report a bug.</p>
     <p>Prices you type are remembered in this browser.
       <a data-donate hidden target="_blank" rel="noopener">Enjoying FMCheck? Help cover its running costs on PayPal.</a></p>
@@ -301,6 +300,6 @@ chance = clean roll × scrolls</pre>
   </div>
 
 
-  <script type="module" src="js/app.js?v=bbf16a45"></script>
+  <script type="module" src="js/app.js?v=28ef07c7"></script>
 </body>
 </html>
