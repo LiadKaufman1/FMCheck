@@ -148,9 +148,12 @@ async function seedPrices(env) {
   const done = await env.DB.prepare(`SELECT v FROM meta WHERE k = ?`).bind(key).first();
   if (done) return;
   const t = Date.parse(priceSeed.date) || Date.now();
-  const q = Object.entries(priceSeed.prices).map(([id, price]) =>
+  // prices from an earlier version that must come out (marked by the time they were put in)
+  const drop = (priceSeed.drop_t || []).map((d) => Date.parse(d)).filter(Number.isFinite)
+    .map((dt) => env.DB.prepare(`DELETE FROM site_prices WHERE t = ?`).bind(dt));
+  const q = [...drop, ...Object.entries(priceSeed.prices).map(([id, price]) =>
     env.DB.prepare(`INSERT INTO site_prices (id, price, t) VALUES (?, ?, ?)
-      ON CONFLICT(id) DO UPDATE SET price = excluded.price, t = excluded.t WHERE site_prices.t < excluded.t`).bind(+id, price, t));
+      ON CONFLICT(id) DO UPDATE SET price = excluded.price, t = excluded.t WHERE site_prices.t < excluded.t`).bind(+id, price, t))];
   q.push(env.DB.prepare(`INSERT OR REPLACE INTO meta (k, v) VALUES (?, ?)`).bind(key, String(Date.now())));
   for (let i = 0; i < q.length; i += 90) await env.DB.batch(q.slice(i, i + 90));
 }

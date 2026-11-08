@@ -1,11 +1,11 @@
 // The community page: players' scrolled items for sale, with the full picture of each one.
-import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=97c7fb21";
-import { drawCard, cardBlob } from "./card.js?v=97c7fb21";
-import { cardInfo, cardLabel, cardFmt, cardDate, rangeText, oneInText } from "./itemcard.js?v=97c7fb21";
-import { setupA11y } from "./a11y.js?v=97c7fb21";
-import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=97c7fb21";
-import { itemSearch } from "./itemsearch.js?v=97c7fb21";
-import { DISCORD_URL } from "./config.js?v=97c7fb21";
+import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=45b8d865";
+import { drawCard, cardBlob } from "./card.js?v=45b8d865";
+import { cardInfo, cardLabel, cardFmt, cardDate, rangeText, oneInText } from "./itemcard.js?v=45b8d865";
+import { setupA11y } from "./a11y.js?v=45b8d865";
+import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=45b8d865";
+import { itemSearch } from "./itemsearch.js?v=45b8d865";
+import { DISCORD_URL } from "./config.js?v=45b8d865";
 
 const $ = (id) => document.getElementById(id);
 // a small MapleStory icon next to a label (assets/ui/)

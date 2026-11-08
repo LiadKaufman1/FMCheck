@@ -1,8 +1,8 @@
 // Reading a picture of an in-game item window (a screenshot, or a phone photo of the screen) in this browser.
 // The picture is never uploaded: it's read here with text recognition (js/verify.js loads the reader),
 // then js/itemread.js works out the item, its stats, slots left and the likeliest scrolls.
-import { recognizer } from "./verify.js?v=97c7fb21";
-import { parseWindow, findItem, guessScrolls } from "./itemread.js?v=97c7fb21";
+import { recognizer } from "./verify.js?v=45b8d865";
+import { parseWindow, findItem, guessScrolls } from "./itemread.js?v=45b8d865";
 
 // The picture drawn at a size the reader likes, as three versions: as it is (screenshots), white text only
 // (the stats, for photos of a screen) and yellow text only (the item's name).

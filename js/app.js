@@ -1,11 +1,11 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=97c7fb21";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, rollValueFactor, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readPrice } from "./calc.js?v=97c7fb21";
-import { getPrice, getUserPrice, setPrice, setSitePrices, sitePrice, siteDate } from "./prices.js?v=97c7fb21";
-import { drawCard, cardBlob } from "./card.js?v=97c7fb21";
-import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=97c7fb21";
-import { itemSearch } from "./itemsearch.js?v=97c7fb21";
-import { setupA11y } from "./a11y.js?v=97c7fb21";
-import { API, api, health, me, googleButton, validIgn } from "./account.js?v=97c7fb21";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=45b8d865";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, rollValueFactor, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readPrice } from "./calc.js?v=45b8d865";
+import { getPrice, getUserPrice, setPrice, setSitePrices, sitePrice, siteDate } from "./prices.js?v=45b8d865";
+import { drawCard, cardBlob } from "./card.js?v=45b8d865";
+import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=45b8d865";
+import { itemSearch } from "./itemsearch.js?v=45b8d865";
+import { setupA11y } from "./a11y.js?v=45b8d865";
+import { API, api, health, me, googleButton, validIgn } from "./account.js?v=45b8d865";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -373,9 +373,13 @@ function onTierPrice(e) {
 const editing = new Set(); // ids (or "clean") the player chose to change
 function priceSlot(id, own, unit, link) {
   const market = sitePrice(id);
-  if (!own && market && !editing.has(id)) {
-    return `<span class="auto-price"><b>${mesos(market)}</b> <small>market price</small>
-      <button type="button" class="link-btn" data-edit="${id}" aria-label="Change the price of this one">change</button></span>`;
+  if (!own && !editing.has(id)) {
+    // never a field on its own: the market price, or a quiet note that there isn't one yet
+    return market
+      ? `<span class="auto-price"><b>${mesos(market)}</b> <small>market price</small>
+          <button type="button" class="link-btn" data-edit="${id}" aria-label="Change the price of this one">change</button></span>`
+      : `<span class="auto-price"><small>No market price yet, so the estimate leaves it out.</small>
+          <button type="button" class="link-btn" data-edit="${id}" aria-label="Add a price for this one">add one</button></span>`;
   }
   return `${rangeFields(own, unit, market)}${link}`;
 }
@@ -464,11 +468,12 @@ function renderCleanPrice() {
 }
 function drawCleanPrice() {
   const market = sitePrice(state.item.id);
-  const auto = market && !cleanPrice && !editing.has("clean");
-  $("cleanPrice").innerHTML = auto
-    ? `<span class="auto-price"><b>${mesos(market)}</b> <small>market price for a typical one</small>
+  const auto = !cleanPrice && !editing.has("clean");
+  $("cleanPrice").innerHTML = !auto ? rangeFields(cleanPrice, "k", market)
+    : market ? `<span class="auto-price"><b>${mesos(market)}</b> <small>market price for a typical one</small>
         <button type="button" class="link-btn" data-edit="clean" aria-label="Change the clean item price">change</button></span>`
-    : rangeFields(cleanPrice, "k", market);
+    : `<span class="auto-price"><small>No market price for a clean one yet.</small>
+        <button type="button" class="link-btn" data-edit="clean" aria-label="Add a clean item price">add one</button></span>`;
   $("cleanLink").hidden = auto;
 }
 function onCleanPrice() {
@@ -549,7 +554,7 @@ function update() {
 function renderEstimate(used) {
   const out = $("estimate");
   const cleanP = effectiveClean();
-  if (!cleanP) { out.innerHTML = `<p class="hint">Want an estimate? Enter the clean item price (step 1) and the scroll prices. It's optional: you can publish the item without it.</p>`; return null; }
+  if (!cleanP) { out.innerHTML = `<p class="hint">No estimate yet: there's no market price for a clean one of this item. You can still put it up for sale and set your own price${""}.</p>`; return null; }
 
   // What the item gained, per scroll family, and the scrolls the user entered (with a price).
   const needs = {};
@@ -574,7 +579,8 @@ function renderEstimate(used) {
       return { cost: clean, open: 0, value: f.value, lost: clean - f.value, ratio: f.ratio, cleanItems: 1, uses: {}, tiers };
     }
     const route = cheapestRoute({ cleanPrice: clean, slots: used, needs, tiers });
-    if (!route) return null;
+    // no market price for the scrolls it needs: count the clean item only (and say so)
+    if (!route) return { cost: clean, open: 0, value: clean, cleanItems: 1, uses: {}, tiers, partial: true };
     // Open slots: the chance to scroll them further (see openSlotsBonus), for the main scroll on the item.
     const fam = Object.keys(needs).sort((a, b) => needs[b] - needs[a])[0];
     const open = fam ? openSlotsBonus({ cleanPrice: clean, slots: state.slots, left: state.left, fam, gained: needs[fam], tiers }) : 0;
@@ -605,8 +611,9 @@ function renderEstimate(used) {
       ${pointsGained ? `<span>Clean items the cheapest way uses</span><span>${items(lo.cleanItems)}</span>
       <span>Scrolls per clean item</span><span>${plan || "–"}</span>` : ""}`}
     </div>
-    ${unpriced.length ? `<p class="warn">No price for ${unpriced.join(", ")}: left out of the cheapest way.</p>` : ""}
-    ${usedSite ? `<p class="hint site-note">Where you didn't enter a price, FMCheck's price list is used (market data from <a href="https://meso.watch" target="_blank" rel="noopener">meso.watch</a>${siteDate() ? `, updated ${new Date(siteDate()).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}). Type your own price to change it.</p>` : ""}
+    ${lo.partial ? `<p class="hint">There's no market price yet for the scrolls on this item, so this counts the clean item only: the real value is likely higher.</p>`
+      : unpriced.length ? `<p class="hint">No market price yet for ${unpriced.join(", ")}, so it's left out.</p>` : ""}
+    ${usedSite ? `<p class="hint site-note">Where you didn't enter a price, FMCheck's price list is used (${siteDate() ? `updated ${new Date(siteDate()).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}). Type your own price to change it.</p>` : ""}
 `;
   return { lo: lo.value, hi: hi.value };
 }
@@ -678,9 +685,7 @@ function renderCard(fin, odds, price) {
     left: state.left,
     upgrades: passedTotal(),
     price,
-    priceHint: !effectiveClean() ? "Enter the clean item price"
-      : state.rows.some((r) => !getPrice(r.scroll.id)) ? `Enter a price for ${shortName(state.rows.find((r) => !getPrice(r.scroll.id)).scroll).split(":").pop().trim()} scrolls`
-      : "Check the prices you entered",
+    priceHint: "No market price yet",
     chance: odds ? odds.chance : 1,
     oneIn: odds ? odds.oneIn : 1,
     scrolls: state.rows.map((r) => ({ n: r.successes, name: shortName(r.scroll) })),
