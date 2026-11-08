@@ -1,11 +1,11 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=072793e5";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, rollValueFactor, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readPrice } from "./calc.js?v=072793e5";
-import { getPrice, getUserPrice, setPrice, setSitePrices, sitePrice, siteDate } from "./prices.js?v=072793e5";
-import { drawCard, cardBlob } from "./card.js?v=072793e5";
-import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=072793e5";
-import { itemSearch } from "./itemsearch.js?v=072793e5";
-import { setupA11y } from "./a11y.js?v=072793e5";
-import { API, api, health, me, googleButton, validIgn } from "./account.js?v=072793e5";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=97c7fb21";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, rollValueFactor, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readPrice } from "./calc.js?v=97c7fb21";
+import { getPrice, getUserPrice, setPrice, setSitePrices, sitePrice, siteDate } from "./prices.js?v=97c7fb21";
+import { drawCard, cardBlob } from "./card.js?v=97c7fb21";
+import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=97c7fb21";
+import { itemSearch } from "./itemsearch.js?v=97c7fb21";
+import { setupA11y } from "./a11y.js?v=97c7fb21";
+import { API, api, health, me, googleButton, validIgn } from "./account.js?v=97c7fb21";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -329,18 +329,19 @@ function mainTiers() {
 let tiersOpen = false;
 function renderMainTiers() {
   const box = $("mainTiers");
-  const list = mainTiers();
+  // Other tiers are compared in the background with their market price; the player is never asked for one.
+  // Only a price the player already typed for one stays visible, so they can change it back.
+  const list = mainTiers().filter((sc) => getUserPrice(sc.id));
   const open = tiersOpen || list.some((sc) => getUserPrice(sc.id));
   const names = list.map((sc) => esc(shortName(sc).split(":").pop().trim())).join(" and ");
   box.innerHTML = list.length ? `<details class="tiers-box"${open ? " open" : ""}>
     <summary><span class="tiers-sum">Optional: compare with the ${names} scroll for a fairer estimate</span></summary>
     <p class="hint">These aren't scrolls on your item. FMCheck checks whether the same result is cheaper to make with them,
       so items with the same final stats get the same price. Leave them empty if you don't know their price.</p>
-    ${list.map((sc) => `<div class="scroll-row tier-row" data-id="${sc.id}">
+    ${list.map((sc) => `<div class="scroll-row tier-row" data-id="${sc.id}" data-sid="${sc.id}">
       <img src="${scrollIcon(sc.id)}" alt="" />
       <span class="nm"><b>${esc(shortName(sc))}</b><small>${esc(scrollOdds(sc))} · ${esc(plusList(sc.stats))}</small></span><span></span>
-      <span class="row-price price-input">${rangeFields(getUserPrice(sc.id), "k", sitePrice(sc.id))}
-        <a href="${priceLink(sc.id, sc.name)}" data-name="${esc(sc.name)}" target="_blank" rel="noopener">check price ↗</a></span>
+      <span class="row-price price-input">${priceSlot(sc.id, getUserPrice(sc.id), "k", checkLink(sc.id, sc.name))}</span>
     </div>`).join("")}</details>` : "";
   box.querySelector("details")?.addEventListener("toggle", (e) => { tiersOpen = e.target.open; });
 }
@@ -367,6 +368,29 @@ function onTierPrice(e) {
   update();
 }
 
+// A price on the page: when FMCheck's list has one and the player hasn't typed their own, it's shown as text
+// ("400k · market price · change"), so nobody feels asked to type it. "change" (or no market price) shows the field.
+const editing = new Set(); // ids (or "clean") the player chose to change
+function priceSlot(id, own, unit, link) {
+  const market = sitePrice(id);
+  if (!own && market && !editing.has(id)) {
+    return `<span class="auto-price"><b>${mesos(market)}</b> <small>market price</small>
+      <button type="button" class="link-btn" data-edit="${id}" aria-label="Change the price of this one">change</button></span>`;
+  }
+  return `${rangeFields(own, unit, market)}${link}`;
+}
+const checkLink = (id, name) => `<a href="${priceLink(id, name)}" data-name="${esc(name)}" target="_blank" rel="noopener">check price ↗</a>`;
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-edit]");
+  if (!b) return;
+  e.preventDefault();
+  const id = b.dataset.edit === "clean" ? "clean" : +b.dataset.edit;
+  editing.add(id);
+  if (id === "clean") drawCleanPrice(); else renderRows();
+  const box = id === "clean" ? $("cleanPrice") : document.querySelector(`[data-sid="${id}"]`);
+  box?.querySelector('[data-f="price"]')?.focus();
+});
+
 function renderRows() {
   const box = $("scrollRows");
   renderMainTiers();
@@ -376,7 +400,7 @@ function renderRows() {
   }
   box.innerHTML = state.rows.map((r, i) => {
     const p = getUserPrice(r.scroll.id);
-    return `<div class="scroll-row" data-i="${i}">
+    return `<div class="scroll-row" data-i="${i}" data-sid="${r.scroll.id}">
       <img src="${scrollIcon(r.scroll.id)}" alt="" />
       <span class="nm"><b>${esc(shortName(r.scroll))}</b><small>${esc(scrollOdds(r.scroll))} · ${esc(plusList(r.scroll.stats))}</small></span>
       <span class="stepper small">
@@ -386,8 +410,7 @@ function renderRows() {
         <button type="button" class="step" data-act="remove" aria-label="Remove this scroll">✕</button>
       </span>
       <span class="row-price price-input">
-        ${rangeFields(p, "m")}
-        <a href="${priceLink(r.scroll.id, r.scroll.name)}" data-name="${esc(r.scroll.name)}" target="_blank" rel="noopener">check price ↗</a></span>
+        ${priceSlot(r.scroll.id, p, "m", checkLink(r.scroll.id, r.scroll.name))}</span>
       </div>`;
   }).join("");
 }
@@ -434,9 +457,19 @@ let cleanPrice = null; // { lo, hi } typed by the player, or null
 const effectiveClean = () => cleanPrice || (state.item && sitePrice(state.item.id) ? { lo: sitePrice(state.item.id), hi: sitePrice(state.item.id), site: true } : null);
 function renderCleanPrice() {
   cleanPrice = null;
-  $("cleanPrice").innerHTML = rangeFields(null, "k", sitePrice(state.item.id));
+  editing.delete("clean");
+  drawCleanPrice();
   $("cleanLink").href = priceLink(state.item.id, state.item.name);
   $("cleanLink").dataset.name = state.item.name;
+}
+function drawCleanPrice() {
+  const market = sitePrice(state.item.id);
+  const auto = market && !cleanPrice && !editing.has("clean");
+  $("cleanPrice").innerHTML = auto
+    ? `<span class="auto-price"><b>${mesos(market)}</b> <small>market price for a typical one</small>
+        <button type="button" class="link-btn" data-edit="clean" aria-label="Change the clean item price">change</button></span>`
+    : rangeFields(cleanPrice, "k", market);
+  $("cleanLink").hidden = auto;
 }
 function onCleanPrice() {
   cleanPrice = readFields($("cleanPrice"));
@@ -550,7 +583,6 @@ function renderEstimate(used) {
   const lo = run("lo"), hi = run("hi");
   const unpriced = state.rows.filter((r) => !getPrice(r.scroll.id)).map((r) => esc(shortName(r.scroll)));
   const usedSite = cleanP.site || [...state.rows.map((r) => r.scroll), ...mainTiers()].some((sc) => getPrice(sc.id)?.site);
-  const tiersMissing = mainTiers().filter((sc) => !getPrice(sc.id)).map((sc) => esc(shortName(sc)));
   if (!lo || !hi) {
     out.innerHTML = `<p class="hint">${unpriced.length ? `Enter a price for ${unpriced.join(", ")} to get an estimate.` : "Enter the scroll prices to get an estimate."}</p>`;
     return null;
@@ -575,7 +607,7 @@ function renderEstimate(used) {
     </div>
     ${unpriced.length ? `<p class="warn">No price for ${unpriced.join(", ")}: left out of the cheapest way.</p>` : ""}
     ${usedSite ? `<p class="hint site-note">Where you didn't enter a price, FMCheck's price list is used (market data from <a href="https://meso.watch" target="_blank" rel="noopener">meso.watch</a>${siteDate() ? `, updated ${new Date(siteDate()).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}). Type your own price to change it.</p>` : ""}
-    ${tiersMissing.length ? `<p class="hint">Optional: for a fairer estimate, add today's price of ${tiersMissing.join(" and ")} under Scrolls ("compare with").</p>` : ""}`;
+`;
   return { lo: lo.value, hi: hi.value };
 }
 
@@ -791,7 +823,7 @@ if (DONATE_URL) {
   // FMCheck's price list fills the price fields left empty
   fetch(`${API}/api/prices`).then((r) => r.json()).then((j) => {
     setSitePrices(j.prices, j.updated);
-    if (state.item) { if (!cleanPrice) renderCleanPrice(); renderRows(); update(); }
+    if (state.item) { if (!cleanPrice) drawCleanPrice(); renderRows(); update(); }
   }).catch(() => {});
   const h = readHash();
   if (h) pickItem(h.id, h.restore);

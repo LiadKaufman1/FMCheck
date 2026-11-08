@@ -682,3 +682,10 @@ a.ghost-btn { display: inline-block; padding: 8px 12px; border-radius: 10px; tex
 .import-box { margin: 12px 0; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 12px; }
 .import-box summary { cursor: pointer; font-weight: 800; }
 .import-box textarea { width: 100%; margin: 8px 0; font: 12px monospace; }
+
+/* a market price shown as text, with "change" */
+.auto-price { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 6px; padding: 6px 0; }
+.auto-price b { font-size: 15px; }
+.auto-price small { color: var(--muted); }
+.link-btn { all: unset; cursor: pointer; color: var(--accent-text); font-weight: 700; font-size: 13px; text-decoration: underline; }
+.link-btn:focus-visible { outline: 3px solid var(--accent-text); outline-offset: 2px; border-radius: 4px; }
