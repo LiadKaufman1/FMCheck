@@ -120,3 +120,12 @@ test("open slots are worth the chance to scroll them", () => {
   assert.ok(at(2, 5) > at(4, 3));     // more open slots, more chance
   assert.equal(at(0, 7), 0);          // a clean item stays at its clean price
 });
+
+test("a better clean roll is worth more than a typical one, a worse one a little less", async () => {
+  const { rollValueFactor } = await import("../js/calc.js");
+  assert.equal(rollValueFactor(0.5), 1);
+  assert.equal(rollValueFactor(1), 0.6);
+  assert.equal(rollValueFactor(0.1), 5);
+  assert.ok(rollValueFactor(1 / 11) > 5.4 && rollValueFactor(1 / 11) < 5.6);
+  assert.ok(rollValueFactor(0.3) > rollValueFactor(0.4));
+});

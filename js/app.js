@@ -1,11 +1,11 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=51c9eb3a";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readPrice } from "./calc.js?v=51c9eb3a";
-import { getPrice, getUserPrice, setPrice, setSitePrices, sitePrice, siteDate } from "./prices.js?v=51c9eb3a";
-import { drawCard, cardBlob } from "./card.js?v=51c9eb3a";
-import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=51c9eb3a";
-import { itemSearch } from "./itemsearch.js?v=51c9eb3a";
-import { setupA11y } from "./a11y.js?v=51c9eb3a";
-import { API, api, health, me, googleButton, validIgn } from "./account.js?v=51c9eb3a";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=ff8c5232";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, rollValueFactor, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readPrice } from "./calc.js?v=ff8c5232";
+import { getPrice, getUserPrice, setPrice, setSitePrices, sitePrice, siteDate } from "./prices.js?v=ff8c5232";
+import { drawCard, cardBlob } from "./card.js?v=ff8c5232";
+import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=ff8c5232";
+import { itemSearch } from "./itemsearch.js?v=ff8c5232";
+import { setupA11y } from "./a11y.js?v=ff8c5232";
+import { API, api, health, me, googleButton, validIgn } from "./account.js?v=ff8c5232";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -201,7 +201,7 @@ async function pickItem(id, restore = null) {
   renderCleanPrice();
   $("slotsLeft").max = state.slots;
   $("slotsLeft").value = state.left;
-  for (const id of ["cleanField", "rollCard", "scrollCard", "resultCard"]) $(id).hidden = false;
+  for (const id of ["cleanField", "rollCard", "scrollCard", "resultCard", "shareNote"]) $(id).hidden = false;
   update();
 }
 
@@ -344,10 +344,26 @@ function renderMainTiers() {
     </div>`).join("")}</details>` : "";
   box.querySelector("details")?.addEventListener("toggle", (e) => { tiersOpen = e.target.open; });
 }
+// Prices the player types also go (anonymously) to FMCheck's price list, a few seconds after they stop typing.
+const typed = new Map();
+let typedTimer;
+function shareTyped(id, p) {
+  if (!p || !(p.lo > 0)) return;
+  typed.set(id, p.lo);
+  clearTimeout(typedTimer);
+  typedTimer = setTimeout(() => {
+    const prices = Object.fromEntries(typed);
+    typed.clear();
+    fetch(`${API}/api/prices/report`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ prices }) }).catch(() => {});
+  }, 4000);
+}
+
 function onTierPrice(e) {
   if (!["price", "unit"].includes(e.target.dataset.f)) return;
   const row = e.target.closest(".tier-row");
-  setPrice(+row.dataset.id, readFields(row));
+  const p = readFields(row);
+  setPrice(+row.dataset.id, p);
+  shareTyped(+row.dataset.id, p);
   update();
 }
 
@@ -379,7 +395,9 @@ function renderRows() {
 function onScrollPrice(e) {
   if (!["price", "unit"].includes(e.target.dataset.f)) return;
   const row = e.target.closest(".scroll-row");
-  setPrice(state.rows[+row.dataset.i].scroll.id, readFields(row));
+  const p = readFields(row);
+  setPrice(state.rows[+row.dataset.i].scroll.id, p);
+  shareTyped(state.rows[+row.dataset.i].scroll.id, p);
   update();
 }
 $("scrollRows").addEventListener("input", onScrollPrice);
@@ -422,6 +440,9 @@ function renderCleanPrice() {
 }
 function onCleanPrice() {
   cleanPrice = readFields($("cleanPrice"));
+  // a clean price is for a typical roll, so it's only shared when this one's roll is about typical
+  const k = state.keyStat, pr = k ? rollAtLeast(k, state.base[k], state.clean[k]) : 0.5;
+  if (pr >= 0.3 && pr <= 0.8) shareTyped(state.item.id, cleanPrice);
   update();
 }
 $("cleanPrice").addEventListener("input", onCleanPrice);
@@ -508,8 +529,12 @@ function renderEstimate(used) {
   const failed = used - passedTotal();
 
   // Worked out with the "lo" and "hi" ends; with one price per field they're the same.
+  // The clean price is for a typical roll; this item's clean roll makes it worth more or less (rollValueFactor).
+  const k = state.keyStat;
+  const rollP = k ? rollAtLeast(k, state.base[k], state.clean[k]) : 1;
+  const rollX = k ? rollValueFactor(rollP) : 1;
   const run = (end) => {
-    const clean = cleanP[end], tiers = tiersAt(end);
+    const clean = cleanP[end] * rollX, tiers = tiersAt(end);
     if (!pointsGained && failed > 0) {
       // Nothing passed: a clean item that lost part of its slots (see failedItemValue).
       const f = failedItemValue({ cleanPrice: clean, slots: state.slots, left: state.left });
@@ -539,6 +564,8 @@ function renderEstimate(used) {
   out.innerHTML = `
     <p class="label">Price breakdown${lo.value === hi.value ? "" : ` · midpoint ≈ ${mesos((lo.value + hi.value) / 2)}`}</p>
     <div class="breakdown">
+      ${k && Math.abs(rollX - 1) > 0.01 ? `<span>Clean ${STAT_LABEL[k]} ${state.clean[k]} (${rollP >= 0.995 ? "lowest" : `top ${Math.max(1, Math.round(rollP * 100))}%`} roll)</span>
+      <span>${rollX > 1 ? "×" + rollX.toFixed(1) : "×" + rollX.toFixed(2)} a typical clean (${mesos(cleanP.lo)} → ${mesos(cleanP.lo * rollX)})</span>` : ""}
       ${lo.lost != null ? `<span>Clean item price</span><span>${rangeText(lo.cost, hi.cost)}</span>
       <span>${failed} failed slot${failed > 1 ? "s" : ""} (keeps ${Math.round(lo.ratio * 100)}%)</span><span>−${rangeText(lo.lost, hi.lost)}</span>`
       : `<span>Cheapest way to make one</span><span>${rangeText(lo.cost, hi.cost)}</span>

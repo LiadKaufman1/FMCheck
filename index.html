@@ -32,7 +32,7 @@
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
   <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="css/style.css?v=51c9eb3a" />
+  <link rel="stylesheet" href="css/style.css?v=ff8c5232" />
 </head>
 <body>
   <a class="skip" href="#itemSearch">Skip to selling an item</a>
@@ -135,7 +135,8 @@
         </select>
       </div>
       <div id="itemInfo" class="item-info" hidden></div>
-      <label class="price-field" id="cleanField" hidden>Clean item price (average, optional)
+      <p class="hint share-note" id="shareNote" hidden>Prices you type help keep FMCheck's price list current for everyone (anonymously).</p>
+      <label class="price-field" id="cleanField" hidden>Clean item price (a typical one, optional)
         <span class="price-input">
           <span id="cleanPrice" class="range-fields"></span>
           <a id="cleanLink" target="_blank" rel="noopener">check price ↗</a>
@@ -273,7 +274,8 @@ chance = clean roll × scrolls</pre>
           Chaos 10% (+4; +5 weapon attack) and half of Chaos failures destroy the item. Exact gains per scroll come from the game data.</p>
         <p><b>Assumptions.</b> A failed scroll uses up its slot (checked in game).
           Dropped or destroyed items count as worth nothing, so the estimate leans a little high.
-          The clean price you enter already covers how good the clean roll is.
+          The clean price is for a typical roll. A better roll costs as much as the typical ones you'd go through to find one
+          (typical price × 0.5 ÷ chance of a roll at least this good: a top 10% roll is 5×), a worse one a little less (down to 0.6×).
           Real sales can land above or below this: treat it as a ballpark and check what similar items sold for.</p>
         <p>Something looks off? <a data-discord href="https://discord.gg/hWYs9vxhRv" target="_blank" rel="noopener">Tell us on Discord</a>.</p>
       </details>
@@ -311,6 +313,6 @@ chance = clean roll × scrolls</pre>
   </div>
 
 
-  <script type="module" src="js/app.js?v=51c9eb3a"></script>
+  <script type="module" src="js/app.js?v=ff8c5232"></script>
 </body>
 </html>

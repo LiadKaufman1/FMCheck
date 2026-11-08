@@ -20,6 +20,17 @@ export function statRange(key, base) {
   return [Math.max(0, base - r), base + r];
 }
 
+// What a clean roll does to a clean item's price. The clean price is for a typical (middle) roll.
+// Better than typical: a buyer would go through typical ones until one rolls at least this well, so it costs
+// typical price × 0.5 ÷ (chance of a roll at least this good): top 10% = 5×, the best of 11 rolls ≈ 5.5×.
+// Worse than typical: a little less, down to 0.6× for the lowest roll.
+// pAtLeast: chance a drop rolls at least this well (rollAtLeast).
+export function rollValueFactor(pAtLeast) {
+  if (!(pAtLeast > 0)) return 1;
+  if (pAtLeast < 0.5) return 0.5 / pAtLeast;
+  return 1 - 0.4 * ((pAtLeast - 0.5) / 0.5);
+}
+
 // Chance a fresh drop rolls this stat at `value` or higher. Rolls are treated as evenly spread over the range.
 export function rollAtLeast(key, base, value) {
   const [lo, hi] = statRange(key, base);

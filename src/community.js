@@ -24,6 +24,8 @@
 //   POST   /api/admin/supporter     { code, days }  admins: give supporter time by hand
 //   GET    /api/prices              FMCheck's price list: average prices of scrolls and clean items, kept by hand by admins
 //   PUT    /api/prices              { prices: { id: price | null } }  admins: set or remove prices
+//   POST   /api/prices/report       { prices: { id: price } }  prices players typed on Sell an item (anonymous).
+//                                    With 3+ different players in 30 days, their median goes in the list (admin prices win).
 //
 // Supporters (Ko-fi membership): a badge, more items, items stay on the for-sale list longer,
 // and a few boosts a month. Ko-fi sends the payer's email; only a one-way hash of it is kept, to match renewals.
@@ -53,6 +55,8 @@ const FLAG_MIN_AGE = 3 * DAY;      // reports count only from accounts this old,
 // rank below real items, are never posted or featured for real, and stop showing once DEMO_UNTIL real items are up.
 // Setting DEMO=off hides them at once.
 const DEMO_UNTIL = 30;
+const CROWD_MIN = 3;     // different players (per day) before their typed price goes in the list
+const CROWD_DAYS = 30;   // typed prices older than this are dropped
 const HIDE_AT_FLAGS = 3;           // reports from different players that hide an item
 const SESSION_DAYS = 30;
 const PAGE = 30;
@@ -88,6 +92,8 @@ const SCHEMA = [
   `CREATE INDEX IF NOT EXISTS users_ign ON users(ign COLLATE NOCASE)`,
   `CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)`,
   `CREATE TABLE IF NOT EXISTS site_prices (id INTEGER PRIMARY KEY, price INTEGER NOT NULL, t INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS price_reports (id INTEGER NOT NULL, who TEXT NOT NULL, price INTEGER NOT NULL, t INTEGER NOT NULL, PRIMARY KEY (id, who))`,
+  `CREATE INDEX IF NOT EXISTS price_reports_t ON price_reports(t)`,
   `CREATE INDEX IF NOT EXISTS payments_email ON payments(email_hash)`,
 ];
 // Columns added after the first version: added to existing tables when missing.
@@ -529,11 +535,44 @@ export async function community(request, env, ctx, url, json) {
   }
 
   if (path === "/api/prices" && method === "GET") {
-    const rows = await env.DB.prepare(`SELECT id, price, t FROM site_prices`).all();
-    const prices = {};
+    const since = Date.now() - CROWD_DAYS * DAY;
+    const [rows, reports] = await Promise.all([
+      env.DB.prepare(`SELECT id, price, t FROM site_prices`).all(),
+      env.DB.prepare(`SELECT id, price, t FROM price_reports WHERE t > ? ORDER BY id`).bind(since).all(),
+    ]);
+    // players' prices: the median per item, once enough different players typed one
+    const prices = {}, from = {};
     let updated = 0;
-    for (const r of rows.results) { prices[r.id] = r.price; updated = Math.max(updated, r.t); }
-    return json({ prices, updated });
+    const byId = new Map();
+    for (const r of reports.results) { if (!byId.has(r.id)) byId.set(r.id, []); byId.get(r.id).push(r); }
+    for (const [id, list] of byId) {
+      if (list.length < CROWD_MIN) continue;
+      const ps = list.map((r) => r.price).sort((a, b) => a - b);
+      const mid = ps.length % 2 ? ps[(ps.length - 1) / 2] : (ps[ps.length / 2 - 1] + ps[ps.length / 2]) / 2;
+      prices[id] = Math.round(mid);
+      from[id] = list.length;
+      updated = Math.max(updated, ...list.map((r) => r.t));
+    }
+    // admins' prices always win
+    for (const r of rows.results) { prices[r.id] = r.price; delete from[r.id]; updated = Math.max(updated, r.t); }
+    return json({ prices, updated, players: from });
+  }
+  if (path === "/api/prices/report" && method === "POST") {
+    const ip = request.headers.get("cf-connecting-ip") || "unknown";
+    const who = (await sha(`${ip}|${new Date().toISOString().slice(0, 10)}|fmcheck-prices`)).slice(0, 24);
+    const today = await env.DB.prepare(`SELECT COUNT(*) AS n FROM price_reports WHERE who = ?`).bind(who).first();
+    if ((today.n || 0) >= 300) return json({ ok: true }); // plenty from this player today
+    const now = Date.now();
+    const q = [];
+    for (const [k, v] of Object.entries((body && body.prices) || {}).slice(0, 30)) {
+      const id = +k, price = int(Math.round(+v), 1, 1e11);
+      if (!price || (!equipById.has(id) && !scrollById.has(id))) continue;
+      q.push(env.DB.prepare(`INSERT INTO price_reports (id, who, price, t) VALUES (?, ?, ?, ?)
+        ON CONFLICT(id, who) DO UPDATE SET price = excluded.price, t = excluded.t`).bind(id, who, price, now));
+    }
+    q.push(env.DB.prepare(`DELETE FROM price_reports WHERE t < ?`).bind(now - CROWD_DAYS * DAY));
+    await env.DB.batch(q);
+    return json({ ok: true });
   }
   if (path === "/api/prices" && method === "PUT") {
     if (!isAdmin(env, user)) return json({ error: "Admins only." }, 403);
