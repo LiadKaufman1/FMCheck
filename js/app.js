@@ -1,11 +1,11 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=b58e80c8";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, rollValueFactor, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readPrice } from "./calc.js?v=b58e80c8";
-import { getPrice, getUserPrice, setPrice, setSitePrices, sitePrice, siteDate } from "./prices.js?v=b58e80c8";
-import { drawCard, cardBlob } from "./card.js?v=b58e80c8";
-import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=b58e80c8";
-import { itemSearch } from "./itemsearch.js?v=b58e80c8";
-import { setupA11y } from "./a11y.js?v=b58e80c8";
-import { API, api, health, me, googleButton, validIgn } from "./account.js?v=b58e80c8";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=072793e5";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, rollValueFactor, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readPrice } from "./calc.js?v=072793e5";
+import { getPrice, getUserPrice, setPrice, setSitePrices, sitePrice, siteDate } from "./prices.js?v=072793e5";
+import { drawCard, cardBlob } from "./card.js?v=072793e5";
+import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=072793e5";
+import { itemSearch } from "./itemsearch.js?v=072793e5";
+import { setupA11y } from "./a11y.js?v=072793e5";
+import { API, api, health, me, googleButton, validIgn } from "./account.js?v=072793e5";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -574,7 +574,7 @@ function renderEstimate(used) {
       <span>Scrolls per clean item</span><span>${plan || "–"}</span>` : ""}`}
     </div>
     ${unpriced.length ? `<p class="warn">No price for ${unpriced.join(", ")}: left out of the cheapest way.</p>` : ""}
-    ${usedSite ? `<p class="hint site-note">Where you didn't enter a price, FMCheck's price list is used${siteDate() ? ` (updated ${new Date(siteDate()).toLocaleDateString("en-GB", { day: "numeric", month: "short" })})` : ""}. Type your own price to change it.</p>` : ""}
+    ${usedSite ? `<p class="hint site-note">Where you didn't enter a price, FMCheck's price list is used (market data from <a href="https://meso.watch" target="_blank" rel="noopener">meso.watch</a>${siteDate() ? `, updated ${new Date(siteDate()).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}). Type your own price to change it.</p>` : ""}
     ${tiersMissing.length ? `<p class="hint">Optional: for a fairer estimate, add today's price of ${tiersMissing.join(" and ")} under Scrolls ("compare with").</p>` : ""}`;
   return { lo: lo.value, hi: hi.value };
 }

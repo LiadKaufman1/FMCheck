@@ -1,10 +1,10 @@
 // The price list page (admins): average prices of scrolls and clean items that estimates use when a player
 // leaves a price empty. Stored on the server (/api/prices); anyone can read them, only admins can change them.
-import { mesos, readPrice, UNITS } from "./calc.js?v=b58e80c8";
-import { setupA11y } from "./a11y.js?v=b58e80c8";
-import { api, me, googleButton, esc, canSignIn } from "./account.js?v=b58e80c8";
-import { iconUrl, priceLink } from "./config.js?v=b58e80c8";
-import { findPrices } from "./priceimport.js?v=b58e80c8";
+import { mesos, readPrice, UNITS } from "./calc.js?v=072793e5";
+import { setupA11y } from "./a11y.js?v=072793e5";
+import { api, me, googleButton, esc, canSignIn } from "./account.js?v=072793e5";
+import { iconUrl, priceLink } from "./config.js?v=072793e5";
+import { findPrices } from "./priceimport.js?v=072793e5";
 
 const $ = (id) => document.getElementById(id);
 setupA11y();
@@ -148,7 +148,7 @@ function showEditor(list) {
       removed.delete(+id);
     }
     render();
-    $("importMsg").textContent = `Read ${r.matched} prices (from "${r.priceKey}"): ${added} new, ${changed} changed. Check them, then press Save prices.`;
+    $("importMsg").textContent = `Read ${r.matched} prices${r.snapshot ? ` from ${r.records.toLocaleString("en-US")} offers (middle price for scrolls, cheapest quarter for equipment; items with 3+ offers)` : ` (from "${r.priceKey}")`}: ${added} new, ${changed} changed. Check them, then press Save prices.`;
   };
   $("importFile").addEventListener("change", async (e) => { const f = e.target.files[0]; if (f) runImport(await f.text()); });
   $("importGo").addEventListener("click", () => runImport($("importText").value));

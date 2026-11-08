@@ -113,18 +113,6 @@ async function migrate(env) {
   await seedPrices(env);
 }
 
-// The first price list (src/prices-seed.json), put in once if the list is empty. After that, admins keep it on admin.html.
-async function seedPrices(env) {
-  const done = await env.DB.prepare(`SELECT v FROM meta WHERE k = 'prices_seed'`).first();
-  if (done) return;
-  const have = await env.DB.prepare(`SELECT COUNT(*) AS n FROM site_prices`).first();
-  const t = Date.parse(priceSeed.date) || Date.now();
-  const q = have.n ? [] : Object.entries(priceSeed.prices).map(([id, price]) =>
-    env.DB.prepare(`INSERT OR IGNORE INTO site_prices (id, price, t) VALUES (?, ?, ?)`).bind(+id, price, t));
-  q.push(env.DB.prepare(`INSERT OR REPLACE INTO meta (k, v) VALUES ('prices_seed', ?)`).bind(String(Date.now())));
-  await env.DB.batch(q);
-}
-
 // Puts the example items in once. For examples, created and seen hold "how long ago" (ms), so they always look recent.
 async function seedDemo(env) {
   if (env.DEMO === "off") return;
@@ -151,6 +139,20 @@ async function seedDemo(env) {
   }
   q.push(env.DB.prepare(`INSERT OR REPLACE INTO meta (k, v) VALUES ('demo', ?)`).bind(String(Date.now())));
   await env.DB.batch(q);
+}
+
+// Price list data shipped with the site (src/prices-seed.json): each version goes in once. A price is replaced only
+// if it's older than the data (so prices admins set later on admin.html are kept). After that, admins keep the list.
+async function seedPrices(env) {
+  const key = `prices_seed:${priceSeed.date}`;
+  const done = await env.DB.prepare(`SELECT v FROM meta WHERE k = ?`).bind(key).first();
+  if (done) return;
+  const t = Date.parse(priceSeed.date) || Date.now();
+  const q = Object.entries(priceSeed.prices).map(([id, price]) =>
+    env.DB.prepare(`INSERT INTO site_prices (id, price, t) VALUES (?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET price = excluded.price, t = excluded.t WHERE site_prices.t < excluded.t`).bind(+id, price, t));
+  q.push(env.DB.prepare(`INSERT OR REPLACE INTO meta (k, v) VALUES (?, ?)`).bind(key, String(Date.now())));
+  for (let i = 0; i < q.length; i += 90) await env.DB.batch(q.slice(i, i + 90));
 }
 
 // Show the examples? Until enough real items are up (checked at most every 5 minutes).
