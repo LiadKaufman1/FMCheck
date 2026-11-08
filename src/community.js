@@ -32,6 +32,7 @@ import equips from "../data/equips.json";
 import scrollData from "../data/scrolls.json";
 import { statRange, rollAtLeast, groupOdds, allocateFailures } from "../js/calc.js";
 import demoItems from "./demo.json";
+import priceSeed from "./prices-seed.json";
 
 const DAY = 864e5;
 const SALE_FRESH = 3 * DAY;        // a for-sale item drops off the list after 3 days without "still selling"
@@ -103,6 +104,19 @@ async function migrate(env) {
     for (const [name, type] of cols) if (!have.has(name)) await env.DB.prepare(`ALTER TABLE ${table} ADD COLUMN ${name} ${type}`).run();
   }
   await seedDemo(env);
+  await seedPrices(env);
+}
+
+// The first price list (src/prices-seed.json), put in once if the list is empty. After that, admins keep it on admin.html.
+async function seedPrices(env) {
+  const done = await env.DB.prepare(`SELECT v FROM meta WHERE k = 'prices_seed'`).first();
+  if (done) return;
+  const have = await env.DB.prepare(`SELECT COUNT(*) AS n FROM site_prices`).first();
+  const t = Date.parse(priceSeed.date) || Date.now();
+  const q = have.n ? [] : Object.entries(priceSeed.prices).map(([id, price]) =>
+    env.DB.prepare(`INSERT OR IGNORE INTO site_prices (id, price, t) VALUES (?, ?, ?)`).bind(+id, price, t));
+  q.push(env.DB.prepare(`INSERT OR REPLACE INTO meta (k, v) VALUES ('prices_seed', ?)`).bind(String(Date.now())));
+  await env.DB.batch(q);
 }
 
 // Puts the example items in once. For examples, created and seen hold "how long ago" (ms), so they always look recent.
