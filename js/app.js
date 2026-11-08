@@ -1,11 +1,11 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=ff8c5232";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, rollValueFactor, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readPrice } from "./calc.js?v=ff8c5232";
-import { getPrice, getUserPrice, setPrice, setSitePrices, sitePrice, siteDate } from "./prices.js?v=ff8c5232";
-import { drawCard, cardBlob } from "./card.js?v=ff8c5232";
-import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=ff8c5232";
-import { itemSearch } from "./itemsearch.js?v=ff8c5232";
-import { setupA11y } from "./a11y.js?v=ff8c5232";
-import { API, api, health, me, googleButton, validIgn } from "./account.js?v=ff8c5232";
+import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=b58e80c8";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, rollValueFactor, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readPrice } from "./calc.js?v=b58e80c8";
+import { getPrice, getUserPrice, setPrice, setSitePrices, sitePrice, siteDate } from "./prices.js?v=b58e80c8";
+import { drawCard, cardBlob } from "./card.js?v=b58e80c8";
+import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=b58e80c8";
+import { itemSearch } from "./itemsearch.js?v=b58e80c8";
+import { setupA11y } from "./a11y.js?v=b58e80c8";
+import { API, api, health, me, googleButton, validIgn } from "./account.js?v=b58e80c8";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;

@@ -1,9 +1,10 @@
 // The price list page (admins): average prices of scrolls and clean items that estimates use when a player
 // leaves a price empty. Stored on the server (/api/prices); anyone can read them, only admins can change them.
-import { mesos, readPrice, UNITS } from "./calc.js?v=ff8c5232";
-import { setupA11y } from "./a11y.js?v=ff8c5232";
-import { api, me, googleButton, esc, canSignIn } from "./account.js?v=ff8c5232";
-import { iconUrl, priceLink } from "./config.js?v=ff8c5232";
+import { mesos, readPrice, UNITS } from "./calc.js?v=b58e80c8";
+import { setupA11y } from "./a11y.js?v=b58e80c8";
+import { api, me, googleButton, esc, canSignIn } from "./account.js?v=b58e80c8";
+import { iconUrl, priceLink } from "./config.js?v=b58e80c8";
+import { findPrices } from "./priceimport.js?v=b58e80c8";
 
 const $ = (id) => document.getElementById(id);
 setupA11y();
@@ -108,6 +109,15 @@ function showEditor(list) {
     </div>
     <ul id="addResults" class="add-results"></ul>
     <ul id="priceRows" class="price-rows"></ul>
+    <details class="import-box">
+      <summary>Import a price file</summary>
+      <p class="hint">Saved a price data file (JSON) from a price site you're allowed to use? Choose it or paste it here.
+        FMCheck finds the items it knows and their prices; you check them before saving.</p>
+      <input type="file" id="importFile" accept=".json,.txt,application/json" />
+      <textarea id="importText" rows="4" placeholder="…or paste the file's text here" aria-label="Price file text"></textarea>
+      <button type="button" class="ghost-btn" id="importGo">Read it</button>
+      <p id="importMsg" class="sale-msg" role="status"></p>
+    </details>
     <div class="admin-save"><button type="button" id="save">Save prices</button>
       <span class="hint">Empty = not in the list. Players' own prices always come first.</span></div>`;
   render();
@@ -124,6 +134,24 @@ function showEditor(list) {
     render();
   });
   $("save").addEventListener("click", save);
+  const runImport = (text) => {
+    let data;
+    try { data = JSON.parse(text); } catch { $("importMsg").textContent = "That isn't a JSON data file. Save the response that holds the prices (see the steps)."; return; }
+    const r = findPrices(data, new Set([...byId.keys()]));
+    if (!r.matched) { $("importMsg").textContent = `Found ${r.records} records but no prices for items FMCheck knows.`; return; }
+    readRows();
+    let added = 0, changed = 0;
+    for (const [id, price] of Object.entries(r.prices)) {
+      const row = rows.find((x) => x.id === +id);
+      if (row) { if (row.price !== price) { row.price = price; changed++; } }
+      else { rows.push({ id: +id, price }); added++; }
+      removed.delete(+id);
+    }
+    render();
+    $("importMsg").textContent = `Read ${r.matched} prices (from "${r.priceKey}"): ${added} new, ${changed} changed. Check them, then press Save prices.`;
+  };
+  $("importFile").addEventListener("change", async (e) => { const f = e.target.files[0]; if (f) runImport(await f.text()); });
+  $("importGo").addEventListener("click", () => runImport($("importText").value));
 }
 
 (async function start() {
