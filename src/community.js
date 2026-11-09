@@ -56,7 +56,7 @@ const FLAG_MIN_AGE = 3 * DAY;      // reports count only from accounts this old,
 // rank below real items, are never posted or featured for real, and stop showing once DEMO_UNTIL real items are up.
 // Setting DEMO=off hides them at once.
 const DEMO_UNTIL = 30;
-const DEMO_VERSION = 4; // bump when src/demo.json changes
+const DEMO_VERSION = 5; // bump when src/demo.json changes
 const CROWD_MIN = 3;     // different players (per day) before their typed price goes in the list
 const CROWD_DAYS = 30;   // typed prices older than this are dropped
 const HIDE_AT_FLAGS = 3;           // reports from different players that hide an item

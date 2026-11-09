@@ -27,10 +27,13 @@ const WANT = {
   Overall: ["DEX", "INT", "LUK", "STR", "PDD"], Bottom: ["DEX", "Jump", "PDD"], Shoes: ["Speed", "Jump", "DEX", "EVA"],
   Earring: ["INT", "DEX", "LUK"], Cape: ["STR", "INT", "DEX", "LUK", "MDD"], Shield: ["STR", "LUK", "INT", "PDD"],
 };
-// how many of each tier we want (rare ones mostly)
-const WANTED = { Uncommon: 6, Rare: 17, Epic: 15, Legendary: 7 };
+// what the examples are: mostly weapons and Work Gloves, some clothes, a few other things
+const PLAN = [["weapon", 24], ["work", 10], ["Glove", 3], ["clothes", 9], ["other", 3]];
+const OK_TIERS = ["Uncommon", "Rare", "Epic", "Legendary"];
 
 const kind = (e) => (Math.floor(e[0] / 10000) >= 130 ? "weapon" : e[3]);
+const group = (e) => (e[0] === 1082000 ? "work" : ["Top", "Bottom", "Overall"].includes(e[3]) ? "clothes"
+  : ["weapon", "Glove"].includes(kind(e)) ? kind(e) : "other");
 function family(e) {
   const mine = scrolls.filter((s) => s.target === Math.floor(e[0] / 10000));
   for (const stat of WANT[kind(e)] || []) {
@@ -40,59 +43,67 @@ function family(e) {
   return null;
 }
 const nice = (n) => { const d = 10 ** Math.max(0, String(Math.round(n)).length - 2); return Math.round(n / d) * d; };
+const byId = (id) => scrolls.find((s) => s.id === id);
 
-const pool = equips.filter((e) => e[2] >= 10 && e[2] <= 70 && e[4] >= 5 && family(e));
-const got = Object.fromEntries(Object.keys(WANTED).map((t) => [t, 0]));
-const out = [];
-const usedItems = new Set();
-for (let tries = 0; tries < 200000 && out.length < 45; tries++) {
-  const e = pick(pool);
-  if (usedItems.has(e[0])) continue;
-  const { stat, fam } = family(e);
-  // clean roll: often a high one
-  const clean = {};
-  for (const [k, v] of Object.entries(e[5])) {
-    const [, hi] = statRange(k, v);
-    clean[k] = rnd() < 0.35 ? hi : between(v, hi);
-  }
-  const slots = e[4];
-  const left = pick([0, 0, 0, 1, 1, 2]);
-  const used = slots - left;
-  // passes: mostly Intermediate, sometimes a Greater or Chaos, the rest Lesser; some failures
-  const rows = [];
-  let budget = used - between(0, Math.min(2, used - 1));
-  const big = rnd() < 0.35 ? pick(["Greater", "Chaos"]) : null;
-  if (big && fam[big] && budget > 0) { rows.push({ id: fam[big].id, n: 1 }); budget--; }
-  const inter = between(Math.ceil(budget / 2), budget);
-  if (inter) rows.push({ id: fam.Intermediate.id, n: inter });
-  if (budget - inter > 0) rows.push({ id: fam.Lesser.id, n: budget - inter });
-  if (!rows.length) continue;
-  const byId = (id) => scrolls.find((s) => s.id === id);
-  const r = rarity({ base: e[5], clean, used, rows: rows.map((x) => ({ successes: x.n, success: byId(x.id).success, boom: byId(x.id).boom })) });
-  const tier = r.tier.name;
-  if (!(tier in WANTED) || got[tier] >= WANTED[tier]) continue;
-  got[tier]++;
-  usedItems.add(e[0]);
-  // the price: level, rarity, attack items worth more; never below what the scrolls cost
-  const attack = stat === "PAD" || stat === "MAD";
-  const base = 80e3 * 2 ** ((e[2] - 10) / 9);
-  let price = base * (attack ? 4 : 1) * r.oneIn ** 0.45 * (0.8 + rnd() * 0.45);
-  const scrollCost = rows.reduce((a, x) => a + x.n * (handPrices[x.id] || 0), 0);
-  price = Math.min(2e9, Math.max(price, scrollCost * 1.3));
-  rnd(); // (kept so the same items come out)
-  const forSale = true; // every example has a price
-  const i = out.length;
-  out.push({
-    item: e[0], clean, left, scrolls: rows,
-    price: forSale ? nice(price) : null, estimate: null,
-    channel: forSale && rnd() < 0.75 ? between(1, 20) : null, room: forSale && rnd() < 0.75 ? between(1, 22) : null,
-    where: forSale && rnd() < 0.25 ? pick(WHERE) : null,
-    note: (forSale ? pick(NOTES) : pick(SHOW_NOTES)) || null,
-    seller: SELLERS[i % SELLERS.length], supporter: false, verified: false, featured: false,
-    minutesAgo: between(3, 60 * 60), seenAgo: between(1, 180),
-    _tier: tier, _oneIn: Math.round(r.oneIn),
-  });
+// prices kept modest: gloves by the attack they gained, the rest by level and rarity; never below the scrolls' cost
+function priceOf(e, g, r, rows, stat) {
+  const cost = rows.reduce((a, x) => a + x.n * (handPrices[x.id] || 0), 0);
+  const lvl = 2 ** ((e[2] - 10) / 12), wobble = 0.85 + rnd() * 0.3;
+  let p;
+  if (kind(e) === "Glove" && stat === "PAD") {
+    const gain = rows.reduce((a, x) => a + x.n * (byId(x.id).stats.PAD || 0), 0);
+    p = 1e6 * 1.4 ** gain * wobble;
+  } else if (g === "weapon") p = 200e3 * lvl * r.oneIn ** 0.35 * wobble;
+  else p = 100e3 * lvl * r.oneIn ** 0.3 * wobble;
+  return nice(Math.min(g === "weapon" || g === "work" ? 200e6 : 60e6, Math.max(p, cost * 1.15)));
 }
-fs.writeFileSync(new URL("src/demo.json", root), JSON.stringify(out.map(({ _tier, _oneIn, ...x }) => x)));
-console.log(out.length, "examples:", JSON.stringify(got), "| for sale:", out.filter((x) => x.price).length);
-for (const x of out.slice(0, 12)) console.log(` ${equips.find((e) => e[0] === x.item)[1]} (L${equips.find((e) => e[0] === x.item)[2]}) ${x._tier} 1 in ${x._oneIn} -> ${x.price ?? "show"}`);
+
+const out = [];
+for (const [g, count] of PLAN) {
+  const pool = equips.filter((e) => group(e) === g && e[2] >= 10 && e[2] <= 70 && e[4] >= 5 && family(e));
+  const usedItems = new Set();
+  let made = 0;
+  for (let tries = 0; tries < 200000 && made < count; tries++) {
+    const e = pick(pool);
+    if (g !== "work" && usedItems.has(e[0])) continue;
+    const { stat, fam } = family(e);
+    const clean = {};
+    for (const [k, v] of Object.entries(e[5])) {
+      const [, hi] = statRange(k, v);
+      clean[k] = rnd() < 0.35 ? hi : between(v, hi);
+    }
+    const slots = e[4];
+    const left = pick([0, 0, 0, 1, 1, 2]);
+    const used = slots - left;
+    const rows = [];
+    let budget = used - between(0, Math.min(2, used - 1));
+    const big = rnd() < 0.3 ? pick(["Greater", "Chaos"]) : null;
+    if (big && fam[big] && budget > 0) { rows.push({ id: fam[big].id, n: 1 }); budget--; }
+    const inter = between(Math.ceil(budget / 2), budget);
+    if (inter) rows.push({ id: fam.Intermediate.id, n: inter });
+    if (budget - inter > 0) rows.push({ id: fam.Lesser.id, n: budget - inter });
+    if (!rows.length) continue;
+    const r = rarity({ base: e[5], clean, used, rows: rows.map((x) => ({ successes: x.n, success: byId(x.id).success, boom: byId(x.id).boom })) });
+    const tier = r.tier.name;
+    if (!OK_TIERS.includes(tier) || (tier === "Legendary" && rnd() < 0.6)) continue;
+    usedItems.add(e[0]);
+    made++;
+    const i = out.length;
+    out.push({
+      item: e[0], clean, left, scrolls: rows,
+      price: priceOf(e, g, r, rows, stat), estimate: null,
+      channel: rnd() < 0.75 ? between(1, 20) : null, room: rnd() < 0.75 ? between(1, 22) : null,
+      where: rnd() < 0.25 ? pick(WHERE) : null,
+      note: pick(NOTES) || null,
+      seller: SELLERS[i % SELLERS.length], supporter: false, verified: false, featured: false,
+      minutesAgo: between(3, 60 * 60), seenAgo: between(1, 180),
+      _tier: tier, _oneIn: Math.round(r.oneIn), _g: g,
+    });
+  }
+}
+// mixed order, so the newest aren't all weapons
+out.sort(() => rnd() - 0.5);
+fs.writeFileSync(new URL("src/demo.json", root), JSON.stringify(out.map(({ _tier, _oneIn, _g, ...x }) => x)));
+const fm = (n) => (n >= 1e6 ? `${+(n / 1e6).toFixed(1)}m` : `${n / 1e3}k`);
+console.log(out.length, "examples");
+for (const x of out.slice().sort((a, b) => a._g.localeCompare(b._g))) { const e = equips.find((q) => q[0] === x.item); console.log(` ${x._g.padEnd(7)} ${e[1]} (L${e[2]}) ${x._tier} 1 in ${x._oneIn} -> ${fm(x.price)}`); }
