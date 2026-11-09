@@ -1,0 +1,7 @@
+# Search engines: everything except the API and the admin page.
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin.html
+
+Sitemap: https://fmcheck.org/sitemap.xml
