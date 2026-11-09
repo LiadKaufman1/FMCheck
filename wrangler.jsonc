@@ -12,11 +12,6 @@
   // The community: D1 database and the Google sign-in client id
   "d1_databases": [{ "binding": "DB", "database_name": "fmcheck-community", "database_id": "e40ee919-f3e1-4f2b-9d91-d91d85b30c9d" }],
   // Example posts (src/demo.json) show, tagged "Example", until 30 real items are up. "DEMO": "off" hides them.
-  // Requests per minute from one address: changes (posting, editing, sign-in) and reads
-  "ratelimits": [
-    { "name": "WRITE_LIMIT", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } },
-    { "name": "READ_LIMIT", "namespace_id": "1002", "simple": { "limit": 300, "period": 60 } }
-  ],
   // Workers Logs: errors and the warnings the server writes about suspicious requests
   "observability": { "enabled": true },
   "vars": { "GOOGLE_CLIENT_ID": "123250047088-qaj5de9sgejg2jqo35l6a9nqt8om0ja1.apps.googleusercontent.com" }
