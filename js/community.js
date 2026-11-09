@@ -1,12 +1,12 @@
 // Browse items: scrolled items players posted, as cards with how rare each one is.
-import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=ab52bd3e";
-import { drawCard, cardBlob } from "./card.js?v=ab52bd3e";
-import { cardInfo, cardLabel, cardFmt, cardDate } from "./itemcard.js?v=ab52bd3e";
-import { rarity, oneInText } from "./rarity.js?v=ab52bd3e";
-import { setupA11y } from "./a11y.js?v=ab52bd3e";
-import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=ab52bd3e";
-import { itemSearch } from "./itemsearch.js?v=ab52bd3e";
-import { DISCORD_URL } from "./config.js?v=ab52bd3e";
+import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=c25d3b4c";
+import { drawCard, cardBlob } from "./card.js?v=c25d3b4c";
+import { cardInfo, cardLabel, cardFmt, cardDate } from "./itemcard.js?v=c25d3b4c";
+import { rarity, oneInText } from "./rarity.js?v=c25d3b4c";
+import { setupA11y } from "./a11y.js?v=c25d3b4c";
+import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=c25d3b4c";
+import { itemSearch } from "./itemsearch.js?v=c25d3b4c";
+import { DISCORD_URL } from "./config.js?v=c25d3b4c";
 
 const $ = (id) => document.getElementById(id);
 // a small MapleStory icon next to a label (assets/ui/)
@@ -233,7 +233,7 @@ async function openDetail(id) {
         <p class="detail-rarity" style="--tier:${rarityOf(l).tier.color}"><b>${rarityOf(l).tier.name}</b> ${oneInText(rarityOf(l).oneIn)}</p>
         <p class="detail-price">${l.price ? `For sale: <b>${mesos(l.price)}</b>` : "Not for sale"}</p>
         <p>${verifiedBadge(l) || `<span class="badge" title="The owner hasn't shown this item's window from the game yet">Not checked on screen</span>`}
-          <small class="hint check-why">${l.verified ? "The owner showed this item's window from the game, and its stats and slots matched."
+          <small class="hint check-why">${l.verified ? "The owner showed this item's window from the game, and its stats and slots matched. Still, look at it in game before you pay."
             : "The owner hasn't shown this item from the game yet, so its stats are as they typed them. Ask to see it in game before you pay."}</small></p>
         ${scrollList(l)}
         <dl class="detail-facts">

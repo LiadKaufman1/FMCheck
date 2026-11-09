@@ -4,3 +4,5 @@ __pycache__/
 .cache/
 .wrangler/
 wrangler.test.jsonc
+.dev.vars
+.env*

@@ -4,10 +4,7 @@
   <meta charset="utf-8" />
   <!-- www moves to fmcheck.org. The older addresses (GitHub Pages, workers.dev) keep working as a backup for networks
        that block newly registered domains, with a note pointing to the main address. -->
-  <script>
-    if (location.hostname === "www.fmcheck.org") location.replace("https://fmcheck.org/" + location.search + location.hash);
-    if (/(\.github\.io|\.workers\.dev)$/.test(location.hostname)) document.documentElement.classList.add("old-address");
-  </script>
+  <script src="js/boot.js?v=c25d3b4c"></script>
   <link rel="canonical" href="https://fmcheck.org/" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>FMCheck · Post your scrolled item</title>
@@ -32,7 +29,7 @@
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
   <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="css/style.css?v=ab52bd3e" />
+  <link rel="stylesheet" href="css/style.css?v=c25d3b4c" />
 </head>
 <body>
   <a class="skip" href="#itemSearch">Skip to posting an item</a>
@@ -216,7 +213,7 @@
           <div class="check-box" id="checkBox">
             <label class="check-opt"><input type="checkbox" id="pubCheck" checked />
               <span><img src="assets/ui/mirror.png" alt="" /> <b>Check it on screen after posting</b> <small>optional, recommended</small></span></label>
-            <p class="hint"><b>Why it matters:</b> anyone can type stats. Showing the item's window from the game proves yours is real:
+            <p class="hint"><b>Why it matters:</b> anyone can type stats. Showing the item's window from the game shows yours is real:
               it gets a green <i>Checked on screen</i> badge, and buyers who only want checked items will find it.
               It takes a few seconds: share the game window and hover the item. Your screen isn't uploaded, it's read in your browser.</p>
           </div>
@@ -280,6 +277,6 @@ natural roll = product over the stats above default</pre>
   </div>
 
 
-  <script type="module" src="js/app.js?v=ab52bd3e"></script>
+  <script type="module" src="js/app.js?v=c25d3b4c"></script>
 </body>
 </html>

@@ -4,7 +4,7 @@
 //             multiplied together (stats at or below the default don't make it rarer)
 //   scrolls = the chance the scrolls passed like this in the used slots (failed slots spread the likeliest way)
 //   chance  = roll × scrolls, shown as "1 in N" with a tier
-import { rollAtLeast, groupOdds, allocateFailures } from "./calc.js?v=ab52bd3e";
+import { rollAtLeast, groupOdds, allocateFailures } from "./calc.js?v=c25d3b4c";
 
 export const TIERS = [
   // [name, "1 in" from, colour]

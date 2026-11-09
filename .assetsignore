@@ -15,3 +15,6 @@ wrangler.jsonc
 .nojekyll
 .wrangler
 src
+wrangler.test.jsonc
+.dev.vars
+.env*

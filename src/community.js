@@ -56,7 +56,7 @@ const FLAG_MIN_AGE = 3 * DAY;      // reports count only from accounts this old,
 // rank below real items, are never posted or featured for real, and stop showing once DEMO_UNTIL real items are up.
 // Setting DEMO=off hides them at once.
 const DEMO_UNTIL = 30;
-const DEMO_VERSION = 6; // bump when src/demo.json changes
+const DEMO_VERSION = 8; // bump when src/demo.json changes
 const CROWD_MIN = 3;     // different players (per day) before their typed price goes in the list
 const CROWD_DAYS = 30;   // typed prices older than this are dropped
 const HIDE_AT_FLAGS = 3;           // reports from different players that hide an item
@@ -179,6 +179,12 @@ const setup = (env) => (ready ||= migrate(env).catch((e) => { ready = null; thro
 
 // ---------- small helpers ----------
 
+// Something worth looking into later (Workers Logs): what happened, from where. No personal data.
+export const alert = (request, what, extra = {}) => console.warn(JSON.stringify({
+  alert: what, path: new URL(request.url).pathname, method: request.method,
+  ip: request.headers.get("cf-connecting-ip") || "", country: request.headers.get("cf-ipcountry") || "", ...extra }));
+
+
 const enc = new TextEncoder();
 const hex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 const sha = async (s) => hex(await crypto.subtle.digest("SHA-256", enc.encode(s)));
@@ -193,6 +199,11 @@ function statMap(obj, lo, hi) {
     if (STAT_KEYS.includes(k) && int(v, lo, hi) != null && v !== 0) out[k] = v;
   }
   return out;
+}
+// Compares a secret without leaking how much of it matched (by timing).
+async function sameSecret(a, b) {
+  const [x, y] = await Promise.all([String(a ?? ""), String(b ?? "")].map((s) => crypto.subtle.digest("SHA-256", enc.encode(s))));
+  return crypto.subtle.timingSafeEqual ? crypto.subtle.timingSafeEqual(x, y) : hex(x) === hex(y);
 }
 const cleanText = (s, max) => String(s ?? "").replace(/[\u0000-\u001f\u007f<>]/g, "").trim().slice(0, max);
 const validIgn = (s) => (/^[A-Za-z0-9]{2,13}$/.test(String(s || "")) ? String(s) : null);
@@ -330,7 +341,7 @@ async function discordPost(env, l, ign, image, origin, featured = false) {
       (l.price ? `For sale: **${fmtMesos(l.price)}** by ${ign}` : `Posted by ${ign}`)].filter(Boolean).join("\n"),
     color: 0xffb83d,
   };
-  if (featured) embed.thumbnail = { url: `${origin}/assets/items/${String(l.item).padStart(8, "0")}.png` };
+  embed.thumbnail = { url: `${origin}/assets/items/${String(l.item).padStart(8, "0")}.png` };
   const payload = { username: "FMCheck", content: featured ? "⭐ Featured by a supporter" : "✨ A rare item was just added",
     embeds: [embed], allowed_mentions: { parse: [] } };
   let body, headers = {};
@@ -393,7 +404,7 @@ async function kofi(request, env, json) {
   if (!env.KOFI_TOKEN) return json({ error: "Not set up." }, 503);
   const form = await request.formData().catch(() => null);
   const d = parse(form && form.get("data"), null);
-  if (!d || d.verification_token !== env.KOFI_TOKEN) return json({ error: "Not allowed." }, 403);
+  if (!d || !(await sameSecret(d.verification_token, env.KOFI_TOKEN))) { alert(request, "kofi-bad-token"); return json({ error: "Not allowed." }, 403); }
   const id = cleanText(d.kofi_transaction_id || d.message_id, 80);
   if (!id) return json({ ok: true });
   const amount = parseFloat(d.amount) || 0;
@@ -472,14 +483,17 @@ export async function community(request, env, ctx, url, json) {
   const method = request.method;
   if (path === "/api/kofi" && method === "POST") return kofi(request, env, json);
   // Changes only from the site itself (with the sign-in cookie), never from other sites.
-  if (method !== "GET" && request.headers.get("origin") !== url.origin) return json({ error: "Not allowed." }, 403);
+  if (method !== "GET" && request.headers.get("origin") !== url.origin) {
+    alert(request, "bad-origin", { origin: request.headers.get("origin") || "" });
+    return json({ error: "Not allowed." }, 403);
+  }
   const user = await currentUser(request, env);
   const body = method === "POST" || method === "PUT" || method === "PATCH" ? await request.json().catch(() => ({})) || {} : {};
   const needUser = () => (user ? null : json({ error: "Sign in first." }, 401));
 
   if (path === "/api/auth/google" && method === "POST") {
     const g = await verifyGoogle(body.credential, env.GOOGLE_CLIENT_ID).catch(() => null);
-    if (!g || !g.sub) return json({ error: "Google sign-in failed. Try again." }, 401);
+    if (!g || !g.sub) { alert(request, "sign-in-failed"); return json({ error: "Google sign-in failed. Try again." }, 401); }
     const id = (await sha(`google:${g.sub}|fmcheck`)).slice(0, 32);
     const token = randomHex(32);
     const now = Date.now();
@@ -492,7 +506,7 @@ export async function community(request, env, ctx, url, json) {
     return json({ user: u }, 200, { "set-cookie": sessionCookie(token, SESSION_DAYS * 86400) });
   }
   // Local testing only (wrangler dev with DEV_LOGIN=1): sign in without Google. Never set on the real site.
-  if (path === "/api/auth/dev" && method === "POST" && env.DEV_LOGIN === "1") {
+  if (path === "/api/auth/dev" && method === "POST" && env.DEV_LOGIN === "1" && /^(localhost|127\.0\.0\.1)$/.test(url.hostname)) {
     const id = (await sha(`dev:${body.name}`)).slice(0, 32), token = randomHex(32), now = Date.now();
     await env.DB.batch([
       env.DB.prepare(`INSERT OR IGNORE INTO users (id, ign, created) VALUES (?, NULL, ?)`).bind(id, now),
@@ -593,7 +607,7 @@ export async function community(request, env, ctx, url, json) {
     return json({ ok: true });
   }
   if (path === "/api/prices" && method === "PUT") {
-    if (!isAdmin(env, user)) return json({ error: "Admins only." }, 403);
+    if (!isAdmin(env, user)) { alert(request, "not-admin"); return json({ error: "Admins only." }, 403); }
     const now = Date.now();
     const q = [];
     for (const [k, v] of Object.entries((body && body.prices) || {}).slice(0, 2000)) {
@@ -609,7 +623,7 @@ export async function community(request, env, ctx, url, json) {
   }
 
   if (path === "/api/admin/supporter" && method === "POST") {
-    if (!isAdmin(env, user)) return json({ error: "Admins only." }, 403);
+    if (!isAdmin(env, user)) { alert(request, "not-admin"); return json({ error: "Admins only." }, 403); }
     const days = int(+body.days, -400, 400) || 0, boosts = int(+body.boosts, -100, 100) || 0;
     const code = String(body.code || "").trim().toUpperCase();
     const u = await env.DB.prepare(`SELECT id FROM users WHERE sup_code = ? OR id = ?`).bind(code, code.toLowerCase()).first();
@@ -692,7 +706,7 @@ export async function community(request, env, ctx, url, json) {
         s.price ?? null, s.channel ?? null, s.room ?? null, s.note ?? null, created, now, s.where_text ?? null).run();
     await env.DB.prepare(`INSERT INTO posts (user_id, fp, created, t) VALUES (?, ?, ?, ?)`).bind(user.id, fp, created, now).run();
     // rare items go to Discord once, not again when re-posted
-    if (!before.created) ctx.waitUntil(discordPost(env, { ...l, id, price: s.price }, user.ign, body.image, url.origin));
+    if (!before.created) ctx.waitUntil(discordPost(env, { ...l, id, price: s.price }, user.ign, null, url.origin));
     return json({ id });
   }
 
@@ -722,7 +736,7 @@ export async function community(request, env, ctx, url, json) {
     }
 
     if (action === "/unflag" && method === "POST") {
-      if (!isAdmin(env, user)) return json({ error: "Admins only." }, 403);
+      if (!isAdmin(env, user)) { alert(request, "not-admin"); return json({ error: "Admins only." }, 403); }
       await env.DB.batch([
         env.DB.prepare(`DELETE FROM flags WHERE listing = ?`).bind(id),
         env.DB.prepare(`UPDATE listings SET flags = 0 WHERE id = ?`).bind(id),
@@ -767,7 +781,7 @@ export async function community(request, env, ctx, url, json) {
       const read = statMap(body.stats, -50, 5000);
       const want = parse(row.stats, {});
       const ok = Object.keys(want).length > 0 && Object.entries(want).every(([k, v]) => read[k] === v) && int(body.left, 0, 20) === row.left_slots;
-      if (!ok) return json({ error: "The stats on screen don't match this item." }, 400);
+      if (!ok) { alert(request, "check-mismatch", { listing: id }); return json({ error: "The stats on screen don't match this item." }, 400); }
       await env.DB.prepare(`UPDATE listings SET verified = 1, seen = ? WHERE id = ?`).bind(Date.now(), id).run();
       return json({ ok: true });
     }

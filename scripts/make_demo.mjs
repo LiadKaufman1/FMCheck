@@ -27,13 +27,13 @@ const WANT = {
   Overall: ["DEX", "INT", "LUK", "STR", "PDD"], Bottom: ["DEX", "Jump", "PDD"], Shoes: ["Speed", "Jump", "DEX", "EVA"],
   Earring: ["INT", "DEX", "LUK"], Cape: ["STR", "INT", "DEX", "LUK", "MDD"], Shield: ["STR", "LUK", "INT", "PDD"],
 };
-// what the examples are: mostly weapons and Work Gloves, some clothes, a few other things
-const PLAN = [["weapon", 24], ["work", 10], ["Glove", 3], ["clothes", 9], ["other", 3]];
+// mostly weapons and Work Gloves; then Emerald Earrings, overalls, hats, capes, shields and some other clothes
+const PLAN = [["weapon", 24], ["work", 10], ["Glove", 3], ["emerald", 4], ["Overall", 5], ["Hat", 4], ["Cape", 3], ["Shield", 3], ["clothes", 5]];
 const OK_TIERS = ["Uncommon", "Rare", "Epic", "Legendary"];
 
 const kind = (e) => (Math.floor(e[0] / 10000) >= 130 ? "weapon" : e[3]);
-const group = (e) => (e[0] === 1082000 ? "work" : ["Top", "Bottom", "Overall"].includes(e[3]) ? "clothes"
-  : ["weapon", "Glove"].includes(kind(e)) ? kind(e) : "other");
+const group = (e) => (e[0] === 1082000 ? "work" : e[0] === 1032007 ? "emerald" : ["Top", "Bottom"].includes(e[3]) ? "clothes"
+  : ["weapon", "Glove", "Overall", "Hat", "Cape", "Shield"].includes(kind(e)) ? kind(e) : "other");
 function family(e) {
   const mine = scrolls.filter((s) => s.target === Math.floor(e[0] / 10000));
   for (const stat of WANT[kind(e)] || []) {
@@ -64,7 +64,7 @@ for (const [g, count] of PLAN) {
   let made = 0;
   for (let tries = 0; tries < 200000 && made < count; tries++) {
     const e = pick(pool);
-    if (g !== "work" && usedItems.has(e[0])) continue;
+    if (g !== "work" && g !== "emerald" && usedItems.has(e[0])) continue;
     const { stat, fam } = family(e);
     const clean = {};
     for (const [k, v] of Object.entries(e[5])) {
@@ -91,7 +91,7 @@ for (const [g, count] of PLAN) {
     out.push({
       item: e[0], clean, left, scrolls: rows,
       price: priceOf(e, g, r, rows, stat), estimate: null,
-      channel: rnd() < 0.75 ? between(1, 20) : null, room: rnd() < 0.75 ? between(1, 22) : null,
+      channel: between(1, 20), room: between(1, 22), // every example says where: channel and FM room
       where: rnd() < 0.25 ? pick(WHERE) : null,
       note: pick(NOTES) || null,
       seller: SELLERS[i % SELLERS.length], supporter: false, verified: false, featured: false,
