@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <!-- www moves to fmcheck.org. The older addresses (GitHub Pages, workers.dev) keep working as a backup for networks
        that block newly registered domains, with a note pointing to the main address. -->
-  <script src="js/boot.js?v=c25d3b4c"></script>
+  <script src="js/boot.js?v=b791c19f"></script>
   <link rel="canonical" href="https://fmcheck.org/" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>FMCheck · Post your scrolled item</title>
@@ -29,7 +29,7 @@
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
   <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="css/style.css?v=c25d3b4c" />
+  <link rel="stylesheet" href="css/style.css?v=b791c19f" />
 </head>
 <body>
   <a class="skip" href="#itemSearch">Skip to posting an item</a>
@@ -203,10 +203,10 @@
             </div>
             <p id="pubPriceSay" class="price-say" aria-live="polite">In millions: 48 = 48,000,000 mesos.</p>
             <div class="where-line">
-              <span class="sale-label">Where to find you <small>(optional)</small></span>
-              <label>Channel <input id="pubChannel" inputmode="numeric" maxlength="2" placeholder="3" /></label>
-              <label>FM room <input id="pubRoom" inputmode="numeric" maxlength="2" placeholder="7" /></label>
-              <label class="where-free">Or somewhere else <input id="pubWhere" maxlength="60" placeholder="e.g. whisper me, Henesys ch 5" /></label>
+              <span class="sale-label">Where to find you</span>
+              <label>Channel <input id="pubChannel" inputmode="numeric" maxlength="2" placeholder="3" aria-required="true" /></label>
+              <label>FM room <input id="pubRoom" inputmode="numeric" maxlength="2" placeholder="7" aria-required="true" /></label>
+              <label class="where-free">More about where <small>(optional)</small> <input id="pubWhere" maxlength="60" placeholder="e.g. whisper me, Henesys ch 5" /></label>
             </div>
           </div>
           <label>Note <small>(optional)</small> <input id="pubNote" maxlength="140" placeholder="e.g. open to offers, can trade" /></label>
@@ -277,6 +277,6 @@ natural roll = product over the stats above default</pre>
   </div>
 
 
-  <script type="module" src="js/app.js?v=c25d3b4c"></script>
+  <script type="module" src="js/app.js?v=b791c19f"></script>
 </body>
 </html>

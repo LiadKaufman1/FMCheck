@@ -1,12 +1,12 @@
 // Browse items: scrolled items players posted, as cards with how rare each one is.
-import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=c25d3b4c";
-import { drawCard, cardBlob } from "./card.js?v=c25d3b4c";
-import { cardInfo, cardLabel, cardFmt, cardDate } from "./itemcard.js?v=c25d3b4c";
-import { rarity, oneInText } from "./rarity.js?v=c25d3b4c";
-import { setupA11y } from "./a11y.js?v=c25d3b4c";
-import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=c25d3b4c";
-import { itemSearch } from "./itemsearch.js?v=c25d3b4c";
-import { DISCORD_URL } from "./config.js?v=c25d3b4c";
+import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=b791c19f";
+import { drawCard, cardBlob } from "./card.js?v=b791c19f";
+import { cardInfo, cardLabel, cardFmt, cardDate } from "./itemcard.js?v=b791c19f";
+import { rarity, oneInText } from "./rarity.js?v=b791c19f";
+import { setupA11y } from "./a11y.js?v=b791c19f";
+import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=b791c19f";
+import { itemSearch } from "./itemsearch.js?v=b791c19f";
+import { DISCORD_URL } from "./config.js?v=b791c19f";
 
 const $ = (id) => document.getElementById(id);
 // a small MapleStory icon next to a label (assets/ui/)
@@ -403,6 +403,7 @@ $("listings").addEventListener("submit", (e) => {
   const id = f.closest("[data-id]").dataset.id;
   const price = f.price.value.trim() ? readPrice(f.price.value, "") : null;
   if (f.price.value.trim() && !(price > 0)) { toast("The price doesn't look right, e.g. 350m."); return; }
+  if (price && !(+f.channel.value.trim() >= 1 && +f.room.value.trim() >= 1)) { toast("For sale: add your channel and FM room, so buyers can find you."); return; }
   patch(id, { price, channel: f.channel.value.trim(), room: f.room.value.trim(), where: f.where.value.trim(), note: f.note.value.trim() }, "Saved.");
 });
 

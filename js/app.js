@@ -1,11 +1,11 @@
-import { iconUrl, DONATE_URL, DISCORD_URL } from "./config.js?v=c25d3b4c";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, mesos, readPrice } from "./calc.js?v=c25d3b4c";
-import { rarity, oneInText } from "./rarity.js?v=c25d3b4c";
-import { drawCard, cardBlob } from "./card.js?v=c25d3b4c";
-import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=c25d3b4c";
-import { itemSearch } from "./itemsearch.js?v=c25d3b4c";
-import { setupA11y } from "./a11y.js?v=c25d3b4c";
-import { API, api, health, me, googleButton, validIgn } from "./account.js?v=c25d3b4c";
+import { iconUrl, DONATE_URL, DISCORD_URL } from "./config.js?v=b791c19f";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, mesos, readPrice } from "./calc.js?v=b791c19f";
+import { rarity, oneInText } from "./rarity.js?v=b791c19f";
+import { drawCard, cardBlob } from "./card.js?v=b791c19f";
+import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=b791c19f";
+import { itemSearch } from "./itemsearch.js?v=b791c19f";
+import { setupA11y } from "./a11y.js?v=b791c19f";
+import { API, api, health, me, googleButton, validIgn } from "./account.js?v=b791c19f";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -403,6 +403,10 @@ $("pubForm").addEventListener("submit", async (e) => {
   const priceText = $("pubPrice").value.trim();
   const price = forSale ? readPrice(priceText, pubUnit()) : null;
   if (forSale && !(price > 0)) { msg.textContent = "Enter your price, e.g. 48 for 48M."; $("pubPrice").focus(); return; }
+  // buyers need to know where to find the seller: channel and FM room
+  const okNum = (id, hi) => { const n = +$(id).value.trim(); return Number.isInteger(n) && n >= 1 && n <= hi; };
+  if (forSale && !okNum("pubChannel", 40)) { msg.textContent = "Add your channel (1–40), so buyers can find you."; $("pubChannel").focus(); return; }
+  if (forSale && !okNum("pubRoom", 30)) { msg.textContent = "Add your FM room (1–30), so buyers can find you."; $("pubRoom").focus(); return; }
   $("pubSend").disabled = true;
   try {
     if (!pubUser.ign) {

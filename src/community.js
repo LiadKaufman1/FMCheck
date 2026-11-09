@@ -690,6 +690,7 @@ export async function community(request, env, ctx, url, json) {
     const l = readListing(body);
     if (l.error) return json({ error: l.error }, 400);
     const s = readSeller(body);
+    if (s.price && (!s.channel || !s.room)) return json({ error: "For sale: add your channel and FM room, so buyers can find you." }, 400);
     const counts = await env.DB.prepare(`SELECT
         SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS active, SUM(CASE WHEN created > ? THEN 1 ELSE 0 END) AS today
         FROM listings WHERE user_id = ?`).bind(Date.now() - DAY, user.id).first();
@@ -803,6 +804,10 @@ export async function community(request, env, ctx, url, json) {
 
     if (!action && method === "PATCH") {
       const s = readSeller(body);
+      const after = { price: "price" in s ? s.price : row.price, channel: "channel" in s ? s.channel : row.channel, room: "room" in s ? s.room : row.room };
+      if (after.price && (!after.channel || !after.room) && ("price" in s || "channel" in s || "room" in s)) {
+        return json({ error: "For sale: add your channel and FM room, so buyers can find you." }, 400);
+      }
       const sets = [], args = [];
       for (const [k, v] of Object.entries(s)) { sets.push(`${k} = ?`); args.push(v); }
       if (body.bump || Object.keys(s).length) { sets.push(`seen = ?`); args.push(Date.now()); }
