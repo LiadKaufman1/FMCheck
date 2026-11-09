@@ -1,12 +1,12 @@
 // Browse items: scrolled items players posted, as cards with how rare each one is.
-import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=2d62f288";
-import { drawCard, cardBlob } from "./card.js?v=2d62f288";
-import { cardInfo, cardLabel, cardFmt, cardDate } from "./itemcard.js?v=2d62f288";
-import { rarity, oneInText } from "./rarity.js?v=2d62f288";
-import { setupA11y } from "./a11y.js?v=2d62f288";
-import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=2d62f288";
-import { itemSearch } from "./itemsearch.js?v=2d62f288";
-import { DISCORD_URL } from "./config.js?v=2d62f288";
+import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=7efc9b4c";
+import { drawCard, cardBlob } from "./card.js?v=7efc9b4c";
+import { cardInfo, cardLabel, cardFmt, cardDate } from "./itemcard.js?v=7efc9b4c";
+import { rarity, oneInText } from "./rarity.js?v=7efc9b4c";
+import { setupA11y } from "./a11y.js?v=7efc9b4c";
+import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=7efc9b4c";
+import { itemSearch } from "./itemsearch.js?v=7efc9b4c";
+import { DISCORD_URL } from "./config.js?v=7efc9b4c";
 
 const $ = (id) => document.getElementById(id);
 // a small MapleStory icon next to a label (assets/ui/)
@@ -96,11 +96,13 @@ function tile(l) {
       <ul class="it-stats">${stats}<li class="it-left"><span>Slots left</span><b>${l.left}</b></li></ul>
     </span>
     <span class="it-rarity"><b>${r.tier.name}</b><span>${oneInText(r.oneIn)}</span></span>
+    <span class="it-price-line">${l.price ? `<img src="assets/ui/meso.png" alt="" /><b>${mesos(l.price)}</b>` : `<span class="it-noprice">Not for sale</span>`}</span>
     <span class="it-foot">
-      <span>${l.ign ? esc(l.ign) : ""}${l.price ? ` · <b class="it-price">${mesos(l.price)}</b>` : ""}</span>
+      <span>${l.ign ? `<b>${esc(l.ign)}</b>` : ""}${place(l) ? ` · ${place(l)}` : ""}</span>
       <small>${ago(l.created)}</small>
     </span>
-    <span class="it-badges">${l.demo ? `<span class="badge demo" title="Not a real post: an example">Example</span>` : ""}${l.featured ? `<span class="badge feat">${IC("starpiece")} Featured</span>` : ""}${verifiedBadge(l)}${supporterBadge(l)}${l.status === "sold" ? `<span class="badge">Sold</span>` : ""}</span>
+    ${l.demo ? `<span class="it-demo" title="Not a real post: an example of how items look on FMCheck">Example</span>` : ""}
+    <span class="it-badges">${l.featured ? `<span class="badge feat">${IC("starpiece")} Featured</span>` : ""}${verifiedBadge(l)}${supporterBadge(l)}${l.status === "sold" ? `<span class="badge">Sold</span>` : ""}</span>
   </button></li>`;
 }
 
@@ -228,7 +230,9 @@ async function openDetail(id) {
         ${l.status === "sold" ? `<p class="badge">Sold</p>` : ""}
         <p class="detail-rarity" style="--tier:${rarityOf(l).tier.color}"><b>${rarityOf(l).tier.name}</b> ${oneInText(rarityOf(l).oneIn)}</p>
         <p class="detail-price">${l.price ? `For sale: <b>${mesos(l.price)}</b>` : "Not for sale"}</p>
-        <p>${verifiedBadge(l) || `<span class="badge">Not checked on screen</span>`}</p>
+        <p>${verifiedBadge(l) || `<span class="badge" title="The owner hasn't shown this item's window from the game yet">Not checked on screen</span>`}
+          <small class="hint check-why">${l.verified ? "The owner showed this item's window from the game, and its stats and slots matched."
+            : "The owner hasn't shown this item from the game yet, so its stats are as they typed them. Ask to see it in game before you pay."}</small></p>
         ${scrollList(l)}
         <dl class="detail-facts">
           <dt>Posted by</dt><dd>${l.ign ? `<b>${esc(l.ign)}</b> ${supporterBadge(l)} ${l.demo ? `<span class="badge demo">Example</span>`

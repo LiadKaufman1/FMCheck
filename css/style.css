@@ -788,3 +788,13 @@ html:not(.sup-on) .sup-only { display: none !important; }
 .detail-scrolls li img { grid-row: span 2; width: 28px; height: 28px; object-fit: contain; image-rendering: pixelated; }
 .detail-scrolls li small { color: var(--muted); }
 .detail-scrolls .hint { margin: 8px 0 0; }
+/* item cards: a big price, the place, and a tiny "Example" */
+.itile { position: relative; }
+.it-price-line { display: flex; align-items: center; gap: 6px; }
+.it-price-line img { width: 22px; height: 22px; image-rendering: pixelated; }
+.it-price-line b { font: 700 24px "Fredoka", "Nunito", sans-serif; color: #ffd25a; line-height: 1; }
+.it-noprice { font-size: 13px; font-weight: 700; color: #9aa3d6; }
+.it-foot > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.it-foot b { color: #fff; }
+.it-demo { position: absolute; top: 4px; right: 6px; font-size: 8.5px; font-weight: 700; letter-spacing: .02em; color: #8a92c4; }
+.check-why { display: block; margin-top: 4px; }

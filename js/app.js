@@ -1,11 +1,11 @@
-import { iconUrl, DONATE_URL, DISCORD_URL } from "./config.js?v=2d62f288";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, mesos, readPrice } from "./calc.js?v=2d62f288";
-import { rarity, oneInText } from "./rarity.js?v=2d62f288";
-import { drawCard, cardBlob } from "./card.js?v=2d62f288";
-import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=2d62f288";
-import { itemSearch } from "./itemsearch.js?v=2d62f288";
-import { setupA11y } from "./a11y.js?v=2d62f288";
-import { API, api, health, me, googleButton, validIgn } from "./account.js?v=2d62f288";
+import { iconUrl, DONATE_URL, DISCORD_URL } from "./config.js?v=7efc9b4c";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, mesos, readPrice } from "./calc.js?v=7efc9b4c";
+import { rarity, oneInText } from "./rarity.js?v=7efc9b4c";
+import { drawCard, cardBlob } from "./card.js?v=7efc9b4c";
+import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=7efc9b4c";
+import { itemSearch } from "./itemsearch.js?v=7efc9b4c";
+import { setupA11y } from "./a11y.js?v=7efc9b4c";
+import { API, api, health, me, googleButton, validIgn } from "./account.js?v=7efc9b4c";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
