@@ -23,7 +23,7 @@
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
   <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="css/style.css?v=be3bc512" />
+  <link rel="stylesheet" href="css/style.css?v=2d62f288" />
 </head>
 <body>
   <a class="skip" href="#listings">Skip to the items</a>
@@ -108,11 +108,23 @@
             <option>Magician</option><option>Bowman</option><option>Thief</option>
           </select>
         </div>
+      <div class="tier-chips" role="group" aria-label="Rarity">
+        <span class="tier-label">Rarity</span>
+        <button type="button" data-tier="" aria-pressed="true">Any</button>
+        <button type="button" data-tier="common" aria-pressed="false" style="--tier:#b9bdd1">Common</button>
+        <button type="button" data-tier="uncommon" aria-pressed="false" style="--tier:#7ddc6a">Uncommon</button>
+        <button type="button" data-tier="rare" aria-pressed="false" style="--tier:#5aa8ff">Rare</button>
+        <button type="button" data-tier="epic" aria-pressed="false" style="--tier:#c77dff">Epic</button>
+        <button type="button" data-tier="legendary" aria-pressed="false" style="--tier:#ffb83d">Legendary</button>
+      </div>
       <form id="filters" class="filters">
         <label>Stat at least
           <span class="pair"><select id="fStat" aria-label="Stat"><option value="">Any</option></select>
           <input id="fMin" inputmode="numeric" aria-label="At least" placeholder="0" /></span></label>
         <label>Slots left <select id="fLeft"><option value="">Any</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+        <label>Price <select id="fPrice"><option value="">Any</option><option value="0-1000000">Under 1M</option>
+          <option value="1000000-10000000">1M – 10M</option><option value="10000000-100000000">10M – 100M</option>
+          <option value="100000000-">100M and up</option></select></label>
         <label>Sort <select id="fSort"><option value="new">Newest</option><option value="rare">Rarest</option><option value="cheap">Cheapest</option><option value="pricey">Priciest</option></select></label>
         <label class="check"><input id="fSale" type="checkbox" /> For sale only</label>
         <label class="check"><input id="fVerified" type="checkbox" /> Checked on screen only</label>
@@ -181,6 +193,6 @@
   </div>
 
 
-  <script type="module" src="js/community.js?v=be3bc512"></script>
+  <script type="module" src="js/community.js?v=2d62f288"></script>
 </body>
 </html>

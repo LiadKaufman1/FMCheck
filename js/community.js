@@ -1,12 +1,12 @@
 // Browse items: scrolled items players posted, as cards with how rare each one is.
-import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=be3bc512";
-import { drawCard, cardBlob } from "./card.js?v=be3bc512";
-import { cardInfo, cardLabel, cardFmt, cardDate } from "./itemcard.js?v=be3bc512";
-import { rarity, oneInText } from "./rarity.js?v=be3bc512";
-import { setupA11y } from "./a11y.js?v=be3bc512";
-import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=be3bc512";
-import { itemSearch } from "./itemsearch.js?v=be3bc512";
-import { DISCORD_URL } from "./config.js?v=be3bc512";
+import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=2d62f288";
+import { drawCard, cardBlob } from "./card.js?v=2d62f288";
+import { cardInfo, cardLabel, cardFmt, cardDate } from "./itemcard.js?v=2d62f288";
+import { rarity, oneInText } from "./rarity.js?v=2d62f288";
+import { setupA11y } from "./a11y.js?v=2d62f288";
+import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=2d62f288";
+import { itemSearch } from "./itemsearch.js?v=2d62f288";
+import { DISCORD_URL } from "./config.js?v=2d62f288";
 
 const $ = (id) => document.getElementById(id);
 // a small MapleStory icon next to a label (assets/ui/)
@@ -32,6 +32,16 @@ const market = itemSearch({
   badge: (e) => itemCounts[e[0]] || 0,
   badgeText: (n) => `${n} ${tab === "sale" ? "for sale" : "up"}`,
 });
+// rarity buttons: one tier at a time ("Any" = all)
+let tierFilter = "";
+document.querySelector(".tier-chips").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-tier]");
+  if (!b) return;
+  tierFilter = b.dataset.tier;
+  for (const x of document.querySelectorAll(".tier-chips [data-tier]")) x.setAttribute("aria-pressed", String(x === b));
+  load();
+});
+
 let typeTimer;
 fQ.addEventListener("input", () => {
   if (picked && fQ.value !== picked[1]) picked = null;
@@ -108,6 +118,10 @@ function query() {
   if (tab !== "rare") q.set("sort", v("fSort"));
   if ($("fVerified").checked) q.set("verified", "1");
   if ($("fSale").checked) q.set("forsale", "1");
+  if (tierFilter) q.set("tier", tierFilter);
+  const [pmin, pmax] = $("fPrice").value.split("-");
+  if (pmin && +pmin > 0) q.set("pmin", pmin);
+  if (pmax) q.set("pmax", pmax);
   return q;
 }
 
@@ -172,6 +186,20 @@ $("listings").addEventListener("click", (e) => {
 
 // ---------- one item ----------
 
+// The scrolls on an item: icon, how many passed, the success rate, and the failed slots.
+function scrollList(l) {
+  const r = rarityOf(l);
+  const rows = l.scrolls.map((x) => {
+    const sc = scrollById.get(x.id);
+    if (!sc) return "";
+    return `<li><img src="${icon(x.id)}" alt="" /><span><b>${x.n}×</b> ${esc(sc.name)}</span>
+      <small>${sc.success}%${sc.boom ? ", may destroy" : ""} · ${esc(plus(Object.fromEntries(Object.entries(sc.stats).map(([k, v]) => [k, v * x.n]))))}</small></li>`;
+  }).join("");
+  return `<div class="detail-scrolls"><h3>Scrolls on it</h3>
+    ${rows ? `<ul>${rows}</ul>` : `<p class="hint">No scrolls: a clean item.</p>`}
+    <p class="hint">${l.upgrades} passed${r.failed ? `, ${r.failed} failed` : ""} · ${l.left} slot${l.left === 1 ? "" : "s"} left of ${l.slots}</p></div>`;
+}
+
 function cardFor(l) {
   const e = equipById.get(l.item);
   if (!e) return null;
@@ -201,6 +229,7 @@ async function openDetail(id) {
         <p class="detail-rarity" style="--tier:${rarityOf(l).tier.color}"><b>${rarityOf(l).tier.name}</b> ${oneInText(rarityOf(l).oneIn)}</p>
         <p class="detail-price">${l.price ? `For sale: <b>${mesos(l.price)}</b>` : "Not for sale"}</p>
         <p>${verifiedBadge(l) || `<span class="badge">Not checked on screen</span>`}</p>
+        ${scrollList(l)}
         <dl class="detail-facts">
           <dt>Posted by</dt><dd>${l.ign ? `<b>${esc(l.ign)}</b> ${supporterBadge(l)} ${l.demo ? `<span class="badge demo">Example</span>`
             : `<button type="button" class="ghost-btn mini" id="copyIgn">Copy name</button>`}` : "–"}</dd>

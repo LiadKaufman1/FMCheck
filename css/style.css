@@ -772,3 +772,19 @@ html:not(.sup-on) .sup-only { display: none !important; }
 .sale-box, .price-line { min-width: 0; }
 .where-line .where-free { flex: 1 1 220px; }
 .where-line .where-free input { width: 100%; }
+
+/* browse: rarity buttons */
+.tier-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 10px; }
+.tier-label { font-size: 12px; font-weight: 800; color: var(--muted); margin-right: 2px; }
+.tier-chips button { padding: 6px 12px; border-radius: 999px; font: 700 13px "Fredoka", "Nunito", sans-serif;
+  background: #1e2758; color: var(--tier, #fff); border: 2px solid transparent; }
+.tier-chips button[data-tier=""] { background: var(--card); color: var(--text); border-color: var(--line); }
+.tier-chips button[aria-pressed="true"] { border-color: var(--tier, var(--market-on)); box-shadow: 0 0 0 2px var(--tier, var(--market-on)); }
+/* item page: the scrolls */
+.detail-scrolls { margin: 10px 0; padding: 10px 12px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); }
+.detail-scrolls h3 { margin: 0 0 6px; font-size: 14px; }
+.detail-scrolls ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.detail-scrolls li { display: grid; grid-template-columns: 28px 1fr; column-gap: 8px; align-items: center; }
+.detail-scrolls li img { grid-row: span 2; width: 28px; height: 28px; object-fit: contain; image-rendering: pixelated; }
+.detail-scrolls li small { color: var(--muted); }
+.detail-scrolls .hint { margin: 8px 0 0; }

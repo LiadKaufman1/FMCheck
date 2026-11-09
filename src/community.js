@@ -33,7 +33,7 @@
 import equips from "../data/equips.json";
 import scrollData from "../data/scrolls.json";
 import { statRange } from "../js/calc.js";
-import { rarity } from "../js/rarity.js";
+import { rarity, TIERS } from "../js/rarity.js";
 import demoItems from "./demo.json";
 import priceSeed from "./prices-seed.json";
 
@@ -56,7 +56,7 @@ const FLAG_MIN_AGE = 3 * DAY;      // reports count only from accounts this old,
 // rank below real items, are never posted or featured for real, and stop showing once DEMO_UNTIL real items are up.
 // Setting DEMO=off hides them at once.
 const DEMO_UNTIL = 30;
-const DEMO_VERSION = 2; // bump when src/demo.json changes
+const DEMO_VERSION = 3; // bump when src/demo.json changes
 const CROWD_MIN = 3;     // different players (per day) before their typed price goes in the list
 const CROWD_DAYS = 30;   // typed prices older than this are dropped
 const HIDE_AT_FLAGS = 3;           // reports from different players that hide an item
@@ -137,12 +137,12 @@ async function seedDemo(env) {
         .bind(uid, d.supporter ? 4102444800000 : 0));
     }
     q.push(env.DB.prepare(`INSERT OR IGNORE INTO listings (id, user_id, item, name, cat, clean, gained, stats, scrolls, upgrades,
-        left_slots, slots, chance, one_in, est_lo, est_hi, price, channel, room, note, verified, created, seen, demo, demo_seller)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        left_slots, slots, chance, one_in, est_lo, est_hi, price, channel, room, note, verified, created, seen, demo, demo_seller, where_text)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .bind(`de${String(i).padStart(10, "0")}`, uid, l.item, l.name, l.cat, JSON.stringify(l.clean), JSON.stringify(l.gained),
         JSON.stringify(l.stats), JSON.stringify(l.scrolls), l.upgrades, l.left, l.slots, l.chance, l.oneIn,
         d.estimate?.lo ?? null, d.estimate?.hi ?? null, d.price ?? null, d.channel ?? null, d.room ?? null, d.note ?? null,
-        d.verified ? 1 : 0, d.minutesAgo * 60000, d.seenAgo * 60000, d.featured ? 2 : 1, d.seller));
+        d.verified ? 1 : 0, d.minutesAgo * 60000, d.seenAgo * 60000, d.featured ? 2 : 1, d.seller, d.where || null));
   }
   q.push(env.DB.prepare(`INSERT OR REPLACE INTO meta (k, v) VALUES (?, ?)`).bind(key, String(Date.now())));
   await env.DB.batch(q);
@@ -445,6 +445,16 @@ function listWhere(p, now, skipCat = false, demo = false) {
   const left = int(+p.get("left"), 1, 20);
   if (left) { where.push(`l.left_slots >= ?`); args.push(left); }
   if (p.get("verified") === "1") where.push(`l.verified = 1`);
+  // rarity tier: "1 in N" from its lower bound up to the next tier's
+  const tierIdx = TIERS.findIndex((t) => t[0].toLowerCase() === String(p.get("tier") || "").toLowerCase());
+  if (tierIdx >= 0) {
+    where.push(`l.one_in >= ?`); args.push(TIERS[tierIdx][1]);
+    if (TIERS[tierIdx + 1]) { where.push(`l.one_in < ?`); args.push(TIERS[tierIdx + 1][1]); }
+  }
+  // price range (mesos), e.g. pmin=1000000&pmax=10000000
+  const pmin = num(+p.get("pmin"), 1, 1e12), pmax = num(+p.get("pmax"), 1, 1e12);
+  if (pmin) { where.push(`l.price >= ?`); args.push(pmin); }
+  if (pmax) { where.push(`l.price < ?`); args.push(pmax); }
   // class: items that class can wear (items with no class limit count for every class)
   const job = p.get("job");
   if (JOB_ITEMS[job]) where.push(`l.item IN (${JOB_ITEMS[job]})`);
