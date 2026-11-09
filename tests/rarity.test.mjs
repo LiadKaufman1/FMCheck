@@ -26,4 +26,5 @@ test("tiers and text", () => {
   assert.equal(tierOf(6000).name, "Legendary");
   assert.equal(oneInText(3400), "1 in 3,400");
   assert.equal(oneInText(2.1e6), "1 in 2.1M");
+  assert.equal(oneInText(1.47), "1 in 1.5");
 });

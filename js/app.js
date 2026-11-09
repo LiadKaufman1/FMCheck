@@ -1,11 +1,11 @@
-import { iconUrl, DONATE_URL, DISCORD_URL } from "./config.js?v=3e5bb8b2";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, mesos, readPrice } from "./calc.js?v=3e5bb8b2";
-import { rarity, oneInText } from "./rarity.js?v=3e5bb8b2";
-import { drawCard, cardBlob } from "./card.js?v=3e5bb8b2";
-import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=3e5bb8b2";
-import { itemSearch } from "./itemsearch.js?v=3e5bb8b2";
-import { setupA11y } from "./a11y.js?v=3e5bb8b2";
-import { API, api, health, me, googleButton, validIgn } from "./account.js?v=3e5bb8b2";
+import { iconUrl, DONATE_URL, DISCORD_URL } from "./config.js?v=10693bf7";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, mesos, readPrice } from "./calc.js?v=10693bf7";
+import { rarity, oneInText } from "./rarity.js?v=10693bf7";
+import { drawCard, cardBlob } from "./card.js?v=10693bf7";
+import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=10693bf7";
+import { itemSearch } from "./itemsearch.js?v=10693bf7";
+import { setupA11y } from "./a11y.js?v=10693bf7";
+import { API, api, health, me, googleButton, validIgn } from "./account.js?v=10693bf7";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -500,14 +500,14 @@ function readHash() {
 // ---------- How it works: a short guide that plays real frames from the site ----------
 
 const GUIDE = [
-  ["assets/guide/1.webp?v=4", "1. Pick your item: upload a screenshot of it, or search it, or tap a category and a class to browse."],
-  ["assets/guide/2.webp?v=4", "2. Set its clean stats: what it had before any scroll. A roll above the default makes it rarer."],
-  ["assets/guide/3.webp?v=4", "3. Set the slots left and add the scrolls that passed. Failed ones are worked out for you."],
-  ["assets/guide/4.webp?v=4", "4. See how rare it is, from its natural roll and the way its scrolls passed, and save the card to share it."],
-  ["assets/guide/5.webp?v=4", "5. Post it: sign in with Google and post the item. Selling it? Add a price and where to find you (optional)."],
-  ["assets/guide/6.webp?v=4", "6. Browse items: everyone's posts, with their stats, slots and rarity. Filter by kind, class or stat, newest or rarest first."],
-  ["assets/guide/7.webp?v=4", "7. Tap an item to see its full card and who posted it. Checked on screen: the owner showed the item from the game."],
-  ["assets/guide/8.webp?v=4", "8. Under My items: check it on screen, edit it, mark it sold or remove it."],
+  ["assets/guide/1.webp?v=5", "1. Pick your item: upload a screenshot of it, or search it, or tap a category and a class to browse."],
+  ["assets/guide/2.webp?v=5", "2. Set its clean stats: what it had before any scroll. A roll above the default makes it rarer."],
+  ["assets/guide/3.webp?v=5", "3. Set the slots left and add the scrolls that passed. Failed ones are worked out for you."],
+  ["assets/guide/4.webp?v=5", "4. See how rare it is, from its natural roll and the way its scrolls passed, and save the card to share it."],
+  ["assets/guide/5.webp?v=5", "5. Post it: sign in with Google and post the item. Selling it? Add a price and where to find you (optional)."],
+  ["assets/guide/6.webp?v=5", "6. Browse items: everyone's posts, with their stats, slots and rarity. Filter by kind, class or stat, newest or rarest first."],
+  ["assets/guide/7.webp?v=5", "7. Tap an item to see its full card and who posted it. Checked on screen: the owner showed the item from the game."],
+  ["assets/guide/8.webp?v=5", "8. Under My items: check it on screen, edit it, mark it sold or remove it."],
 ];
 const GUIDE_KEY = "fmcheck-guide-seen";
 let guideStep = 0, guideTimer = null;

@@ -4,7 +4,7 @@
 //             multiplied together (stats at or below the default don't make it rarer)
 //   scrolls = the chance the scrolls passed like this in the used slots (failed slots spread the likeliest way)
 //   chance  = roll × scrolls, shown as "1 in N" with a tier
-import { rollAtLeast, groupOdds, allocateFailures } from "./calc.js?v=3e5bb8b2";
+import { rollAtLeast, groupOdds, allocateFailures } from "./calc.js?v=10693bf7";
 
 export const TIERS = [
   // [name, "1 in" from, colour]
@@ -42,6 +42,7 @@ export function rarity({ base = {}, clean = {}, used = 0, rows = [] }) {
 // "1 in 3,400", "1 in 2.1M", "every item"
 export function oneInText(n) {
   if (n < 1.05) return "almost every item";
+  if (n < 10) return `1 in ${+n.toFixed(1)}`;
   if (n < 1e6) return `1 in ${Math.round(n).toLocaleString("en-US")}`;
   if (n < 1e9) return `1 in ${+(n / 1e6).toFixed(1)}M`;
   return `1 in ${+(n / 1e9).toFixed(1)}B`;
