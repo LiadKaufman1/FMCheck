@@ -1,12 +1,12 @@
 // Browse items: scrolled items players posted, as cards with how rare each one is.
-import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=0f1f7cd5";
-import { drawCard, cardBlob } from "./card.js?v=0f1f7cd5";
-import { cardInfo, cardLabel, cardFmt, cardDate } from "./itemcard.js?v=0f1f7cd5";
-import { rarity, oneInText } from "./rarity.js?v=0f1f7cd5";
-import { setupA11y } from "./a11y.js?v=0f1f7cd5";
-import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=0f1f7cd5";
-import { itemSearch } from "./itemsearch.js?v=0f1f7cd5";
-import { DISCORD_URL } from "./config.js?v=0f1f7cd5";
+import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=61f49576";
+import { drawCard, cardBlob } from "./card.js?v=61f49576";
+import { cardInfo, cardLabel, cardFmt, cardDate } from "./itemcard.js?v=61f49576";
+import { rarity, oneInText } from "./rarity.js?v=61f49576";
+import { setupA11y } from "./a11y.js?v=61f49576";
+import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=61f49576";
+import { itemSearch } from "./itemsearch.js?v=61f49576";
+import { DISCORD_URL } from "./config.js?v=61f49576";
 
 const $ = (id) => document.getElementById(id);
 // a small MapleStory icon next to a label (assets/ui/)
@@ -121,9 +121,11 @@ function query() {
   if ($("fVerified").checked) q.set("verified", "1");
   if ($("fSale").checked) q.set("forsale", "1");
   if (tierFilter) q.set("tier", tierFilter);
-  const [pmin, pmax] = $("fPrice").value.split("-");
-  if (pmin && +pmin > 0) q.set("pmin", pmin);
-  if (pmax) q.set("pmax", pmax);
+  // price range typed in millions ("2" = 2M); "500k" or "1.5b" work too
+  let pmin = readPrice(v("fPmin"), "m"), pmax = readPrice(v("fPmax"), "m");
+  if (pmin > pmax) [pmin, pmax] = [pmax, pmin];
+  if (pmin > 0) q.set("pmin", pmin);
+  if (pmax >= 0) q.set("pmax", pmax);
   return q;
 }
 

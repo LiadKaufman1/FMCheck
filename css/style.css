@@ -807,3 +807,8 @@ html:not(.sup-on) .sup-only { display: none !important; }
 .check-opt img { width: 22px; height: 22px; image-rendering: pixelated; }
 .check-opt small { font-size: 12px; font-weight: 700; color: #1f6e3d; background: #fff; border-radius: 999px; padding: 1px 8px; }
 .check-box .hint { margin: 8px 0 0; color: #1d4a2e; }
+
+/* browse: price range typed in */
+.filters .range { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 4px; align-items: center; }
+.filters .range input { width: 100%; min-width: 0; }
+.filters .range span { color: var(--muted); font-weight: 800; }
