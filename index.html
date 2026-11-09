@@ -32,7 +32,7 @@
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
   <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="css/style.css?v=7efc9b4c" />
+  <link rel="stylesheet" href="css/style.css?v=0f1f7cd5" />
 </head>
 <body>
   <a class="skip" href="#itemSearch">Skip to posting an item</a>
@@ -213,6 +213,14 @@
             </div>
           </div>
           <label>Note <small>(optional)</small> <input id="pubNote" maxlength="140" placeholder="e.g. open to offers, can trade" /></label>
+          <div class="check-box" id="checkBox">
+            <label class="check-opt"><input type="checkbox" id="pubCheck" checked />
+              <span><img src="assets/ui/mirror.png" alt="" /> <b>Check it on screen after posting</b> <small>optional, recommended</small></span></label>
+            <p class="hint"><b>Why it matters:</b> anyone can type stats. Showing the item's window from the game proves yours is real:
+              it gets a green <i>Checked on screen</i> badge, and buyers who only want checked items will find it.
+              It takes a few seconds: share the game window and hover the item. Your screen isn't uploaded, it's read in your browser.</p>
+          </div>
+          <p class="hint" id="checkLater" hidden>Checking on screen needs a computer (Chrome or Edge). You can do it later under <a href="community.html">My items</a>.</p>
           <button type="submit" id="pubSend">Post it</button>
           <p id="pubMsg" class="sale-msg" role="status"></p>
         </form>
@@ -250,6 +258,11 @@ natural roll = product over the stats above default</pre>
 
   <div id="toast" class="toast" role="status" hidden></div>
 
+  <dialog id="verify" class="detail" aria-labelledby="verifyTitle">
+    <div class="detail-head"><h2 id="verifyTitle">Check it on screen</h2><button type="button" class="ghost-btn" id="verifyClose" aria-label="Close">✕</button></div>
+    <div id="verifyBody"></div>
+  </dialog>
+
   <!-- Accessibility options (bottom right), saved in this browser. -->
   <div class="a11y-wrap">
 <button id="a11yBtn" class="a11y-btn" type="button" aria-expanded="false" aria-controls="a11yPanel" aria-label="Accessibility options">
@@ -267,6 +280,6 @@ natural roll = product over the stats above default</pre>
   </div>
 
 
-  <script type="module" src="js/app.js?v=7efc9b4c"></script>
+  <script type="module" src="js/app.js?v=0f1f7cd5"></script>
 </body>
 </html>

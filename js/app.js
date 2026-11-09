@@ -1,11 +1,11 @@
-import { iconUrl, DONATE_URL, DISCORD_URL } from "./config.js?v=7efc9b4c";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, mesos, readPrice } from "./calc.js?v=7efc9b4c";
-import { rarity, oneInText } from "./rarity.js?v=7efc9b4c";
-import { drawCard, cardBlob } from "./card.js?v=7efc9b4c";
-import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=7efc9b4c";
-import { itemSearch } from "./itemsearch.js?v=7efc9b4c";
-import { setupA11y } from "./a11y.js?v=7efc9b4c";
-import { API, api, health, me, googleButton, validIgn } from "./account.js?v=7efc9b4c";
+import { iconUrl, DONATE_URL, DISCORD_URL } from "./config.js?v=0f1f7cd5";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, mesos, readPrice } from "./calc.js?v=0f1f7cd5";
+import { rarity, oneInText } from "./rarity.js?v=0f1f7cd5";
+import { drawCard, cardBlob } from "./card.js?v=0f1f7cd5";
+import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=0f1f7cd5";
+import { itemSearch } from "./itemsearch.js?v=0f1f7cd5";
+import { setupA11y } from "./a11y.js?v=0f1f7cd5";
+import { API, api, health, me, googleButton, validIgn } from "./account.js?v=0f1f7cd5";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -424,6 +424,17 @@ $("pubForm").addEventListener("submit", async (e) => {
     msg.innerHTML = `Posted! <a href="community.html#l=${j.id}">See it on FMCheck</a>
       · <button type="button" class="ghost-btn" id="pubCopy">Copy link</button>`;
     $("pubCopy").addEventListener("click", () => navigator.clipboard.writeText(link).then(() => toast("Link copied.")).catch(() => {}));
+    // the screen check, if they chose it (it works on a computer only)
+    if (canCheck && $("pubCheck").checked) {
+      try {
+        const listing = (await api(`/api/listings/${j.id}`)).listing;
+        const { startVerify } = await import(new URL(`./verify.js${new URL(import.meta.url).search}`, import.meta.url));
+        startVerify(listing, equips.find((x) => x[0] === listing.item), () => {
+          msg.insertAdjacentHTML("beforeend", ` <span class="badge ok"><img class="ic" src="assets/ui/mirror.png" alt="" /> Checked on screen</span>`);
+          toast("Checked on screen: your item now shows the badge.");
+        });
+      } catch { /* they can still do it under My items */ }
+    }
   } catch (err) {
     msg.innerHTML = esc(err.message) + (err.upsell && supportersOn ? ` <a class="sup-link" href="community.html#supporters"><img class="ic" src="assets/ui/starpiece.png" alt="" /> Become a supporter</a>` : "");
     if (err.status === 401) { pubUser = null; showPublish(null); }
@@ -453,6 +464,10 @@ $("pubForm").addEventListener("change", (e) => {
   if (e.target.name === "pubUnit") sayPrice();
 });
 $("pubPrice").addEventListener("input", sayPrice);
+
+// Screen checks need a computer browser that can share a window; on phones, say it can be done later.
+const canCheck = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) && !/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+if (!canCheck) { $("checkBox").hidden = true; $("checkLater").hidden = false; }
 
 // ---------- result card (in-game tooltip style) ----------
 
