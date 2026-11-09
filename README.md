@@ -5,22 +5,20 @@ Rough price check for scrolled MapleStory Classic items.
 Pick an item, set the stats it rolled clean and what such a clean item costs, say how many slots are left,
 add the scrolls that passed with today's price for each, and get a ballpark value.
 
-## How the estimate works
+## What it does
 
-A buyer won't pay more than it would cost to make an item at least this good themselves, the cheapest way,
-so the estimate is that cost plus what the open slots are worth. The page shows the exact formulas under
-"How is this worked out?"; the code is `cheapestRoute` and `openSlotsBonus` in `js/calc.js`.
+Players post their scrolled items (from a screenshot, or by picking the item and its stats) and everyone can browse them
+as cards like the in-game item window, with **how rare** each one is (`js/rarity.js`):
 
-- **Cheapest way to make one (M):** reach at least the same stat points within the same used slots, using the
-  scrolls the user entered plus the Lesser and Intermediate of the same scroll (asked for under Scrolls). So only the
-  result counts: the same final stats and slots left give the same price whatever was actually used. The maker picks the best scroll each step, stops at the goal, and
-  drops an item that can't reach it (or that a Chaos scroll destroyed) and starts over with a new clean item.
-  Solved as an expected-cost recursion with M on both sides, repeated until it settles.
-- **Open slots:** what the chance to keep scrolling them is worth: the best of selling now or scrolling one more
-  slot (pass, fail, or a Chaos scroll destroying it), looking up to 6 slots ahead (`openSlotsBonus`).
-- **Estimate** = M + open slots, worked out with all "from" prices and all "to" prices for the range.
+- **Natural roll:** for every stat the clean drop rolled above the item's default, the chance a drop rolls it at least
+  that high (rolls are default ± 10%, at most ±5, ±10 for DEF/HP/MP), multiplied together.
+- **Scrolls:** the chance the scrolls passed like this in the used slots (failed slots spread the likeliest way).
+- **Rarity** = natural roll × scrolls, as "1 in N": Common, Uncommon (5+), Rare (50+), Epic (500+), Legendary (5,000+).
 
-A failed scroll uses up its slot (checked in game).
+A price is optional; posted prices are stored for later.
+
+The earlier version (price estimates from scroll prices, price list, supporters) is kept on the branch
+`saved/pricing-model`.
 
 ## Data
 

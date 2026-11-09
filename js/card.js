@@ -106,26 +106,38 @@ function layout(ctx, d, fmt, img, draw) {
   for (const s of d.stats) line(s.label, `+${s.total}`, s.gain ? `(${s.base} +${s.gain})` : "");
   line("Remaining Enhancements", String(d.left));
 
-  // FMCheck section
+  // Rarity: the tier in its colour, "1 in N", and what it's made of. Then the price, if it's for sale.
   y += 2; hr(y); y += 24;
-  // Price, always shown: the range, or what's still missing. Dated, since prices change day to day.
-  const lw = text("ESTIMATED PRICE", PAD, y, { size: 11, weight: 800, color: C.muted });
-  text(`· AS OF ${d.date.toUpperCase()}`, PAD + lw + 6, y, { size: 11, weight: 800, color: C.title });
-  y += 28;
-  if (d.price) text(fmt.range(d.price.lo, d.price.hi), PAD, y, { size: 26, weight: 700, color: C.price, font: TITLE_FONT });
-  else text(d.priceHint || "Enter the prices to see it", PAD, y - 6, { size: 14, weight: 700, color: C.muted });
-  y += d.price ? 24 : 16;
-  text("CHANCE OF AN ITEM LIKE THIS", PAD, y, { size: 11, weight: 800, color: C.muted });
-  y += 20;
-  const cw = text(fmt.pct(d.chance), PAD, y, { size: 17, weight: 800, color: C.title });
-  text(fmt.oneIn(d.oneIn), PAD + cw + 8, y, { size: 13, weight: 700, color: C.muted });
-  y += 22;
+  const r = d.rarity;
+  text("RARITY", PAD, y, { size: 11, weight: 800, color: C.muted });
+  y += 30;
+  const tw = text(r.tier.name.toUpperCase(), PAD, y, { size: 24, weight: 700, color: r.tier.color, font: TITLE_FONT });
+  text(fmt.oneIn(r.oneIn), PAD + tw + 10, y, { size: 17, weight: 800, color: C.text });
+  y += 24;
+  const part = (label, p) => {
+    text(label, PAD, y, { size: 12.5, weight: 700, color: C.muted });
+    text(p >= 0.995 ? "any" : fmt.oneIn(1 / p), W - PAD, y, { size: 12.5, weight: 800, color: C.text, align: "right" });
+    y += 18;
+  };
+  part("Natural roll", r.roll);
+  part(r.failed ? `Scrolls (${r.failed} failed)` : "Scrolls", r.scrolls);
   if (d.scrolls.length) {
+    y += 2;
     for (const s of d.scrolls) {
-      text(`${s.n}× ${s.name}`, PAD, y, { size: 12, weight: 700, color: C.muted });
+      text(`${s.n}× ${s.name}`, PAD, y, { size: 12, weight: 700, color: C.dim });
       y += 17;
     }
-    y += 2;
+  }
+  if (d.askPrice) {
+    y += 8;
+    const pw = text("FOR SALE", PAD, y + 2, { size: 11, weight: 800, color: C.muted });
+    text(fmt.mesos(d.askPrice), PAD + pw + 10, y + 4, { size: 20, weight: 700, color: C.price, font: TITLE_FONT });
+    if (d.seller) text(d.seller, W - PAD, y + 3, { size: 13, weight: 800, color: C.text, align: "right" });
+    y += 22;
+  } else if (d.seller) {
+    y += 6;
+    text(`by ${d.seller}`, W - PAD, y, { size: 12.5, weight: 800, color: C.muted, align: "right" });
+    y += 14;
   }
 
   // footer

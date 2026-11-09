@@ -32,7 +32,8 @@
 
 import equips from "../data/equips.json";
 import scrollData from "../data/scrolls.json";
-import { statRange, rollAtLeast, groupOdds, allocateFailures } from "../js/calc.js";
+import { statRange } from "../js/calc.js";
+import { rarity } from "../js/rarity.js";
 import demoItems from "./demo.json";
 import priceSeed from "./prices-seed.json";
 
@@ -280,12 +281,9 @@ function readListing(b) {
     const v = (clean[k] || 0) + (gained[k] || 0);
     if (v) stats[k] = v;
   }
-  // The chance of an item like this, worked out here the same way as the calculator (the page's number isn't trusted).
-  const key = keyStat(e[0], base);
-  const roll = key ? rollAtLeast(key, base[key], clean[key] || 0) : 1;
-  const types = scrolls.map((s) => ({ successes: s.n, success: scrollById.get(s.id).success, boom: scrollById.get(s.id).boom }));
-  const fails = allocateFailures(types, slots - left - upgrades);
-  const chance = types.reduce((c, t, i) => c * groupOdds(t.successes + fails[i], t.successes, t.success, t.boom), roll);
+  // How rare it is (js/rarity.js), worked out here: the page's number isn't trusted.
+  const rows = scrolls.map((x) => ({ successes: x.n, success: scrollById.get(x.id).success, boom: scrollById.get(x.id).boom }));
+  const chance = rarity({ base, clean, used: slots - left, rows }).chance;
   const est = b.estimate && num(b.estimate.lo, 0, 1e12) != null && num(b.estimate.hi, 0, 1e12) != null
     ? { lo: Math.round(b.estimate.lo), hi: Math.round(b.estimate.hi) } : null;
   return {
@@ -302,10 +300,10 @@ function keyStat(id, base) {
 // One item as a seller has it: same item, same stats, same slots left.
 const fingerprint = (l) => sha(`${l.item}|${JSON.stringify(Object.entries(l.stats).sort())}|${l.left}`);
 
-// The seller's part: the asking price (required) and where to find them.
+// The poster's part: a price if it's for sale (optional) and where to find them.
 function readSeller(b) {
   const out = {};
-  if ("price" in b) out.price = int(Math.round(+b.price), 1, 1e11);
+  if ("price" in b) out.price = b.price == null || b.price === "" ? null : int(Math.round(+b.price), 1, 1e11);
   if ("channel" in b) out.channel = b.channel == null || b.channel === "" ? null : int(+b.channel, 1, 40);
   if ("room" in b) out.room = b.room == null || b.room === "" ? null : int(+b.room, 1, 30);
   if ("note" in b) out.note = cleanText(b.note, 140) || null;
@@ -322,7 +320,7 @@ async function discordPost(env, l, ign, image, origin, featured = false) {
   const embed = {
     title: `${l.name}${l.upgrades ? ` (+${l.upgrades})` : ""}`, url: link,
     description: [lines && `**${lines}**`, `${l.left} slot${l.left === 1 ? "" : "s"} left · 1 in ${oneIn}`,
-      `For sale: **${fmtMesos(l.price)}** by ${ign}`].filter(Boolean).join("\n"),
+      (l.price ? `For sale: **${fmtMesos(l.price)}** by ${ign}` : `Posted by ${ign}`)].filter(Boolean).join("\n"),
     color: 0xffb83d,
   };
   if (featured) embed.thumbnail = { url: `${origin}/assets/items/${String(l.item).padStart(8, "0")}.png` };
@@ -422,12 +420,9 @@ function listWhere(p, now, skipCat = false, demo = false) {
   const where = [`l.status = 'active'`, `l.flags < ${HIDE_AT_FLAGS}`];
   const args = [];
   if (!demo) where.push(`l.demo = 0`);
-  where.push(`l.price IS NOT NULL`); // only items for sale (old priceless "showcase" items stay hidden)
-  const tab = p.get("tab") || "sale";
-  if (tab === "sale") {
-    where.push(`l.price IS NOT NULL`, `(l.demo > 0 OR l.seen > (CASE WHEN u.supporter_until > ? THEN ? ELSE ? END))`);
-    args.push(now, now - SALE_FRESH_SUPPORTER, now - SALE_FRESH);
-  }
+  // Posts stay up until their owner removes them or marks them sold. "sale" = only the ones with a price.
+  const tab = p.get("tab") || "all";
+  if (tab === "sale" || p.get("forsale") === "1") where.push(`l.price IS NOT NULL`);
   else if (tab === "featured") { where.push(`(l.featured_until > ? OR l.demo = 2)`); args.push(now); }
   else if (tab === "rare") { where.push(`(l.demo > 0 OR l.created > ?)`); args.push(now - 7 * DAY); }
   const q = cleanText(p.get("q"), 40);
@@ -649,7 +644,6 @@ export async function community(request, env, ctx, url, json) {
     const l = readListing(body);
     if (l.error) return json({ error: l.error }, 400);
     const s = readSeller(body);
-    if (!s.price) return json({ error: "Enter your asking price." }, 400);
     const counts = await env.DB.prepare(`SELECT
         SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS active, SUM(CASE WHEN created > ? THEN 1 ELSE 0 END) AS today
         FROM listings WHERE user_id = ?`).bind(Date.now() - DAY, user.id).first();
@@ -763,7 +757,6 @@ export async function community(request, env, ctx, url, json) {
 
     if (!action && method === "PATCH") {
       const s = readSeller(body);
-      if ("price" in s && !s.price) return json({ error: "Enter the asking price." }, 400);
       const sets = [], args = [];
       for (const [k, v] of Object.entries(s)) { sets.push(`${k} = ?`); args.push(v); }
       if (body.bump || Object.keys(s).length) { sets.push(`seen = ?`); args.push(Date.now()); }

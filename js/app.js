@@ -1,39 +1,14 @@
-import { iconUrl, priceLink, DONATE_URL, DISCORD_URL } from "./config.js?v=edab64f9";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, rollValueFactor, groupOdds, allocateFailures, finalStats, openSlotsBonus, cheapestRoute, failedItemValue, mesos, UNITS, readPrice } from "./calc.js?v=edab64f9";
-import { getPrice, getUserPrice, setPrice, setSitePrices, sitePrice, siteDate } from "./prices.js?v=edab64f9";
-import { drawCard, cardBlob } from "./card.js?v=edab64f9";
-import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=edab64f9";
-import { itemSearch } from "./itemsearch.js?v=edab64f9";
-import { setupA11y } from "./a11y.js?v=edab64f9";
-import { API, api, health, me, googleButton, validIgn } from "./account.js?v=edab64f9";
+import { iconUrl, DONATE_URL, DISCORD_URL } from "./config.js?v=3e5bb8b2";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, mesos, readPrice } from "./calc.js?v=3e5bb8b2";
+import { rarity, oneInText } from "./rarity.js?v=3e5bb8b2";
+import { drawCard, cardBlob } from "./card.js?v=3e5bb8b2";
+import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=3e5bb8b2";
+import { itemSearch } from "./itemsearch.js?v=3e5bb8b2";
+import { setupA11y } from "./a11y.js?v=3e5bb8b2";
+import { API, api, health, me, googleButton, validIgn } from "./account.js?v=3e5bb8b2";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
-const rangeText = (lo, hi) => (lo === hi ? mesos(lo) : `${mesos(lo)} – ${mesos(hi)}`);
-
-// A price field: one average price and a unit dropdown.
-// `p` is a saved { lo, hi } to fill in (an older saved range shows as its middle), or null; `unit` is the default unit.
-function rangeFields(p, unit, fallback = null) {
-  let value = "";
-  if (p) {
-    const avg = (p.lo + p.hi) / 2;
-    const u = UNITS.slice().reverse().find(([, , m]) => m > 1 && avg >= m) || UNITS[0];
-    unit = u[0];
-    value = String(+(avg / u[2]).toPrecision(4));
-  }
-  const hint = fallback ? `FMCheck: ${mesos(fallback)}` : "average price";
-  if (!p && fallback) unit = (UNITS.slice().reverse().find(([, , m]) => m > 1 && fallback >= m) || UNITS[0])[0];
-  return `<input inputmode="decimal" placeholder="${hint}" aria-label="Average price${fallback ? `, FMCheck's price ${mesos(fallback)} if left empty` : ""}" value="${value}" data-f="price" />
-    ${unitSelect(unit, 'data-f="unit"')}`;
-}
-// The price typed, as { lo, hi } with both the same (the estimate's math works with ranges), or null.
-const readFields = (box) => {
-  const v = readPrice(box.querySelector('[data-f="price"]').value, box.querySelector('[data-f="unit"]').value);
-  return Number.isFinite(v) && v > 0 ? { lo: v, hi: v } : null;
-};
-// <select> of price units; `unit` is preselected.
-const unitSelect = (unit, attrs = "") => `<select ${attrs} aria-label="Unit">${UNITS.map(([v, label]) =>
-  `<option value="${v}"${v === unit ? " selected" : ""}>${label}</option>`).join("")}</select>`;
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const plusList = (stats) => Object.entries(stats).map(([k, v]) => `+${v} ${STAT_LABEL[k] || k}`).join(", ");
 
@@ -198,10 +173,9 @@ async function pickItem(id, restore = null) {
   renderRolls();
   closePicker();
   renderRows();
-  renderCleanPrice();
   $("slotsLeft").max = state.slots;
   $("slotsLeft").value = state.left;
-  for (const id of ["cleanField", "rollCard", "scrollCard", "resultCard", "shareNote"]) $(id).hidden = false;
+  for (const id of ["rollCard", "scrollCard", "resultCard"]) $(id).hidden = false;
   update();
 }
 
@@ -271,11 +245,9 @@ function renderPicker() {
   const q = $("pickerSearch").value.trim().toLowerCase();
   const list = scrollsForItem().filter((s) => !q || `${shortName(s)} ${plusList(s.stats)}`.toLowerCase().includes(q));
   $("pickerList").innerHTML = list.length ? list.map((s) => {
-    const p = getPrice(s.id);
     return `<li><button type="button" class="pick" data-id="${s.id}">
       <img src="${scrollIcon(s.id)}" alt="" />
-      <span class="nm"><b>${esc(shortName(s))}</b><small>${esc(scrollOdds(s))} · ${esc(plusList(s.stats))}</small></span>
-      <span class="pr">${p ? rangeText(p.lo, p.hi) : ""}</span></button></li>`;
+      <span class="nm"><b>${esc(shortName(s))}</b><small>${esc(scrollOdds(s))} · ${esc(plusList(s.stats))}</small></span></button></li>`;
   }).join("") : `<li class="empty">No scrolls for this item type.</li>`;
 }
 
@@ -312,99 +284,14 @@ $("pickerList").addEventListener("click", (e) => {
 // ---------- passed scrolls ----------
 
 const passedTotal = () => state.rows.reduce((n, r) => n + r.successes, 0);
-// A scroll family is one scroll in all its tiers, e.g. "Gloves Attack Scroll" (Lesser … Chaos).
-const family = (sc) => sc.name.split(":")[0].trim();
-const points = (sc) => Object.values(sc.stats).reduce((a, b) => a + b, 0);
-
-// The common tiers of each scroll on the item. The price is the cheapest way to reach the same result with them,
-// whatever was actually used, so two items with the same final stats and slots left get the same price.
-const MAIN_TIERS = ["Lesser", "Intermediate"];
-function mainTiers() {
-  const used = new Set(state.rows.map((r) => r.scroll.id));
-  const fams = [...new Set(state.rows.filter((r) => r.successes > 0).map((r) => family(r.scroll)))];
-  return scrollsForItem().filter((sc) => fams.includes(family(sc)) && MAIN_TIERS.includes(sc.tier) && !used.has(sc.id));
-}
-// Not scrolls on the item: other tiers of the same scroll, folded away. With their price, the estimate compares
-// making the same result with them, so items with the same final stats get the same price. Optional.
-let tiersOpen = false;
-function renderMainTiers() {
-  const box = $("mainTiers");
-  // Other tiers are compared in the background with their market price; the player is never asked for one.
-  // Only a price the player already typed for one stays visible, so they can change it back.
-  const list = mainTiers().filter((sc) => getUserPrice(sc.id));
-  const open = tiersOpen || list.some((sc) => getUserPrice(sc.id));
-  const names = list.map((sc) => esc(shortName(sc).split(":").pop().trim())).join(" and ");
-  box.innerHTML = list.length ? `<details class="tiers-box"${open ? " open" : ""}>
-    <summary><span class="tiers-sum">Optional: compare with the ${names} scroll for a fairer estimate</span></summary>
-    <p class="hint">These aren't scrolls on your item. FMCheck checks whether the same result is cheaper to make with them,
-      so items with the same final stats get the same price. Leave them empty if you don't know their price.</p>
-    ${list.map((sc) => `<div class="scroll-row tier-row" data-id="${sc.id}" data-sid="${sc.id}">
-      <img src="${scrollIcon(sc.id)}" alt="" />
-      <span class="nm"><b>${esc(shortName(sc))}</b><small>${esc(scrollOdds(sc))} · ${esc(plusList(sc.stats))}</small></span><span></span>
-      <span class="row-price price-input">${priceSlot(sc.id, getUserPrice(sc.id), "k", checkLink(sc.id, sc.name))}</span>
-    </div>`).join("")}</details>` : "";
-  box.querySelector("details")?.addEventListener("toggle", (e) => { tiersOpen = e.target.open; });
-}
-// Prices the player types also go (anonymously) to FMCheck's price list, a few seconds after they stop typing.
-const typed = new Map();
-let typedTimer;
-function shareTyped(id, p) {
-  if (!p || !(p.lo > 0)) return;
-  typed.set(id, p.lo);
-  clearTimeout(typedTimer);
-  typedTimer = setTimeout(() => {
-    const prices = Object.fromEntries(typed);
-    typed.clear();
-    fetch(`${API}/api/prices/report`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ prices }) }).catch(() => {});
-  }, 4000);
-}
-
-function onTierPrice(e) {
-  if (!["price", "unit"].includes(e.target.dataset.f)) return;
-  const row = e.target.closest(".tier-row");
-  const p = readFields(row);
-  setPrice(+row.dataset.id, p);
-  shareTyped(+row.dataset.id, p);
-  update();
-}
-
-// A price on the page: when FMCheck's list has one and the player hasn't typed their own, it's shown as text
-// ("400k · market price · change"), so nobody feels asked to type it. "change" (or no market price) shows the field.
-const editing = new Set(); // ids (or "clean") the player chose to change
-function priceSlot(id, own, unit, link) {
-  const market = sitePrice(id);
-  if (!own && !editing.has(id)) {
-    // never a field on its own: the market price, or a quiet note that there isn't one yet
-    return market
-      ? `<span class="auto-price"><b>${mesos(market)}</b> <small>market price</small>
-          <button type="button" class="link-btn" data-edit="${id}" aria-label="Change the price of this one">change</button></span>`
-      : `<span class="auto-price"><small>No market price yet, so the estimate leaves it out.</small>
-          <button type="button" class="link-btn" data-edit="${id}" aria-label="Add a price for this one">add one</button></span>`;
-  }
-  return `${rangeFields(own, unit, market)}${link}`;
-}
-const checkLink = (id, name) => `<a href="${priceLink(id, name)}" data-name="${esc(name)}" target="_blank" rel="noopener">check price ↗</a>`;
-document.addEventListener("click", (e) => {
-  const b = e.target.closest("[data-edit]");
-  if (!b) return;
-  e.preventDefault();
-  const id = b.dataset.edit === "clean" ? "clean" : +b.dataset.edit;
-  editing.add(id);
-  if (id === "clean") drawCleanPrice(); else renderRows();
-  const box = id === "clean" ? $("cleanPrice") : document.querySelector(`[data-sid="${id}"]`);
-  box?.querySelector('[data-f="price"]')?.focus();
-});
-
 function renderRows() {
   const box = $("scrollRows");
-  renderMainTiers();
   if (!state.rows.length) {
     box.innerHTML = `<p class="hint">None yet. A clean item works too.</p>`;
     return;
   }
   box.innerHTML = state.rows.map((r, i) => {
-    const p = getUserPrice(r.scroll.id);
-    return `<div class="scroll-row" data-i="${i}" data-sid="${r.scroll.id}">
+    return `<div class="scroll-row" data-i="${i}">
       <img src="${scrollIcon(r.scroll.id)}" alt="" />
       <span class="nm"><b>${esc(shortName(r.scroll))}</b><small>${esc(scrollOdds(r.scroll))} · ${esc(plusList(r.scroll.stats))}</small></span>
       <span class="stepper small">
@@ -413,24 +300,9 @@ function renderRows() {
         <button type="button" class="step" data-act="plus" aria-label="One more">+</button>
         <button type="button" class="step" data-act="remove" aria-label="Remove this scroll">✕</button>
       </span>
-      <span class="row-price price-input">
-        ${priceSlot(r.scroll.id, p, "m", checkLink(r.scroll.id, r.scroll.name))}</span>
       </div>`;
   }).join("");
 }
-
-function onScrollPrice(e) {
-  if (!["price", "unit"].includes(e.target.dataset.f)) return;
-  const row = e.target.closest(".scroll-row");
-  const p = readFields(row);
-  setPrice(state.rows[+row.dataset.i].scroll.id, p);
-  shareTyped(state.rows[+row.dataset.i].scroll.id, p);
-  update();
-}
-$("scrollRows").addEventListener("input", onScrollPrice);
-$("mainTiers").addEventListener("input", onTierPrice);
-$("mainTiers").addEventListener("change", onTierPrice);
-$("scrollRows").addEventListener("change", onScrollPrice);
 
 $("scrollRows").addEventListener("click", (e) => {
   const act = e.target.dataset.act;
@@ -441,7 +313,7 @@ $("scrollRows").addEventListener("click", (e) => {
     r.successes++;
     state.left = Math.max(0, state.left - 1);
   } else if (act === "minus" && r.successes > 0) {
-    // ×0 stays: "used, but it failed every time", so the price knows which scroll and its cost.
+    // ×0 stays: "used, but it failed every time" (it counts for the scroll odds)
     r.successes--;
     state.left = Math.min(state.slots, state.left + 1);
   } else if (act === "remove" || act === "minus") {
@@ -453,41 +325,6 @@ $("scrollRows").addEventListener("click", (e) => {
   update();
 });
 
-// ---------- clean price ----------
-
-// The clean price depends on the rolled stats, so it isn't remembered between items.
-let cleanPrice = null; // { lo, hi } typed by the player, or null
-// The clean price to use: typed, else FMCheck's price list.
-const effectiveClean = () => cleanPrice || (state.item && sitePrice(state.item.id) ? { lo: sitePrice(state.item.id), hi: sitePrice(state.item.id), site: true } : null);
-function renderCleanPrice() {
-  cleanPrice = null;
-  editing.delete("clean");
-  drawCleanPrice();
-  $("cleanLink").href = priceLink(state.item.id, state.item.name);
-  $("cleanLink").dataset.name = state.item.name;
-}
-function drawCleanPrice() {
-  const market = sitePrice(state.item.id);
-  const auto = !cleanPrice && !editing.has("clean");
-  $("cleanPrice").innerHTML = !auto ? rangeFields(cleanPrice, "k", market)
-    : market ? `<span class="auto-price"><b>${mesos(market)}</b> <small>market price for a typical one</small>
-        <button type="button" class="link-btn" data-edit="clean" aria-label="Change the clean item price">change</button></span>`
-    : `<span class="auto-price"><small>No market price for a clean one yet.</small>
-        <button type="button" class="link-btn" data-edit="clean" aria-label="Add a clean item price">add one</button></span>`;
-  $("cleanLink").hidden = auto;
-}
-function onCleanPrice() {
-  cleanPrice = readFields($("cleanPrice"));
-  // a clean price is for a typical roll, so it's only shared when this one's roll is about typical
-  const k = state.keyStat, pr = k ? rollAtLeast(k, state.base[k], state.clean[k]) : 0.5;
-  if (pr >= 0.3 && pr <= 0.8) shareTyped(state.item.id, cleanPrice);
-  update();
-}
-$("cleanPrice").addEventListener("input", onCleanPrice);
-$("cleanPrice").addEventListener("change", onCleanPrice);
-
-// ---------- check price: also copy the name for meso.watch's filter ----------
-
 let toastTimer;
 function toast(text) {
   const t = $("toast");
@@ -496,38 +333,27 @@ function toast(text) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => (t.hidden = true), 6000);
 }
-document.addEventListener("click", (e) => {
-  const a = e.target.closest("a[data-name]");
-  if (!a) return;
-  // The link still opens; copying runs alongside it.
-  navigator.clipboard?.writeText(a.dataset.name)
-    .then(() => toast(`"${a.dataset.name}" copied. On meso.watch press / and paste.`))
-    .catch(() => {});
-});
-
 // ---------- result ----------
 
-// Chance of an item like this: a clean drop rolls the main stat this high, and the scrolls pass like this.
-function renderOdds(failed) {
+// How rare it is (js/rarity.js): the natural roll and the way the scrolls passed.
+function renderRarity(failed) {
   const box = $("odds");
   if (failed < 0) { box.innerHTML = ""; return null; }
-  const k = state.keyStat;
-  const roll = k ? rollAtLeast(k, state.base[k], state.clean[k]) : 1;
-  // Failed slots aren't entered: spread them over the passed scrolls in the most likely way.
-  const types = state.rows.map((r) => ({ successes: r.successes, success: r.scroll.success, boom: r.scroll.boom }));
-  const fails = allocateFailures(types, Math.max(0, failed));
-  const scroll = state.rows.reduce((c, r, i) => c * groupOdds(r.successes + fails[i], r.successes, r.scroll.success, r.scroll.boom), 1);
-  const chance = roll * scroll;
-  const pct = (x) => (x >= 0.995 ? "100%" : x >= 0.01 ? `${(x * 100).toFixed(1)}%` : `${(x * 100).toPrecision(2)}%`);
-  const oneIn = chance > 0 ? 1 / chance : Infinity;
-  const oneInText = oneIn < 1.05 ? "almost every try" : `1 in ${oneIn < 1e6 ? Math.round(oneIn).toLocaleString("en-US") : mesos(oneIn)}`;
+  const r = rarity({
+    base: state.base, clean: state.clean, used: state.slots - state.left,
+    rows: state.rows.map((x) => ({ successes: x.successes, success: x.scroll.success, boom: x.scroll.boom })),
+  });
+  const part = (p) => (p >= 0.995 ? "any" : oneInText(1 / p));
   box.innerHTML = `
-    <div class="odds-main"><span>Chance of an item like this</span><b>${pct(chance)}</b><small>${oneInText}</small></div>
+    <div class="rarity-main" style="--tier:${r.tier.color}">
+      <span class="tier">${r.tier.name}</span><b>${oneInText(r.oneIn)}</b>
+      <small>items like this</small>
+    </div>
     <div class="breakdown">
-      ${k ? `<span>Clean ${STAT_LABEL[k]} ${state.clean[k]} or better</span><span>${pct(roll)}</span>` : ""}
-      <span>Scrolls pass like this${failed > 0 && state.rows.length ? ` (${failed} failed)` : ""}</span><span>${pct(scroll)}</span>
+      <span>Natural roll${r.rollParts.length ? `: ${r.rollParts.map((x) => `${STAT_LABEL[x.k]} ${x.value}`).join(", ")}` : " (default or lower)"}</span><span>${part(r.roll)}</span>
+      <span>Scrolls passing like this${r.failed && state.rows.length ? ` (${r.failed} failed)` : ""}</span><span>${part(r.scrolls)}</span>
     </div>`;
-  return { chance, oneIn };
+  return r;
 }
 
 function update() {
@@ -542,83 +368,13 @@ function update() {
   const groups = state.rows.map((r) => ({ successes: r.successes, stats: r.scroll.stats }));
   const fin = finalStats(state.clean, groups);
 
-  const odds = renderOdds(failed);
+  const r = renderRarity(failed);
   saveHash();
-  const price = failed < 0 ? null : renderEstimate(used);
-  lastEstimate = price;
-  lastOdds = odds;
-  renderCard(fin, odds, price);
+  lastRarity = r;
+  renderCard(fin, r);
 }
 
-// The price estimate; returns { lo, hi } or null when it can't be worked out yet.
-function renderEstimate(used) {
-  const out = $("estimate");
-  const cleanP = effectiveClean();
-  if (!cleanP) { out.innerHTML = `<p class="hint">No estimate yet: there's no market price for a clean one of this item. You can still put it up for sale and set your own price${""}.</p>`; return null; }
-
-  // What the item gained, per scroll family, and the scrolls the user entered (with a price).
-  const needs = {};
-  for (const r of state.rows) needs[family(r.scroll)] = (needs[family(r.scroll)] || 0) + r.successes * points(r.scroll);
-  const tiersAt = (end) => [...state.rows.map((r) => r.scroll), ...mainTiers()].map((sc) => ({
-    id: sc.id, fam: family(sc), points: points(sc), success: sc.success, boom: sc.boom, price: getPrice(sc.id)?.[end],
-  })).filter((t) => Number.isFinite(t.price));
-  const pointsGained = Object.values(needs).reduce((a, b) => a + b, 0);
-
-  const failed = used - passedTotal();
-
-  // Worked out with the "lo" and "hi" ends; with one price per field they're the same.
-  // The clean price is for a typical roll; this item's clean roll makes it worth more or less (rollValueFactor).
-  const k = state.keyStat;
-  const rollP = k ? rollAtLeast(k, state.base[k], state.clean[k]) : 1;
-  const rollX = k ? rollValueFactor(rollP) : 1;
-  const run = (end) => {
-    const clean = cleanP[end] * rollX, tiers = tiersAt(end);
-    if (!pointsGained && failed > 0) {
-      // Nothing passed: a clean item that lost part of its slots (see failedItemValue).
-      const f = failedItemValue({ cleanPrice: clean, slots: state.slots, left: state.left });
-      return { cost: clean, open: 0, value: f.value, lost: clean - f.value, ratio: f.ratio, cleanItems: 1, uses: {}, tiers };
-    }
-    const route = cheapestRoute({ cleanPrice: clean, slots: used, needs, tiers });
-    // no market price for the scrolls it needs: count the clean item only (and say so)
-    if (!route) return { cost: clean, open: 0, value: clean, cleanItems: 1, uses: {}, tiers, partial: true };
-    // Open slots: the chance to scroll them further (see openSlotsBonus), for the main scroll on the item.
-    const fam = Object.keys(needs).sort((a, b) => needs[b] - needs[a])[0];
-    const open = fam ? openSlotsBonus({ cleanPrice: clean, slots: state.slots, left: state.left, fam, gained: needs[fam], tiers }) : 0;
-    return { ...route, open, value: route.cost + open, tiers };
-  };
-  const lo = run("lo"), hi = run("hi");
-  const unpriced = state.rows.filter((r) => !getPrice(r.scroll.id)).map((r) => esc(shortName(r.scroll)));
-  const usedSite = cleanP.site || [...state.rows.map((r) => r.scroll), ...mainTiers()].some((sc) => getPrice(sc.id)?.site);
-  if (!lo || !hi) {
-    out.innerHTML = `<p class="hint">${unpriced.length ? `Enter a price for ${unpriced.join(", ")} to get an estimate.` : "Enter the scroll prices to get an estimate."}</p>`;
-    return null;
-  }
-
-  const byId = new Map(scrolls.map((sc) => [sc.id, sc]));
-  const plan = Object.entries(lo.uses).sort((a, b) => b[1] - a[1])
-    .map(([id, n]) => `${n.toFixed(1)}× ${esc(shortName(byId.get(+id)).split(":").pop().trim())}`).join(", ");
-  const pct = (x) => (x >= 0.995 ? "100%" : x >= 0.01 ? `${(x * 100).toFixed(1)}%` : `${(x * 100).toPrecision(2)}%`);
-  const items = (n) => (n < 1e6 ? (n < 10 ? n.toFixed(1) : Math.round(n).toLocaleString("en-US")) : mesos(n));
-  out.innerHTML = `
-    <p class="label">Price breakdown${lo.value === hi.value ? "" : ` · midpoint ≈ ${mesos((lo.value + hi.value) / 2)}`}</p>
-    <div class="breakdown">
-      ${k && Math.abs(rollX - 1) > 0.01 ? `<span>Clean ${STAT_LABEL[k]} ${state.clean[k]} (${rollP >= 0.995 ? "lowest" : `top ${Math.max(1, Math.round(rollP * 100))}%`} roll)</span>
-      <span>${rollX > 1 ? "×" + rollX.toFixed(1) : "×" + rollX.toFixed(2)} a typical clean (${mesos(cleanP.lo)} → ${mesos(cleanP.lo * rollX)})</span>` : ""}
-      ${lo.lost != null ? `<span>Clean item price</span><span>${rangeText(lo.cost, hi.cost)}</span>
-      <span>${failed} failed slot${failed > 1 ? "s" : ""} (keeps ${Math.round(lo.ratio * 100)}%)</span><span>−${rangeText(lo.lost, hi.lost)}</span>`
-      : `<span>Cheapest way to make one</span><span>${rangeText(lo.cost, hi.cost)}</span>
-      ${state.left > 0 ? `<span>${state.left} open slot${state.left > 1 ? "s" : ""} (chance to scroll more)</span><span>${hi.open > 0 ? "+" + rangeText(lo.open, hi.open) : "+0 (scrolling them wouldn't pay off at these prices)"}</span>` : ""}
-      ${pointsGained ? `<span>Clean items the cheapest way uses</span><span>${items(lo.cleanItems)}</span>
-      <span>Scrolls per clean item</span><span>${plan || "–"}</span>` : ""}`}
-    </div>
-    ${lo.partial ? `<p class="hint">There's no market price yet for the scrolls on this item, so this counts the clean item only: the real value is likely higher.</p>`
-      : unpriced.length ? `<p class="hint">No market price yet for ${unpriced.join(", ")}, so it's left out.</p>` : ""}
-    ${usedSite ? `<p class="hint site-note">Where you didn't enter a price, FMCheck's price list is used (${siteDate() ? `updated ${new Date(siteDate()).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}). Type your own price to change it.</p>` : ""}
-`;
-  return { lo: lo.value, hi: hi.value };
-}
-
-let lastEstimate = null, lastOdds = null; // for publishing
+let lastRarity = null; // for publishing
 let supportersOn = false; // memberships open (Ko-fi set up): only then is anything about them shown
 
 // ---------- put the item up on the Market ----------
@@ -644,9 +400,8 @@ $("pubForm").addEventListener("submit", async (e) => {
   if (!state.item) return;
   if (state.slots - state.left < passedTotal()) { msg.textContent = "Fix the slots first: more passed scrolls than used slots."; return; }
   const priceText = $("pubPrice").value.trim();
-  const price = readPrice(priceText, $("pubUnit").value);
-  if (!priceText) { msg.textContent = "Enter your asking price, e.g. 350 M."; $("pubPrice").focus(); return; }
-  if (!(price > 0)) { msg.textContent = "The price doesn't look right, e.g. 350 M."; return; }
+  const price = priceText ? readPrice(priceText, $("pubUnit").value) : null;
+  if (priceText && !(price > 0)) { msg.textContent = "The price doesn't look right, e.g. 350 M."; return; }
   $("pubSend").disabled = true;
   try {
     if (!pubUser.ign) {
@@ -659,12 +414,12 @@ $("pubForm").addEventListener("submit", async (e) => {
     const j = await api("/api/listings", { method: "POST", body: {
       item: state.item.id, clean: state.clean, left: state.left,
       scrolls: state.rows.map((r) => ({ id: r.scroll.id, n: r.successes })),
-      chance: lastOdds ? lastOdds.chance : 1, estimate: lastEstimate,
+      chance: lastRarity ? lastRarity.chance : 1,
       price, channel: $("pubChannel").value.trim(), room: $("pubRoom").value.trim(), note: $("pubNote").value.trim(),
       image: $("card").toDataURL("image/png"),
     } });
     const link = `${location.origin}/community.html#l=${j.id}`;
-    msg.innerHTML = `Published! <a href="community.html#l=${j.id}">See it on the community page</a>
+    msg.innerHTML = `Posted! <a href="community.html#l=${j.id}">See it on FMCheck</a>
       · <button type="button" class="ghost-btn" id="pubCopy">Copy link</button>`;
     $("pubCopy").addEventListener("click", () => navigator.clipboard.writeText(link).then(() => toast("Link copied.")).catch(() => {}));
   } catch (err) {
@@ -677,20 +432,12 @@ $("pubForm").addEventListener("submit", async (e) => {
 
 // ---------- result card (in-game tooltip style) ----------
 
-function renderCard(fin, odds, price) {
+function renderCard(fin, r) {
   const e = equips.find((x) => x[0] === state.item.id);
   const d = cardInfo({
-    equip: e,
-    fin,
-    clean: state.clean,
-    left: state.left,
-    upgrades: passedTotal(),
-    price,
-    priceHint: "No market price yet",
-    chance: odds ? odds.chance : 1,
-    oneIn: odds ? odds.oneIn : 1,
-    scrolls: state.rows.map((r) => ({ n: r.successes, name: shortName(r.scroll) })),
-    footer: "From that day's prices · not a guarantee",
+    equip: e, fin, clean: state.clean, left: state.left, upgrades: passedTotal(),
+    rarity: r || rarity({ base: state.base, clean: state.clean }),
+    scrolls: state.rows.map((x) => ({ n: x.successes, name: shortName(x.scroll) })),
   });
   $("card").setAttribute("aria-label", cardLabel(d));
   drawCard($("card"), d, cardFmt);
@@ -753,14 +500,14 @@ function readHash() {
 // ---------- How it works: a short guide that plays real frames from the site ----------
 
 const GUIDE = [
-  ["assets/guide/1.webp?v=4", "1. Pick your item: search it, or tap a category and a class to browse."],
-  ["assets/guide/2.webp?v=4", "2. Set its clean stats. For a price estimate, also enter what a clean one costs today (one average price). Tip: tap \"check price\" to see it on meso.watch."],
-  ["assets/guide/3.webp?v=4", "3. Set the slots left and add the scrolls that passed (failed ones are worked out for you). For the estimate, add each scroll's price too."],
-  ["assets/guide/4.webp?v=4", "4. See the odds of an item like this and, with prices, an estimate to help you set your price. Save the item card to share it."],
-  ["assets/guide/5.webp?v=4", "5. Put it in the spotlight: sign in with Google and publish the item for sale. You set the price; the prices above aren't needed to publish: the estimate is only there to help."],
-  ["assets/guide/6.webp?v=4", "6. The Market: buyers see each item's exact stats, slots, odds and how the price compares with the estimate, and can filter by stat. Featured items sit on top."],
-  ["assets/guide/7.webp?v=4", "7. Tap an item to see its full card, the seller and where to find them (channel, FM room). Checked on screen: the seller showed the item from the game."],
-  ["assets/guide/8.webp?v=4", "8. Under My items: keep it up with Still selling, check it on screen, edit the price or mark it sold."],
+  ["assets/guide/1.webp?v=4", "1. Pick your item: upload a screenshot of it, or search it, or tap a category and a class to browse."],
+  ["assets/guide/2.webp?v=4", "2. Set its clean stats: what it had before any scroll. A roll above the default makes it rarer."],
+  ["assets/guide/3.webp?v=4", "3. Set the slots left and add the scrolls that passed. Failed ones are worked out for you."],
+  ["assets/guide/4.webp?v=4", "4. See how rare it is, from its natural roll and the way its scrolls passed, and save the card to share it."],
+  ["assets/guide/5.webp?v=4", "5. Post it: sign in with Google and post the item. Selling it? Add a price and where to find you (optional)."],
+  ["assets/guide/6.webp?v=4", "6. Browse items: everyone's posts, with their stats, slots and rarity. Filter by kind, class or stat, newest or rarest first."],
+  ["assets/guide/7.webp?v=4", "7. Tap an item to see its full card and who posted it. Checked on screen: the owner showed the item from the game."],
+  ["assets/guide/8.webp?v=4", "8. Under My items: check it on screen, edit it, mark it sold or remove it."],
 ];
 const GUIDE_KEY = "fmcheck-guide-seen";
 let guideStep = 0, guideTimer = null;
@@ -830,11 +577,6 @@ if (DONATE_URL) {
     supportersOn = !!j.supporters;
     document.documentElement.classList.toggle("sup-on", supportersOn);
   });
-  // FMCheck's price list fills the price fields left empty
-  fetch(`${API}/api/prices`).then((r) => r.json()).then((j) => {
-    setSitePrices(j.prices, j.updated);
-    if (state.item) { if (!cleanPrice) drawCleanPrice(); renderRows(); update(); }
-  }).catch(() => {});
   const h = readHash();
   if (h) pickItem(h.id, h.restore);
   else if (search.value.trim()) showResults(); // typed before the list loaded

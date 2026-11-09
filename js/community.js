@@ -1,11 +1,12 @@
-// The community page: players' scrolled items for sale, with the full picture of each one.
-import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=edab64f9";
-import { drawCard, cardBlob } from "./card.js?v=edab64f9";
-import { cardInfo, cardLabel, cardFmt, cardDate, rangeText, oneInText } from "./itemcard.js?v=edab64f9";
-import { setupA11y } from "./a11y.js?v=edab64f9";
-import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=edab64f9";
-import { itemSearch } from "./itemsearch.js?v=edab64f9";
-import { DISCORD_URL } from "./config.js?v=edab64f9";
+// Browse items: scrolled items players posted, as cards with how rare each one is.
+import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=3e5bb8b2";
+import { drawCard, cardBlob } from "./card.js?v=3e5bb8b2";
+import { cardInfo, cardLabel, cardFmt, cardDate } from "./itemcard.js?v=3e5bb8b2";
+import { rarity, oneInText } from "./rarity.js?v=3e5bb8b2";
+import { setupA11y } from "./a11y.js?v=3e5bb8b2";
+import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=3e5bb8b2";
+import { itemSearch } from "./itemsearch.js?v=3e5bb8b2";
+import { DISCORD_URL } from "./config.js?v=3e5bb8b2";
 
 const $ = (id) => document.getElementById(id);
 // a small MapleStory icon next to a label (assets/ui/)
@@ -15,7 +16,7 @@ const plus = (stats) => Object.entries(stats).map(([k, v]) => `${v > 0 ? "+" : "
 
 let equipById = new Map(), scrollById = new Map();
 let user = null, myListings = [], healthInfo = {}, me_admin = false;
-let tab = "sale", offset = 0, shown = [];
+let tab = "all", offset = 0, shown = [];
 
 // ---------- market search: the calculator's item search, filtering the list (js/itemsearch.js) ----------
 
@@ -58,30 +59,38 @@ function toast(text, upsell = false) {
   toast.timer = setTimeout(() => { t.hidden = true; }, upsell ? 8000 : 3500);
 }
 
-// How the asking price compares with the estimate.
-// The estimate comes from prices the seller typed, so it can only warn: a seller could inflate it to make a price look good.
-function fairness(l) {
-  if (!l.price || !l.estimate) return "";
-  const { lo, hi } = l.estimate;
-  if (l.price > hi * 1.1) return `<span class="badge high" title="Above the seller's own estimate of ${rangeText(lo, hi)}">Above estimate</span>`;
-  return "";
-}
 const verifiedBadge = (l) => (l.verified ? `<span class="badge ok" title="The seller showed the item's window from the game and it matched">${IC("mirror")} Checked on screen</span>` : "");
 
 const supporterBadge = (l) => (l.supporter ? `<span class="badge sup" title="Supports FMCheck">${IC("starpiece")} Supporter</span>` : "");
+// An item's rarity worked out on the page, the same way as the server (js/rarity.js).
+function rarityOf(l) {
+  const e = equipById.get(l.item);
+  return rarity({
+    base: (e && e[5]) || {}, clean: l.clean, used: l.slots - l.left,
+    rows: l.scrolls.map((x) => ({ successes: x.n, success: scrollById.get(x.id)?.success ?? 100, boom: scrollById.get(x.id)?.boom ?? 0 })),
+  });
+}
+const LABEL = { PAD: "Weapon Att.", MAD: "Magic Att.", PDD: "Weapon Def.", MDD: "Magic Def.", MHP: "MaxHP", MMP: "MaxMP",
+  ACC: "Accuracy", EVA: "Avoidability", CRT: "Critical Rate", CRD: "Critical Damage" };
+const ORDER = ["STR", "DEX", "INT", "LUK", "MHP", "MMP", "PAD", "MAD", "PDD", "MDD", "ACC", "EVA", "Speed", "Jump", "CRT", "CRD"];
 function tile(l) {
-  return `<li><button type="button" class="tile${l.featured ? " is-featured" : ""}" data-id="${l.id}">
-    <span class="tile-icon"><img src="${icon(l.item)}" alt="" width="40" height="40" /></span>
-    <span class="tile-main">
-      <span class="tile-name">${esc(l.name)}${l.upgrades ? ` <b>(+${l.upgrades})</b>` : ""}</span>
-      <span class="tile-stats">${esc(plus(l.gained)) || "clean"} · ${l.left} slot${l.left === 1 ? "" : "s"} left</span>
-      <span class="tile-seller">${l.ign ? `<b>${esc(l.ign)}</b>` : ""}${place(l) ? ` · ${place(l)}` : ""} · ${ago(l.seen)}</span>
-      <span class="tile-badges">${l.demo ? `<span class="badge demo" title="Not a real listing: an example while the Market fills up">Example</span>` : ""}${l.featured ? `<span class="badge feat">${IC("starpiece")} Featured</span>` : ""}${verifiedBadge(l)}${fairness(l)}${supporterBadge(l)}${l.status === "sold" ? `<span class="badge">Sold</span>` : ""}</span>
+  const r = rarityOf(l);
+  const stats = ORDER.filter((k) => l.stats[k]).map((k) => {
+    const g = l.gained[k] || 0;
+    return `<li><span>${LABEL[k] || k}</span><b>+${l.stats[k]}</b>${g ? `<i>+${g}</i>` : ""}</li>`;
+  }).slice(0, 5).join("");
+  return `<li><button type="button" class="itile${l.featured ? " is-featured" : ""}" data-id="${l.id}" style="--tier:${r.tier.color}">
+    <span class="it-title">${esc(l.name)}${l.upgrades ? ` (+${l.upgrades})` : ""}</span>
+    <span class="it-body">
+      <span class="it-icon"><img src="${icon(l.item)}" alt="" /></span>
+      <ul class="it-stats">${stats}<li class="it-left"><span>Slots left</span><b>${l.left}</b></li></ul>
     </span>
-    <span class="tile-side">
-      ${l.price ? `<b class="tile-price">${mesos(l.price)}</b>` : ""}
-      <small>${oneInText(l.oneIn)}</small>
+    <span class="it-rarity"><b>${r.tier.name}</b><span>${oneInText(r.oneIn)}</span></span>
+    <span class="it-foot">
+      <span>${l.ign ? esc(l.ign) : ""}${l.price ? ` · <b class="it-price">${mesos(l.price)}</b>` : ""}</span>
+      <small>${ago(l.created)}</small>
     </span>
+    <span class="it-badges">${l.demo ? `<span class="badge demo" title="Not a real post: an example">Example</span>` : ""}${l.featured ? `<span class="badge feat">${IC("starpiece")} Featured</span>` : ""}${verifiedBadge(l)}${supporterBadge(l)}${l.status === "sold" ? `<span class="badge">Sold</span>` : ""}</span>
   </button></li>`;
 }
 
@@ -98,6 +107,7 @@ function query() {
   if (v("fLeft")) q.set("left", v("fLeft"));
   if (tab !== "rare") q.set("sort", v("fSort"));
   if ($("fVerified").checked) q.set("verified", "1");
+  if ($("fSale").checked) q.set("forsale", "1");
   return q;
 }
 
@@ -112,12 +122,12 @@ async function load(more = false) {
     offset = shown.length;
     $("more").hidden = !j.more;
     const demoNote = shown.some((l) => l.demo)
-      ? `<p class="demo-note">Items tagged <span class="badge demo">Example</span> aren't real listings: they show how FMCheck works while the Market fills up.</p>` : "";
-    box.innerHTML = shown.length ? `${demoNote}<ul class="tiles">${shown.map(tile).join("")}</ul>` : `<p class="hint">${
-      tab === "sale" ? "Nothing for sale matches yet." : "No items this week yet."}
-      Be the first: put yours up under <a href="./">Sell an item</a>.</p>`;
+      ? `<p class="demo-note">Items tagged <span class="badge demo">Example</span> aren't real posts: they show how FMCheck works.</p>` : "";
+    box.innerHTML = shown.length ? `${demoNote}<ul class="itiles">${shown.map(tile).join("")}</ul>` : `<p class="hint">${
+      tab === "rare" ? "No items this week yet." : "No items match yet."}
+      Be the first: <a href="./">post yours</a>.</p>`;
   } catch (e) {
-    box.innerHTML = `<p class="hint">${esc(e.status === 503 ? "The Market opens soon." : e.message)}</p>`;
+    box.innerHTML = `<p class="hint">${esc(e.status === 503 ? "Posting opens soon." : e.message)}</p>`;
   }
 }
 
@@ -126,9 +136,10 @@ async function loadFeatured() {
     const j = await api("/api/listings?tab=featured");
     $("featured").hidden = !j.listings.length;
     $("featuredList").innerHTML = j.listings.map(tile).join("");
+    $("featuredList").className = "itiles";
   } catch { $("featured").hidden = true; }
 }
-$("featuredList").addEventListener("click", (e) => { const b = e.target.closest(".tile"); if (b) openDetail(b.dataset.id); });
+$("featuredList").addEventListener("click", (e) => { const b = e.target.closest(".itile"); if (b) openDetail(b.dataset.id); });
 
 // The numbers on the category chips: how many items are up in this tab, with the other filters.
 async function loadCounts() {
@@ -155,7 +166,7 @@ $("filters").addEventListener("input", () => { clearTimeout(filterTimer); filter
 $("filters").addEventListener("submit", (e) => { e.preventDefault(); load(); });
 $("more").addEventListener("click", () => load(true));
 $("listings").addEventListener("click", (e) => {
-  const b = e.target.closest(".tile");
+  const b = e.target.closest(".itile");
   if (b) openDetail(b.dataset.id);
 });
 
@@ -165,11 +176,9 @@ function cardFor(l) {
   const e = equipById.get(l.item);
   if (!e) return null;
   return cardInfo({
-    equip: e, fin: l.stats, clean: l.clean, left: l.left, upgrades: l.upgrades,
-    price: l.estimate, priceHint: "No estimate (prices weren't entered)",
-    chance: l.chance, oneIn: l.oneIn,
+    equip: e, fin: l.stats, clean: l.clean, left: l.left, upgrades: l.upgrades, rarity: rarityOf(l),
     scrolls: l.scrolls.map((s) => ({ n: s.n, name: scrollById.get(s.id)?.name || "Scroll" })),
-    date: cardDate(l.created), footer: "Seller's prices when published",
+    date: cardDate(l.created), askPrice: l.price, seller: l.ign || "",
   });
 }
 
@@ -182,32 +191,24 @@ async function openDetail(id) {
   try { l = (await api(`/api/listings/${id}`)).listing; }
   catch (e) { $("detailBody").innerHTML = `<p class="hint">${esc(e.message)}</p>`; return; }
   $("detailTitle").textContent = `${l.name}${l.upgrades ? ` (+${l.upgrades})` : ""}`;
-  const calc = new URLSearchParams({ i: l.item });
-  const r = Object.entries(l.clean).map(([k, v]) => `${k}.${v}`).join(",");
-  if (r) calc.set("r", r);
-  calc.set("l", l.left);
-  if (l.scrolls.length) calc.set("s", l.scrolls.map((s) => `${s.id}.${s.n}`).join(","));
   $("detailBody").innerHTML = `
     <div class="detail-grid">
       <canvas id="detailCard" class="item-card" role="img"></canvas>
       <div class="detail-info">
-        ${l.demo ? `<p class="demo-banner"><b>Example item.</b> This isn't a real listing and the seller isn't a real player:
-          it shows how items look on FMCheck. Put up your own under <a href="./">Sell an item</a>.</p>` : ""}
+        ${l.demo ? `<p class="demo-banner"><b>Example item.</b> This isn't a real post and the player isn't real:
+          it shows how items look on FMCheck. <a href="./">Post your own</a>.</p>` : ""}
         ${l.status === "sold" ? `<p class="badge">Sold</p>` : ""}
-        <p class="detail-price">${l.price ? `<b>${mesos(l.price)}</b> asking` : "No price"} ${fairness(l)}</p>
-        ${l.estimate ? `<p class="hint">Seller's estimate: ${rangeText(l.estimate.lo, l.estimate.hi)}, from scroll prices the seller entered on ${cardDate(l.created)}.
-          Check today's prices yourself under <a href="./#i=${l.item}">Sell an item</a>.</p>` : ""}
+        <p class="detail-rarity" style="--tier:${rarityOf(l).tier.color}"><b>${rarityOf(l).tier.name}</b> ${oneInText(rarityOf(l).oneIn)}</p>
+        <p class="detail-price">${l.price ? `For sale: <b>${mesos(l.price)}</b>` : "Not for sale"}</p>
         <p>${verifiedBadge(l) || `<span class="badge">Not checked on screen</span>`}</p>
         <dl class="detail-facts">
-          <dt>Seller</dt><dd>${l.ign ? `<b>${esc(l.ign)}</b> ${supporterBadge(l)} ${l.demo ? `<span class="badge demo">Example</span>`
+          <dt>Posted by</dt><dd>${l.ign ? `<b>${esc(l.ign)}</b> ${supporterBadge(l)} ${l.demo ? `<span class="badge demo">Example</span>`
             : `<button type="button" class="ghost-btn mini" id="copyIgn">Copy name</button>`}` : "–"}</dd>
-          <dt>Where</dt><dd>${place(l) || "Ask the seller"}</dd>
-          <dt>Last seen</dt><dd>${ago(l.seen)}</dd>
+          ${place(l) ? `<dt>Where</dt><dd>${place(l)}</dd>` : ""}
+          <dt>Posted</dt><dd>${ago(l.created)}</dd>
           ${l.note ? `<dt>Note</dt><dd>${esc(l.note)}</dd>` : ""}
-          <dt>Chance of one like it</dt><dd>${oneInText(l.oneIn)}</dd>
         </dl>
         <div class="detail-actions">
-          <a class="ghost-btn" href="./#${calc}">${IC("scroll")} Estimate it yourself</a>
           <button type="button" class="ghost-btn" id="copyLink">Copy link</button>
           <button type="button" class="ghost-btn" id="saveCard">${IC("map-piece")} Image</button>
           ${l.mine || l.demo ? "" : `<button type="button" class="ghost-btn" id="flag">${IC("flag")} Report</button>`}
@@ -244,7 +245,7 @@ function renderAccount() {
   const box = $("accountBody");
   document.querySelector('[data-tab="mine"]').hidden = !user;
   if (!user) {
-    box.innerHTML = `<div class="account-row"><p><b>Sell your scrolled items.</b>
+    box.innerHTML = `<div class="account-row"><p><b>Post your scrolled items.</b>
       Sign in to put your items up. No email or name is stored, only the in-game name you choose.</p><div id="gbtn"></div></div>`;
     googleButton($("gbtn"), (u) => { user = u; refreshMe(); });
     return;
@@ -288,21 +289,20 @@ function renderMine() {
   $("more").hidden = true;
   const box = $("listings");
   if (!user) { box.innerHTML = `<p class="hint">Sign in to see your items.</p>`; return; }
-  if (!myListings.length) { box.innerHTML = `<p class="hint">You haven't put up any items yet. Put one up under <a href="./">Sell an item</a>.</p>`; return; }
+  if (!myListings.length) { box.innerHTML = `<p class="hint">You haven't posted any items yet. <a href="./">Post one</a>.</p>`; return; }
   box.innerHTML = `<ul class="mine">${myListings.map((l) => `<li data-id="${l.id}">
-      <ul class="tiles">${tile(l)}</ul>
+      <ul class="itiles one">${tile(l)}</ul>
       <div class="mine-actions">
         ${l.status === "active" ? `
-        ${l.price ? `<button type="button" data-act="bump">${IC("clock")} Still selling</button>` : ""}
         ${l.featured ? `<span class="badge feat">${IC("starpiece")} Featured until ${new Date(l.featured).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>`
           : `<button type="button" class="ghost-btn boost sup-only" data-act="boost">${IC("starpiece")} Feature for 24h${user.supporter ? (user.boostsLeft ? ` (${user.boostsLeft} left)` : ` · $${healthInfo.boostPrice || 1}`) : ""}</button>`}
-        <button type="button" class="ghost-btn" data-act="edit">${IC("feather")} Price & place</button>
+        <button type="button" class="ghost-btn" data-act="edit">${IC("feather")} Edit</button>
         ${l.verified ? "" : `<button type="button" class="ghost-btn" data-act="verify">${IC("mirror")} Check on screen</button>`}
         ${l.price ? `<button type="button" class="ghost-btn" data-act="sold">${IC("meso-bundle")} Sold</button>` : ""}` : `<span class="hint">Sold</span>`}
         <button type="button" class="ghost-btn" data-act="remove">${IC("trash")} Remove</button>
       </div>
       <form class="mine-edit" hidden>
-        <label>Price <input name="price" inputmode="decimal" value="${l.price ? mesos(l.price) : ""}" placeholder="e.g. 350m" required /></label>
+        <label>Price <input name="price" inputmode="decimal" value="${l.price ? mesos(l.price) : ""}" placeholder="not for sale" /></label>
         <label>Channel <input name="channel" inputmode="numeric" value="${l.channel || ""}" maxlength="2" /></label>
         <label>FM room <input name="room" inputmode="numeric" value="${l.room || ""}" maxlength="2" /></label>
         <label>Note <input name="note" value="${esc(l.note || "")}" maxlength="140" /></label>
@@ -365,8 +365,8 @@ $("listings").addEventListener("submit", (e) => {
   if (!f) return;
   e.preventDefault();
   const id = f.closest("[data-id]").dataset.id;
-  const price = readPrice(f.price.value, "");
-  if (!(price > 0)) { toast("Enter the asking price, e.g. 350m."); return; }
+  const price = f.price.value.trim() ? readPrice(f.price.value, "") : null;
+  if (f.price.value.trim() && !(price > 0)) { toast("The price doesn't look right, e.g. 350m."); return; }
   patch(id, { price, channel: f.channel.value.trim(), room: f.room.value.trim(), note: f.note.value.trim() }, "Saved.");
 });
 
@@ -466,7 +466,7 @@ $("featureYours").addEventListener("click", toSupporters);
   $("fStat").innerHTML += STATS.filter(([k]) => !["CRT", "CRD"].includes(k)).map(([k, label]) => `<option value="${k}">${label}</option>`).join("");
   healthInfo = h;
   if (!h.community) {
-    $("accountBody").innerHTML = `<p class="hint">The Market opens soon. Meanwhile, work out your items under <a href="./">Sell an item</a>.</p>`;
+    $("accountBody").innerHTML = `<p class="hint">Posting opens soon. Meanwhile, see how rare your items are under <a href="./">Post an item</a>.</p>`;
     $("listings").innerHTML = "";
     $("market").hidden = true;
     return;
