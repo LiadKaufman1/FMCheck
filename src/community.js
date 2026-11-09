@@ -97,6 +97,7 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS price_reports (id INTEGER NOT NULL, who TEXT NOT NULL, price INTEGER NOT NULL, t INTEGER NOT NULL, PRIMARY KEY (id, who))`,
   `CREATE INDEX IF NOT EXISTS price_reports_t ON price_reports(t)`,
   `CREATE INDEX IF NOT EXISTS payments_email ON payments(email_hash)`,
+  `CREATE TABLE IF NOT EXISTS rate (k TEXT PRIMARY KEY, n INTEGER NOT NULL, t INTEGER NOT NULL)`,
 ];
 // Columns added after the first version: added to existing tables when missing.
 const COLUMNS = {
@@ -207,6 +208,19 @@ async function sameSecret(a, b) {
 }
 const cleanText = (s, max) => String(s ?? "").replace(/[\u0000-\u001f\u007f<>]/g, "").trim().slice(0, max);
 const validIgn = (s) => (/^[A-Za-z0-9]{2,13}$/.test(String(s || "")) ? String(s) : null);
+
+// Changes (posting, editing, sign-in, reports) per address per minute. Counted in the database: a hash of the
+// address and the minute, nothing else, and rows older than a few minutes are cleared.
+const WRITES_PER_MINUTE = 30;
+async function tooMany(request, env) {
+  const minute = Math.floor(Date.now() / 60e3);
+  const k = (await sha(`${request.headers.get("cf-connecting-ip") || "local"}|${minute}|fmcheck-rate`)).slice(0, 24);
+  const r = await env.DB.prepare(`INSERT INTO rate (k, n, t) VALUES (?, 1, ?) ON CONFLICT(k) DO UPDATE SET n = n + 1 RETURNING n`)
+    .bind(k, minute).first();
+  if (Math.random() < 0.05) await env.DB.prepare(`DELETE FROM rate WHERE t < ?`).bind(minute - 5).run();
+  if (r.n > WRITES_PER_MINUTE) { if (r.n === WRITES_PER_MINUTE + 1) alert(request, "rate-limited"); return true; }
+  return false;
+}
 
 // ---------- Google sign-in (verify the ID token from Google's button) ----------
 
@@ -487,6 +501,7 @@ export async function community(request, env, ctx, url, json) {
     alert(request, "bad-origin", { origin: request.headers.get("origin") || "" });
     return json({ error: "Not allowed." }, 403);
   }
+  if (method !== "GET" && await tooMany(request, env)) return json({ error: "Too many requests. Wait a minute and try again." }, 429, { "retry-after": "60" });
   const user = await currentUser(request, env);
   const body = method === "POST" || method === "PUT" || method === "PATCH" ? await request.json().catch(() => ({})) || {} : {};
   const needUser = () => (user ? null : json({ error: "Sign in first." }, 401));
