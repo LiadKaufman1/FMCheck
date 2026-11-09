@@ -5,7 +5,7 @@
 // "Weapon Def.: +117 (115 +2)", "Remaining Enhancements: 5". The number in brackets is the item's default stat
 // plus everything added since (the clean roll and the scrolls together), so the scrolls are worked out:
 // the passes (+1) must add up so that every clean stat is one a drop can roll.
-import { statRange } from "./calc.js?v=b791c19f";
+import { statRange } from "./calc.js?v=4fa45b8f";
 
 const LABELS = [
   ["PAD", "weapon att"], ["MAD", "magic att"], ["PDD", "weapon def"], ["MDD", "magic def"],

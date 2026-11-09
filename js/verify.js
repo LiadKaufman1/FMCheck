@@ -1,8 +1,8 @@
 // "Check it on screen": the seller shares the game window (the browser asks them first), hovers the item,
 // and this page reads the item's window with text recognition. Everything runs in this browser:
 // the picture is never uploaded. Only the numbers read (stats and slots left) go to FMCheck to compare.
-import { api, esc } from "./account.js?v=b791c19f";
-import { GAME_LABEL, GAME_ORDER } from "./itemcard.js?v=b791c19f";
+import { api, esc } from "./account.js?v=4fa45b8f";
+import { GAME_LABEL, GAME_ORDER } from "./itemcard.js?v=4fa45b8f";
 
 const $ = (id) => document.getElementById(id);
 const VENDOR = new URL("../assets/vendor/tesseract/", import.meta.url).href;

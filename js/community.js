@@ -1,12 +1,12 @@
 // Browse items: scrolled items players posted, as cards with how rare each one is.
-import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=b791c19f";
-import { drawCard, cardBlob } from "./card.js?v=b791c19f";
-import { cardInfo, cardLabel, cardFmt, cardDate } from "./itemcard.js?v=b791c19f";
-import { rarity, oneInText } from "./rarity.js?v=b791c19f";
-import { setupA11y } from "./a11y.js?v=b791c19f";
-import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=b791c19f";
-import { itemSearch } from "./itemsearch.js?v=b791c19f";
-import { DISCORD_URL } from "./config.js?v=b791c19f";
+import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=4fa45b8f";
+import { drawCard, cardBlob } from "./card.js?v=4fa45b8f";
+import { cardInfo, cardLabel, cardFmt, cardDate } from "./itemcard.js?v=4fa45b8f";
+import { rarity, oneInText } from "./rarity.js?v=4fa45b8f";
+import { setupA11y } from "./a11y.js?v=4fa45b8f";
+import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=4fa45b8f";
+import { itemSearch } from "./itemsearch.js?v=4fa45b8f";
+import { DISCORD_URL } from "./config.js?v=4fa45b8f";
 
 const $ = (id) => document.getElementById(id);
 // a small MapleStory icon next to a label (assets/ui/)
@@ -247,6 +247,8 @@ async function openDetail(id) {
           <button type="button" class="ghost-btn" id="copyLink">Copy link</button>
           <button type="button" class="ghost-btn" id="saveCard">${IC("map-piece")} Image</button>
           ${l.mine || l.demo ? "" : `<button type="button" class="ghost-btn" id="flag">${IC("flag")} Report</button>`}
+          ${me_admin && !l.mine && !l.demo ? `<button type="button" class="ghost-btn" id="adminUnflag">Admin: clear reports</button>
+            <button type="button" class="ghost-btn" id="adminRemove">${IC("trash")} Admin: remove</button>` : ""}
         </div>
         <p id="detailMsg" class="sale-msg" role="status"></p>
       </div>
@@ -262,6 +264,16 @@ async function openDetail(id) {
     a.download = `fmcheck-${l.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.png`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  });
+  // admins: take down a fake or abusive item, or clear reports on one that's fine
+  $("adminRemove")?.addEventListener("click", async () => {
+    if (!confirm(`Remove "${l.name}" posted by ${l.ign || "this player"}? This can't be undone.`)) return;
+    try { await api(`/api/listings/${l.id}`, { method: "DELETE" }); $("detail").close(); toast("Removed."); load(); }
+    catch (e) { $("detailMsg").textContent = e.message; }
+  });
+  $("adminUnflag")?.addEventListener("click", async () => {
+    try { await api(`/api/listings/${l.id}/unflag`, { method: "POST", body: {} }); $("detailMsg").textContent = "Reports cleared."; }
+    catch (e) { $("detailMsg").textContent = e.message; }
   });
   $("flag")?.addEventListener("click", async () => {
     if (!user) { $("detailMsg").textContent = "Sign in (top of the page) to report an item."; return; }
