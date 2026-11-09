@@ -45,17 +45,16 @@ function family(e) {
 const nice = (n) => { const d = 10 ** Math.max(0, String(Math.round(n)).length - 2); return Math.round(n / d) * d; };
 const byId = (id) => scrolls.find((s) => s.id === id);
 
-// prices kept modest: gloves by the attack they gained, the rest by level and rarity; never below the scrolls' cost
+// prices kept low (2M at most): gloves by the attack they gained, the rest by level and rarity
 function priceOf(e, g, r, rows, stat) {
-  const cost = rows.reduce((a, x) => a + x.n * (handPrices[x.id] || 0), 0);
-  const lvl = 2 ** ((e[2] - 10) / 12), wobble = 0.85 + rnd() * 0.3;
+  const lvl = 2 ** ((e[2] - 10) / 20), wobble = 0.85 + rnd() * 0.3;
   let p;
   if (kind(e) === "Glove" && stat === "PAD") {
     const gain = rows.reduce((a, x) => a + x.n * (byId(x.id).stats.PAD || 0), 0);
-    p = 1e6 * 1.4 ** gain * wobble;
-  } else if (g === "weapon") p = 200e3 * lvl * r.oneIn ** 0.35 * wobble;
-  else p = 100e3 * lvl * r.oneIn ** 0.3 * wobble;
-  return nice(Math.min(g === "weapon" || g === "work" ? 200e6 : 60e6, Math.max(p, cost * 1.15)));
+    p = 120e3 * 1.27 ** gain * wobble;
+  } else if (g === "weapon") p = 60e3 * lvl * r.oneIn ** 0.35 * wobble;
+  else p = 30e3 * lvl * r.oneIn ** 0.3 * wobble;
+  return nice(Math.min(2e6, Math.max(50e3, p)));
 }
 
 const out = [];
