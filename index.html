@@ -32,7 +32,7 @@
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
   <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="css/style.css?v=10693bf7" />
+  <link rel="stylesheet" href="css/style.css?v=e4efec93" />
 </head>
 <body>
   <a class="skip" href="#itemSearch">Skip to posting an item</a>
@@ -186,12 +186,30 @@
         <div id="pubSignIn" class="pub-signin"></div>
         <form id="pubForm" class="pub-form" hidden>
           <label id="pubIgnRow">In-game name <input id="pubIgn" autocomplete="off" maxlength="13" placeholder="e.g. GuaiLan" /></label>
-          <div class="pub-grid">
-            <label>Price <small>(optional, if it's for sale)</small>
-              <span class="pub-price"><input id="pubPrice" inputmode="decimal" placeholder="not for sale" />
-              <select id="pubUnit" aria-label="Unit"><option value="">mesos</option><option value="k">K</option><option value="m" selected>M</option><option value="b">B</option></select></span></label>
-            <label>Channel <input id="pubChannel" inputmode="numeric" maxlength="2" placeholder="e.g. 3" /></label>
-            <label>FM room <input id="pubRoom" inputmode="numeric" maxlength="2" placeholder="e.g. 7" /></label>
+          <fieldset class="sale-switch">
+            <legend>Is it for sale?</legend>
+            <label><input type="radio" name="pubMode" value="show" checked />
+              <span><img src="assets/ui/starpiece.png" alt="" /> Just showing it off</span></label>
+            <label><input type="radio" name="pubMode" value="sale" />
+              <span><img src="assets/ui/meso-bundle.png" alt="" /> For sale</span></label>
+          </fieldset>
+          <div id="saleBox" class="sale-box" hidden>
+            <label class="sale-label" for="pubPrice">Your price</label>
+            <div class="price-line">
+              <img class="coin" src="assets/ui/meso.png" alt="" />
+              <input id="pubPrice" inputmode="decimal" autocomplete="off" placeholder="0" aria-describedby="pubPriceSay" />
+              <div class="unit-seg" role="radiogroup" aria-label="Unit">
+                <label><input type="radio" name="pubUnit" value="k" /><span>K</span></label>
+                <label><input type="radio" name="pubUnit" value="m" checked /><span>M</span></label>
+                <label><input type="radio" name="pubUnit" value="b" /><span>B</span></label>
+              </div>
+            </div>
+            <p id="pubPriceSay" class="price-say" aria-live="polite">Type a number, e.g. 48 for 48M.</p>
+            <div class="where-line">
+              <span class="sale-label">Where to find you <small>(optional)</small></span>
+              <label>Channel <input id="pubChannel" inputmode="numeric" maxlength="2" placeholder="3" /></label>
+              <label>FM room <input id="pubRoom" inputmode="numeric" maxlength="2" placeholder="7" /></label>
+            </div>
           </div>
           <label>Note <small>(optional)</small> <input id="pubNote" maxlength="140" placeholder="e.g. whisper me, open to offers" /></label>
           <button type="submit" id="pubSend">Post it</button>
@@ -248,6 +266,6 @@ natural roll = product over the stats above default</pre>
   </div>
 
 
-  <script type="module" src="js/app.js?v=10693bf7"></script>
+  <script type="module" src="js/app.js?v=e4efec93"></script>
 </body>
 </html>

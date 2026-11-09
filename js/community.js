@@ -1,12 +1,12 @@
 // Browse items: scrolled items players posted, as cards with how rare each one is.
-import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=10693bf7";
-import { drawCard, cardBlob } from "./card.js?v=10693bf7";
-import { cardInfo, cardLabel, cardFmt, cardDate } from "./itemcard.js?v=10693bf7";
-import { rarity, oneInText } from "./rarity.js?v=10693bf7";
-import { setupA11y } from "./a11y.js?v=10693bf7";
-import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=10693bf7";
-import { itemSearch } from "./itemsearch.js?v=10693bf7";
-import { DISCORD_URL } from "./config.js?v=10693bf7";
+import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=e4efec93";
+import { drawCard, cardBlob } from "./card.js?v=e4efec93";
+import { cardInfo, cardLabel, cardFmt, cardDate } from "./itemcard.js?v=e4efec93";
+import { rarity, oneInText } from "./rarity.js?v=e4efec93";
+import { setupA11y } from "./a11y.js?v=e4efec93";
+import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=e4efec93";
+import { itemSearch } from "./itemsearch.js?v=e4efec93";
+import { DISCORD_URL } from "./config.js?v=e4efec93";
 
 const $ = (id) => document.getElementById(id);
 // a small MapleStory icon next to a label (assets/ui/)

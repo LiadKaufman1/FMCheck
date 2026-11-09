@@ -729,3 +729,44 @@ html:not(.sup-on) .sup-only { display: none !important; }
 .it-badges:empty { display: none; }
 .detail-rarity { margin: 0 0 4px; font-size: 18px; font-weight: 800; }
 .detail-rarity b { font: 700 24px "Fredoka", "Nunito", sans-serif; color: var(--tier); -webkit-text-stroke: .4px rgba(0, 0, 0, .35); }
+
+/* posting: "for sale?" and the price */
+.sale-switch { border: 0; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sale-switch legend { font-size: 13px; font-weight: 700; margin-bottom: 6px; padding: 0; }
+.sale-switch label { position: relative; display: block; cursor: pointer; }
+.sale-switch input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.sale-switch span { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 10px; border-radius: 12px;
+  border: 2px solid var(--line); background: var(--bg); font-weight: 800; box-shadow: 0 3px 0 var(--line); text-align: center; }
+.sale-switch span img { width: 22px; height: 22px; object-fit: contain; image-rendering: pixelated; }
+.sale-switch input:checked + span { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-text); box-shadow: 0 3px 0 var(--accent); }
+.sale-switch input:focus-visible + span { outline: 3px solid var(--accent-text); outline-offset: 2px; }
+.sale-box { display: grid; gap: 8px; padding: 14px; border-radius: 14px; background: linear-gradient(180deg, #fff8e1, #fff3cf);
+  border: 2px solid #ffc94d; color: #3a2a00; }
+.sale-label { font-size: 13px; font-weight: 800; color: #6b4a00; }
+.sale-label small { font-weight: 600; color: #7a5a1a; }
+.price-line { display: flex; align-items: center; gap: 8px; background: #fff; border: 2px solid #ffc94d; border-radius: 12px; padding: 6px 8px; }
+.price-line:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(232, 115, 12, .2); }
+.price-line .coin { width: 30px; height: 30px; image-rendering: pixelated; flex: none; }
+.price-line input { flex: 1; min-width: 0; border: 0; background: transparent; font: 700 26px "Fredoka", "Nunito", sans-serif;
+  color: #3a2a00; padding: 4px 2px; outline: none; }
+.unit-seg { display: flex; gap: 4px; flex: none; }
+.unit-seg label { position: relative; cursor: pointer; }
+.unit-seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.unit-seg span { display: grid; place-items: center; min-width: 40px; height: 38px; border-radius: 10px; background: #fff3cf;
+  border: 2px solid #f0d58a; font: 700 17px "Fredoka", "Nunito", sans-serif; color: #7a5a1a; }
+.unit-seg input:checked + span { background: #ffc94d; border-color: #d9a21b; color: #3a2a00; }
+.unit-seg input:focus-visible + span { outline: 3px solid var(--accent-text); outline-offset: 2px; }
+.price-say { margin: 0; font-size: 13px; font-weight: 700; color: #6b4a00; }
+.price-say.bad { color: #a8250a; }
+.where-line { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin-top: 4px; }
+.where-line .sale-label { flex-basis: 100%; }
+.where-line label { display: grid; gap: 4px; font-size: 12px; font-weight: 700; color: #6b4a00; }
+.where-line input { width: 90px; background: #fff; border: 2px solid #f0d58a; color: #3a2a00; }
+@media (max-width: 480px) {
+  .sale-switch span { padding: 10px 6px; font-size: 14px; }
+  .price-line input { font-size: 22px; }
+  .unit-seg span { min-width: 34px; }
+}
+.pub-form { grid-template-columns: minmax(0, 1fr); }
+.sale-switch { grid-template-columns: repeat(2, minmax(0, 1fr)); min-width: 0; }
+.sale-box, .price-line { min-width: 0; }
