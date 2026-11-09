@@ -14,5 +14,7 @@
   // Workers Logs: errors and the warnings the server writes about suspicious requests
   "observability": { "enabled": true },
   // Example posts (src/demo.json) show, tagged "Example", until 30 real items are up. "DEMO": "off" hides them.
-  "vars": { "GOOGLE_CLIENT_ID": "123250047088-qaj5de9sgejg2jqo35l6a9nqt8om0ja1.apps.googleusercontent.com" }
+  // ADMIN_IDS: account ids (shown on admin.html) that can remove items and clear reports. Not secret: a one-way code.
+  "vars": { "GOOGLE_CLIENT_ID": "123250047088-qaj5de9sgejg2jqo35l6a9nqt8om0ja1.apps.googleusercontent.com",
+    "ADMIN_IDS": "9e6d7711ca989537c1f9f774200f23bd" }
 }
