@@ -1,11 +1,11 @@
-import { iconUrl, DONATE_URL, DISCORD_URL } from "./config.js?v=e4efec93";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, mesos, readPrice } from "./calc.js?v=e4efec93";
-import { rarity, oneInText } from "./rarity.js?v=e4efec93";
-import { drawCard, cardBlob } from "./card.js?v=e4efec93";
-import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=e4efec93";
-import { itemSearch } from "./itemsearch.js?v=e4efec93";
-import { setupA11y } from "./a11y.js?v=e4efec93";
-import { API, api, health, me, googleButton, validIgn } from "./account.js?v=e4efec93";
+import { iconUrl, DONATE_URL, DISCORD_URL } from "./config.js?v=be3bc512";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, mesos, readPrice } from "./calc.js?v=be3bc512";
+import { rarity, oneInText } from "./rarity.js?v=be3bc512";
+import { drawCard, cardBlob } from "./card.js?v=be3bc512";
+import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=be3bc512";
+import { itemSearch } from "./itemsearch.js?v=be3bc512";
+import { setupA11y } from "./a11y.js?v=be3bc512";
+import { API, api, health, me, googleButton, validIgn } from "./account.js?v=be3bc512";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -416,7 +416,8 @@ $("pubForm").addEventListener("submit", async (e) => {
       item: state.item.id, clean: state.clean, left: state.left,
       scrolls: state.rows.map((r) => ({ id: r.scroll.id, n: r.successes })),
       chance: lastRarity ? lastRarity.chance : 1,
-      price, channel: forSale ? $("pubChannel").value.trim() : "", room: forSale ? $("pubRoom").value.trim() : "", note: $("pubNote").value.trim(),
+      price, channel: forSale ? $("pubChannel").value.trim() : "", room: forSale ? $("pubRoom").value.trim() : "",
+      where: forSale ? $("pubWhere").value.trim() : "", note: $("pubNote").value.trim(),
       image: $("card").toDataURL("image/png"),
     } });
     const link = `${location.origin}/community.html#l=${j.id}`;
@@ -433,13 +434,15 @@ $("pubForm").addEventListener("submit", async (e) => {
 
 // The price part of the form: "just showing it off" or "for sale", a big price field with K / M / B,
 // and the full amount spelled out as you type.
-const pubMode = () => document.querySelector('input[name="pubMode"]:checked')?.value || "show";
+const pubMode = () => document.querySelector('input[name="pubMode"]:checked')?.value || "sale";
 const pubUnit = () => document.querySelector('input[name="pubUnit"]:checked')?.value || "m";
 function sayPrice() {
   const t = $("pubPrice").value.trim();
   const v = readPrice(t, pubUnit());
-  $("pubPriceSay").textContent = !t ? "Type a number, e.g. 48 for 48M."
-    : v > 0 ? `= ${Math.round(v).toLocaleString("en-US")} mesos` : "That doesn't look like a price. Try 48, 1.5 or 350.";
+  // what the chosen button means, with an example in that unit
+  const how = { k: ["thousands", "500", 500e3], m: ["millions", "48", 48e6], b: ["billions", "1.5", 1.5e9] }[pubUnit()];
+  $("pubPriceSay").textContent = !t ? `In ${how[0]}: ${how[1]} = ${how[2].toLocaleString("en-US")} mesos.`
+    : v > 0 ? `= ${Math.round(v).toLocaleString("en-US")} mesos` : "That doesn't look like a price. Type just the number, like 48 or 1.5.";
   $("pubPriceSay").classList.toggle("bad", !!t && !(v > 0));
 }
 $("pubForm").addEventListener("change", (e) => {

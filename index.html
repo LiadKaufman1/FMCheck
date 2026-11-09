@@ -32,7 +32,7 @@
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
   <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="css/style.css?v=e4efec93" />
+  <link rel="stylesheet" href="css/style.css?v=be3bc512" />
 </head>
 <body>
   <a class="skip" href="#itemSearch">Skip to posting an item</a>
@@ -188,12 +188,12 @@
           <label id="pubIgnRow">In-game name <input id="pubIgn" autocomplete="off" maxlength="13" placeholder="e.g. GuaiLan" /></label>
           <fieldset class="sale-switch">
             <legend>Is it for sale?</legend>
-            <label><input type="radio" name="pubMode" value="show" checked />
-              <span><img src="assets/ui/starpiece.png" alt="" /> Just showing it off</span></label>
-            <label><input type="radio" name="pubMode" value="sale" />
+            <label><input type="radio" name="pubMode" value="sale" checked />
               <span><img src="assets/ui/meso-bundle.png" alt="" /> For sale</span></label>
+            <label><input type="radio" name="pubMode" value="show" />
+              <span><img src="assets/ui/starpiece.png" alt="" /> Just showing it off</span></label>
           </fieldset>
-          <div id="saleBox" class="sale-box" hidden>
+          <div id="saleBox" class="sale-box">
             <label class="sale-label" for="pubPrice">Your price</label>
             <div class="price-line">
               <img class="coin" src="assets/ui/meso.png" alt="" />
@@ -204,14 +204,15 @@
                 <label><input type="radio" name="pubUnit" value="b" /><span>B</span></label>
               </div>
             </div>
-            <p id="pubPriceSay" class="price-say" aria-live="polite">Type a number, e.g. 48 for 48M.</p>
+            <p id="pubPriceSay" class="price-say" aria-live="polite">In millions: 48 = 48,000,000 mesos.</p>
             <div class="where-line">
               <span class="sale-label">Where to find you <small>(optional)</small></span>
               <label>Channel <input id="pubChannel" inputmode="numeric" maxlength="2" placeholder="3" /></label>
               <label>FM room <input id="pubRoom" inputmode="numeric" maxlength="2" placeholder="7" /></label>
+              <label class="where-free">Or somewhere else <input id="pubWhere" maxlength="60" placeholder="e.g. whisper me, Henesys ch 5" /></label>
             </div>
           </div>
-          <label>Note <small>(optional)</small> <input id="pubNote" maxlength="140" placeholder="e.g. whisper me, open to offers" /></label>
+          <label>Note <small>(optional)</small> <input id="pubNote" maxlength="140" placeholder="e.g. open to offers, can trade" /></label>
           <button type="submit" id="pubSend">Post it</button>
           <p id="pubMsg" class="sale-msg" role="status"></p>
         </form>
@@ -266,6 +267,6 @@ natural roll = product over the stats above default</pre>
   </div>
 
 
-  <script type="module" src="js/app.js?v=e4efec93"></script>
+  <script type="module" src="js/app.js?v=be3bc512"></script>
 </body>
 </html>

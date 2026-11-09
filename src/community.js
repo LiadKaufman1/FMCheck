@@ -101,7 +101,7 @@ const SCHEMA = [
 // Columns added after the first version: added to existing tables when missing.
 const COLUMNS = {
   users: [["supporter_until", "INTEGER NOT NULL DEFAULT 0"], ["sup_code", "TEXT"], ["sup_email", "TEXT"]],
-  listings: [["featured_until", "INTEGER NOT NULL DEFAULT 0"], ["demo", "INTEGER NOT NULL DEFAULT 0"], ["demo_seller", "TEXT"]],
+  listings: [["featured_until", "INTEGER NOT NULL DEFAULT 0"], ["demo", "INTEGER NOT NULL DEFAULT 0"], ["demo_seller", "TEXT"], ["where_text", "TEXT"]],
   payments: [["boosts", "INTEGER NOT NULL DEFAULT 0"]],
   boosts: [["paid", "INTEGER NOT NULL DEFAULT 0"]],
 };
@@ -240,7 +240,7 @@ const isAdmin = (env, user) => !!user && String(env.ADMIN_IDS || "").split(",").
 // ---------- listings ----------
 
 const COLS = `l.id, l.item, l.name, l.cat, l.clean, l.gained, l.stats, l.scrolls, l.upgrades, l.left_slots, l.slots, l.chance, l.one_in,
-  l.est_lo, l.est_hi, l.price, l.channel, l.room, l.note, l.verified, l.status, l.created, l.seen, l.featured_until, l.user_id, u.ign,
+  l.est_lo, l.est_hi, l.price, l.channel, l.room, l.where_text, l.note, l.verified, l.status, l.created, l.seen, l.featured_until, l.user_id, u.ign,
   l.demo, l.demo_seller,
   u.supporter_until`;
 function publicListing(r, user) {
@@ -252,7 +252,7 @@ function publicListing(r, user) {
     demo: !!r.demo,
     id: r.id, item: r.item, name: r.name, cat: r.cat, clean: parse(r.clean, {}), gained: parse(r.gained, {}), stats: parse(r.stats, {}),
     scrolls: parse(r.scrolls, []), upgrades: r.upgrades, left: r.left_slots, slots: r.slots, chance: r.chance, oneIn: r.one_in,
-    estimate: r.est_lo != null ? { lo: r.est_lo, hi: r.est_hi } : null, price: r.price, ign: r.ign, channel: r.channel, room: r.room,
+    estimate: r.est_lo != null ? { lo: r.est_lo, hi: r.est_hi } : null, price: r.price, ign: r.ign, channel: r.channel, room: r.room, where: r.where_text || null,
     note: r.note, verified: !!r.verified, status: r.status, created: r.created, seen: r.seen, mine: !!user && user.id === r.user_id,
     supporter: r.supporter_until > Date.now(), featured: r.featured_until > Date.now() ? r.featured_until : 0,
   };
@@ -313,6 +313,7 @@ function readSeller(b) {
   if ("channel" in b) out.channel = b.channel == null || b.channel === "" ? null : int(+b.channel, 1, 40);
   if ("room" in b) out.room = b.room == null || b.room === "" ? null : int(+b.room, 1, 30);
   if ("note" in b) out.note = cleanText(b.note, 140) || null;
+  if ("where" in b) out.where_text = cleanText(b.where, 60) || null;
   return out;
 }
 
@@ -674,11 +675,11 @@ export async function community(request, env, ctx, url, json) {
     const created = before.created || now; // posted again: it keeps its place, it doesn't jump to the top
     const id = randomHex(6);
     await env.DB.prepare(`INSERT INTO listings (id, user_id, item, name, cat, clean, gained, stats, scrolls, upgrades, left_slots, slots,
-        chance, one_in, est_lo, est_hi, price, channel, room, note, created, seen)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        chance, one_in, est_lo, est_hi, price, channel, room, note, created, seen, where_text)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .bind(id, user.id, l.item, l.name, l.cat, JSON.stringify(l.clean), JSON.stringify(l.gained), JSON.stringify(l.stats),
         JSON.stringify(l.scrolls), l.upgrades, l.left, l.slots, l.chance, l.oneIn, l.est?.lo ?? null, l.est?.hi ?? null,
-        s.price ?? null, s.channel ?? null, s.room ?? null, s.note ?? null, created, now).run();
+        s.price ?? null, s.channel ?? null, s.room ?? null, s.note ?? null, created, now, s.where_text ?? null).run();
     await env.DB.prepare(`INSERT INTO posts (user_id, fp, created, t) VALUES (?, ?, ?, ?)`).bind(user.id, fp, created, now).run();
     // rare items go to Discord once, not again when re-posted
     if (!before.created) ctx.waitUntil(discordPost(env, { ...l, id, price: s.price }, user.ign, body.image, url.origin));

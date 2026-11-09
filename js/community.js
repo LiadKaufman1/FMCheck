@@ -1,12 +1,12 @@
 // Browse items: scrolled items players posted, as cards with how rare each one is.
-import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=e4efec93";
-import { drawCard, cardBlob } from "./card.js?v=e4efec93";
-import { cardInfo, cardLabel, cardFmt, cardDate } from "./itemcard.js?v=e4efec93";
-import { rarity, oneInText } from "./rarity.js?v=e4efec93";
-import { setupA11y } from "./a11y.js?v=e4efec93";
-import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=e4efec93";
-import { itemSearch } from "./itemsearch.js?v=e4efec93";
-import { DISCORD_URL } from "./config.js?v=e4efec93";
+import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=be3bc512";
+import { drawCard, cardBlob } from "./card.js?v=be3bc512";
+import { cardInfo, cardLabel, cardFmt, cardDate } from "./itemcard.js?v=be3bc512";
+import { rarity, oneInText } from "./rarity.js?v=be3bc512";
+import { setupA11y } from "./a11y.js?v=be3bc512";
+import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=be3bc512";
+import { itemSearch } from "./itemsearch.js?v=be3bc512";
+import { DISCORD_URL } from "./config.js?v=be3bc512";
 
 const $ = (id) => document.getElementById(id);
 // a small MapleStory icon next to a label (assets/ui/)
@@ -305,6 +305,7 @@ function renderMine() {
         <label>Price <input name="price" inputmode="decimal" value="${l.price ? mesos(l.price) : ""}" placeholder="not for sale" /></label>
         <label>Channel <input name="channel" inputmode="numeric" value="${l.channel || ""}" maxlength="2" /></label>
         <label>FM room <input name="room" inputmode="numeric" value="${l.room || ""}" maxlength="2" /></label>
+        <label>Or somewhere else <input name="where" value="${esc(l.where || "")}" maxlength="60" placeholder="e.g. whisper me" /></label>
         <label>Note <input name="note" value="${esc(l.note || "")}" maxlength="140" /></label>
         <button type="submit">Save</button>
       </form>
@@ -367,7 +368,7 @@ $("listings").addEventListener("submit", (e) => {
   const id = f.closest("[data-id]").dataset.id;
   const price = f.price.value.trim() ? readPrice(f.price.value, "") : null;
   if (f.price.value.trim() && !(price > 0)) { toast("The price doesn't look right, e.g. 350m."); return; }
-  patch(id, { price, channel: f.channel.value.trim(), room: f.room.value.trim(), note: f.note.value.trim() }, "Saved.");
+  patch(id, { price, channel: f.channel.value.trim(), room: f.room.value.trim(), where: f.where.value.trim(), note: f.note.value.trim() }, "Saved.");
 });
 
 // ---------- supporters (Ko-fi) ----------

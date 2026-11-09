@@ -770,3 +770,5 @@ html:not(.sup-on) .sup-only { display: none !important; }
 .pub-form { grid-template-columns: minmax(0, 1fr); }
 .sale-switch { grid-template-columns: repeat(2, minmax(0, 1fr)); min-width: 0; }
 .sale-box, .price-line { min-width: 0; }
+.where-line .where-free { flex: 1 1 220px; }
+.where-line .where-free input { width: 100%; }

@@ -71,4 +71,4 @@ export const ago = (t) => {
   const d = Math.floor(s / 86400);
   return d === 1 ? "yesterday" : d < 30 ? `${d} days ago` : new Date(t).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 };
-export const place = (l) => [l.channel ? `Ch ${l.channel}` : "", l.room ? `FM${l.room}` : ""].filter(Boolean).join(" · ");
+export const place = (l) => [l.channel ? `Ch ${l.channel}` : "", l.room ? `FM${l.room}` : "", l.where ? esc(l.where) : ""].filter(Boolean).join(" · ");
