@@ -56,6 +56,7 @@ const FLAG_MIN_AGE = 3 * DAY;      // reports count only from accounts this old,
 // rank below real items, are never posted or featured for real, and stop showing once DEMO_UNTIL real items are up.
 // Setting DEMO=off hides them at once.
 const DEMO_UNTIL = 30;
+const DEMO_VERSION = 2; // bump when src/demo.json changes
 const CROWD_MIN = 3;     // different players (per day) before their typed price goes in the list
 const CROWD_DAYS = 30;   // typed prices older than this are dropped
 const HIDE_AT_FLAGS = 3;           // reports from different players that hide an item
@@ -117,9 +118,14 @@ async function migrate(env) {
 // Puts the example items in once. For examples, created and seen hold "how long ago" (ms), so they always look recent.
 async function seedDemo(env) {
   if (env.DEMO === "off") return;
-  const done = await env.DB.prepare(`SELECT v FROM meta WHERE k = 'demo'`).first();
+  // a new version of src/demo.json replaces the old examples
+  const key = `demo:${DEMO_VERSION}`;
+  const done = await env.DB.prepare(`SELECT v FROM meta WHERE k = ?`).bind(key).first();
   if (done) return;
-  const q = [];
+  const q = [
+    env.DB.prepare(`DELETE FROM listings WHERE demo > 0`),
+    env.DB.prepare(`DELETE FROM users WHERE id LIKE 'demo-%'`),
+  ];
   const sellers = new Map();
   for (const [i, d] of demoItems.entries()) {
     const l = readListing(d);
@@ -138,7 +144,7 @@ async function seedDemo(env) {
         d.estimate?.lo ?? null, d.estimate?.hi ?? null, d.price ?? null, d.channel ?? null, d.room ?? null, d.note ?? null,
         d.verified ? 1 : 0, d.minutesAgo * 60000, d.seenAgo * 60000, d.featured ? 2 : 1, d.seller));
   }
-  q.push(env.DB.prepare(`INSERT OR REPLACE INTO meta (k, v) VALUES ('demo', ?)`).bind(String(Date.now())));
+  q.push(env.DB.prepare(`INSERT OR REPLACE INTO meta (k, v) VALUES (?, ?)`).bind(key, String(Date.now())));
   await env.DB.batch(q);
 }
 

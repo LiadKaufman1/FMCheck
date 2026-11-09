@@ -20,6 +20,7 @@ SELLERS = [  # name, supporter
     ("Tobikage", True), ("PeppyPig", False), ("Nyxelle", False), ("Grumbo", False), ("Vexaria", True),
     ("Pudding22", False), ("Rokusan", False), ("Zephyrin", False), ("Mochiko", True), ("Ardentia", False),
 ]
+SHOW_NOTES = ["Finally!", "Took me forever", "Not selling, just proud", "Clean roll too", "", "", "", ""]
 NOTES = ["Whisper me", "Open to offers", "Clean roll, check it in game", "Can trade at FM", "Price is firm",
          "Will be on tonight", "Trading for mesos only", "", "", "", "", ""]
 # scroll stat to look for, best first, per kind of item
@@ -97,20 +98,14 @@ for i, e in enumerate(items):
         est = {"lo": nice(price * rng.uniform(0.8, 0.95)), "hi": nice(price * rng.uniform(1.0, 1.2))}
     out.append({
         "item": e[0], "clean": clean, "left": left, "scrolls": sc,
-        "price": None if show else max(10000, nice(price)), "estimate": est,
-        "channel": rng.randint(1, 20), "room": rng.randint(1, 22), "note": rng.choice(NOTES) or None,
-        "seller": seller, "supporter": supporter,
-        "verified": rng.random() < 0.35, "featured": False,
+        # posted to show off: no price, no place, no paid perks, not marked as checked
+        "price": None, "estimate": None, "channel": None, "room": None,
+        "note": rng.choice(SHOW_NOTES) or None,
+        "seller": seller, "supporter": False,
+        "verified": False, "featured": False,
         "minutesAgo": rng.randint(3, 60 * 60),  # posted up to 2.5 days ago
         "seenAgo": rng.randint(1, 180),
     })
 
-# a few Featured, all from supporters: their most scrolled items
-sup = sorted((o for o in out if o["supporter"] and o["price"]), key=lambda o: -sum(x["n"] for x in o["scrolls"] if x["id"] % 2))
-for o in sup[:4]:
-    o["featured"] = True
-    o["verified"] = True
-
 json.dump(out, open(os.path.join(ROOT, "src", "demo.json"), "w"), indent=0)
-print(len(out), "example items,", sum(o["supporter"] for o in out), "from supporters,", sum(o["featured"] for o in out), "featured,",
-      sum(o["price"] is None for o in out), "showcase")
+print(len(out), "example items (shown off, no price)")
