@@ -79,7 +79,8 @@ for (let tries = 0; tries < 200000 && out.length < 45; tries++) {
   let price = base * (attack ? 4 : 1) * r.oneIn ** 0.45 * (0.8 + rnd() * 0.45);
   const scrollCost = rows.reduce((a, x) => a + x.n * (handPrices[x.id] || 0), 0);
   price = Math.min(2e9, Math.max(price, scrollCost * 1.3));
-  const forSale = rnd() < 0.78;
+  rnd(); // (kept so the same items come out)
+  const forSale = true; // every example has a price
   const i = out.length;
   out.push({
     item: e[0], clean, left, scrolls: rows,
