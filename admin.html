@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <script src="js/boot.js?v=4fa45b8f"></script>
+  <script src="js/boot.js?v=2a731c0e"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>FMCheck · Price list</title>
   <meta name="robots" content="noindex" />
@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
   <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="css/style.css?v=4fa45b8f" />
+  <link rel="stylesheet" href="css/style.css?v=2a731c0e" />
 </head>
 <body>
   <header class="top">
@@ -32,6 +32,12 @@
       <p class="hint">Average prices of scrolls and clean items. Wherever a player leaves a price empty, the estimate uses these.
         Look them up yourself (for example on meso.watch) and type them here. Only admins can change them.</p>
       <div id="adminBody"><p class="hint">Loading…</p></div>
+    </section>
+    <section class="card" id="reportsCard" hidden>
+      <h2><img class="ic ic-big" src="assets/ui/flag.png" alt="" /> Reported conversations</h2>
+      <p class="hint">Private messages players reported. Only reported conversations show here. Remove the item if needed
+        (open it on Browse items) and dismiss the report once it's handled.</p>
+      <div id="reportsBody"></div>
     </section>
   </main>
 
@@ -54,6 +60,6 @@
   </div>
 
 
-  <script type="module" src="js/admin.js?v=4fa45b8f"></script>
+  <script type="module" src="js/admin.js?v=2a731c0e"></script>
 </body>
 </html>

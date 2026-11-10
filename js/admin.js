@@ -1,10 +1,10 @@
 // The price list page (admins): average prices of scrolls and clean items that estimates use when a player
 // leaves a price empty. Stored on the server (/api/prices); anyone can read them, only admins can change them.
-import { mesos, readPrice, UNITS } from "./calc.js?v=4fa45b8f";
-import { setupA11y } from "./a11y.js?v=4fa45b8f";
-import { api, me, googleButton, esc, canSignIn } from "./account.js?v=4fa45b8f";
-import { iconUrl, priceLink } from "./config.js?v=4fa45b8f";
-import { findPrices } from "./priceimport.js?v=4fa45b8f";
+import { mesos, readPrice, UNITS } from "./calc.js?v=2a731c0e";
+import { setupA11y } from "./a11y.js?v=2a731c0e";
+import { api, me, googleButton, esc, canSignIn } from "./account.js?v=2a731c0e";
+import { iconUrl, priceLink } from "./config.js?v=2a731c0e";
+import { findPrices } from "./priceimport.js?v=2a731c0e";
 
 const $ = (id) => document.getElementById(id);
 setupA11y();
@@ -154,6 +154,27 @@ function showEditor(list) {
   $("importGo").addEventListener("click", () => runImport($("importText").value));
 }
 
+// Reported private messages: what was said, so an admin can act on it.
+async function showReports() {
+  let reports = [];
+  try { reports = (await api("/api/admin/message-reports")).reports; } catch { return; }
+  $("reportsCard").hidden = false;
+  const when = (t) => new Date(t).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  $("reportsBody").innerHTML = reports.length ? reports.map((r) => `<article class="report" data-id="${r.id}">
+      <p><b>${esc(r.buyer || "?")}</b> → <b>${esc(r.seller || "?")}</b> about ${esc(r.itemName)}
+        <a href="community.html#l=${r.listing}" target="_blank" rel="noopener">item</a> · reported ${r.reports}× · ${when(r.t)}</p>
+      <ol class="report-log">${r.messages.map((m) => `<li><b>${esc(m.from || "?")}:</b> ${esc(m.body)} <small>${when(m.t)}</small></li>`).join("")}</ol>
+      <button type="button" class="ghost-btn mini" data-dismiss>Dismiss report</button>
+    </article>`).join("") : `<p class="hint">No reported conversations.</p>`;
+  $("reportsBody").onclick = async (e) => {
+    const b = e.target.closest("[data-dismiss]");
+    if (!b) return;
+    const id = b.closest(".report").dataset.id;
+    try { await api(`/api/admin/message-reports/${id}/dismiss`, { method: "POST", body: {} }); b.closest(".report").remove(); toast("Dismissed."); }
+    catch (err) { toast(err.message); }
+  };
+}
+
 (async function start() {
   const [eq, sc] = await Promise.all([fetch("data/equips.json").then((r) => r.json()), fetch("data/scrolls.json").then((r) => r.json())]);
   equips = eq; scrolls = sc;
@@ -173,4 +194,5 @@ function showEditor(list) {
     return;
   }
   showEditor(await api("/api/prices"));
+  showReports();
 })();

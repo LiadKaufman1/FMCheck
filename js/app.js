@@ -1,11 +1,11 @@
-import { iconUrl, DONATE_URL, DISCORD_URL } from "./config.js?v=4fa45b8f";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, mesos, readPrice } from "./calc.js?v=4fa45b8f";
-import { rarity, oneInText } from "./rarity.js?v=4fa45b8f";
-import { drawCard, cardBlob } from "./card.js?v=4fa45b8f";
-import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=4fa45b8f";
-import { itemSearch } from "./itemsearch.js?v=4fa45b8f";
-import { setupA11y } from "./a11y.js?v=4fa45b8f";
-import { API, api, health, me, googleButton, validIgn } from "./account.js?v=4fa45b8f";
+import { iconUrl, DONATE_URL, DISCORD_URL } from "./config.js?v=2a731c0e";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, mesos, readPrice } from "./calc.js?v=2a731c0e";
+import { rarity, oneInText } from "./rarity.js?v=2a731c0e";
+import { drawCard, cardBlob } from "./card.js?v=2a731c0e";
+import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=2a731c0e";
+import { itemSearch } from "./itemsearch.js?v=2a731c0e";
+import { setupA11y } from "./a11y.js?v=2a731c0e";
+import { API, api, health, me, googleButton, validIgn } from "./account.js?v=2a731c0e";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -624,3 +624,13 @@ if (DONATE_URL) {
   if (h) pickItem(h.id, h.restore);
   else if (search.value.trim()) showResults(); // typed before the list loaded
 })();
+
+// New private messages: a link at the top, so a seller sees replies from any page.
+async function checkMessages() {
+  try {
+    const { n } = await api("/api/messages/unread");
+    $("msgLink").hidden = !n;
+    $("msgLinkText").textContent = `${n} new message${n === 1 ? "" : "s"}`;
+  } catch { /* signed out or offline */ }
+}
+if (!API) { checkMessages(); setInterval(() => { if (!document.hidden) checkMessages(); }, 60e3); }

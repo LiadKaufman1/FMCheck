@@ -22,6 +22,11 @@
 //   POST   /api/kofi                Ko-fi's webhook (form field "data", checked with KOFI_TOKEN):
 //                                    a membership payment adds supporter days; a one-off payment buys extra boosts
 //   POST   /api/admin/supporter     { code, days }  admins: give supporter time by hand
+//   POST   /api/listings/:id/message { body }  write to the item's seller (starts or continues the conversation)
+//   GET    /api/messages             my conversations;  GET /api/messages/unread  { n } conversations with something new
+//   GET    /api/messages/:id         one conversation (marks it read);  POST /api/messages/:id { body }  reply
+//   POST   /api/messages/:id/block | /unblock | /report
+//   GET    /api/admin/message-reports   admins: reported conversations;  POST /api/admin/message-reports/:id/dismiss
 //   GET    /api/prices              FMCheck's price list: average prices of scrolls and clean items, kept by hand by admins
 //   PUT    /api/prices              { prices: { id: price | null } }  admins: set or remove prices
 //   POST   /api/prices/report       { prices: { id: price } }  prices players typed on Sell an item (anonymous).
@@ -98,6 +103,17 @@ const SCHEMA = [
   `CREATE INDEX IF NOT EXISTS price_reports_t ON price_reports(t)`,
   `CREATE INDEX IF NOT EXISTS payments_email ON payments(email_hash)`,
   `CREATE TABLE IF NOT EXISTS rate (k TEXT PRIMARY KEY, n INTEGER NOT NULL, t INTEGER NOT NULL)`,
+  // private messages: one conversation per item and buyer
+  `CREATE TABLE IF NOT EXISTS threads (id TEXT PRIMARY KEY, listing TEXT NOT NULL, item INTEGER NOT NULL, item_name TEXT NOT NULL,
+     buyer TEXT NOT NULL, seller TEXT NOT NULL, created INTEGER NOT NULL, last INTEGER NOT NULL, last_from TEXT,
+     buyer_seen INTEGER NOT NULL DEFAULT 0, seller_seen INTEGER NOT NULL DEFAULT 0, UNIQUE (listing, buyer))`,
+  `CREATE INDEX IF NOT EXISTS threads_buyer ON threads(buyer, last)`,
+  `CREATE INDEX IF NOT EXISTS threads_seller ON threads(seller, last)`,
+  `CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, thread TEXT NOT NULL, sender TEXT NOT NULL, body TEXT NOT NULL, t INTEGER NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS messages_thread ON messages(thread, id)`,
+  `CREATE INDEX IF NOT EXISTS messages_sender ON messages(sender, t)`,
+  `CREATE TABLE IF NOT EXISTS blocks (who TEXT NOT NULL, blocked TEXT NOT NULL, PRIMARY KEY (who, blocked))`,
+  `CREATE TABLE IF NOT EXISTS thread_reports (thread TEXT NOT NULL, who TEXT NOT NULL, t INTEGER NOT NULL, PRIMARY KEY (thread, who))`,
 ];
 // Columns added after the first version: added to existing tables when missing.
 const COLUMNS = {
@@ -486,6 +502,49 @@ function listWhere(p, now, skipCat = false, demo = false) {
   return { where, args, tab };
 }
 
+// ---------- private messages ----------
+
+const MSG_MAX = 500;               // characters in one message
+const MSG_PER_HOUR = 40;           // messages one player can send in an hour
+const NEW_CHATS_PER_DAY = 10;      // new conversations one player can start in a day
+// Message text: line breaks kept (at most two in a row), other control characters dropped.
+const msgText = (s) => String(s ?? "").replace(/\r\n?/g, "\n").replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, "")
+  .replace(/\n{3,}/g, "\n\n").trim().slice(0, MSG_MAX);
+const otherOf = (t, me) => (t.buyer === me ? t.seller : t.buyer);
+
+// Adds a message to a conversation, after the checks every message goes through. Returns an error response or null.
+async function sendMessage(env, json, t, user, body) {
+  const text = msgText(body);
+  if (!text) return json({ error: "Write a message first." }, 400);
+  const other = otherOf(t, user.id);
+  const blocked = await env.DB.prepare(`SELECT who FROM blocks WHERE (who = ? AND blocked = ?) OR (who = ? AND blocked = ?)`)
+    .bind(user.id, other, other, user.id).first();
+  if (blocked) return json({ error: blocked.who === user.id ? "You blocked this player. Unblock them to write." : "This player isn't taking messages from you." }, 403);
+  const now = Date.now();
+  const sent = await env.DB.prepare(`SELECT COUNT(*) AS n FROM messages WHERE sender = ? AND t > ?`).bind(user.id, now - 3600e3).first();
+  if ((sent.n || 0) >= MSG_PER_HOUR) return json({ error: "That's a lot of messages. Wait a bit and try again." }, 429);
+  const seen = t.buyer === user.id ? "buyer_seen" : "seller_seen";
+  await env.DB.batch([
+    env.DB.prepare(`INSERT INTO messages (thread, sender, body, t) VALUES (?, ?, ?, ?)`).bind(t.id, user.id, text, now),
+    env.DB.prepare(`UPDATE threads SET last = ?, last_from = ?, ${seen} = ? WHERE id = ?`).bind(now, user.id, now, t.id),
+  ]);
+  return null;
+}
+
+// The conversation as one of its two players sees it (no account ids).
+const threadOut = (t, me) => ({
+  id: t.id, listing: t.listing, item: t.item, itemName: t.item_name, with: t.other_ign || "a player", role: t.buyer === me ? "buyer" : "seller",
+  last: t.last, unread: !!t.last_from && t.last_from !== me && t.last > (t.buyer === me ? t.buyer_seen : t.seller_seen),
+  snippet: t.snippet != null ? String(t.snippet).slice(0, 80) : "", itemUp: t.listing_status === "active", blocked: !!t.i_blocked,
+});
+const THREAD_SQL = (where) => `SELECT t.*, u.ign AS other_ign, l.status AS listing_status,
+    (SELECT body FROM messages m WHERE m.thread = t.id ORDER BY m.id DESC LIMIT 1) AS snippet,
+    (SELECT 1 FROM blocks b WHERE b.who = ?1 AND b.blocked = (CASE WHEN t.buyer = ?1 THEN t.seller ELSE t.buyer END)) AS i_blocked
+  FROM threads t
+  LEFT JOIN users u ON u.id = (CASE WHEN t.buyer = ?1 THEN t.seller ELSE t.buyer END)
+  LEFT JOIN listings l ON l.id = t.listing
+  WHERE ${where}`;
+
 // ---------- routes ----------
 
 export const communityReady = (env) => !!(env.DB && env.GOOGLE_CLIENT_ID);
@@ -553,6 +612,10 @@ export async function community(request, env, ctx, url, json) {
     }
     if (method === "DELETE") {
       await env.DB.batch([
+        env.DB.prepare(`DELETE FROM messages WHERE thread IN (SELECT id FROM threads WHERE buyer = ? OR seller = ?)`).bind(user.id, user.id),
+        env.DB.prepare(`DELETE FROM thread_reports WHERE thread IN (SELECT id FROM threads WHERE buyer = ? OR seller = ?)`).bind(user.id, user.id),
+        env.DB.prepare(`DELETE FROM threads WHERE buyer = ? OR seller = ?`).bind(user.id, user.id),
+        env.DB.prepare(`DELETE FROM blocks WHERE who = ? OR blocked = ?`).bind(user.id, user.id),
         env.DB.prepare(`DELETE FROM flags WHERE who = ? OR listing IN (SELECT id FROM listings WHERE user_id = ?)`).bind(user.id, user.id),
         env.DB.prepare(`DELETE FROM listings WHERE user_id = ?`).bind(user.id),
         env.DB.prepare(`DELETE FROM sessions WHERE user_id = ?`).bind(user.id),
@@ -647,6 +710,71 @@ export async function community(request, env, ctx, url, json) {
     return json({ ok: true });
   }
 
+  // ---- private messages ----
+  if (path === "/api/messages/unread" && method === "GET") {
+    if (!user) return json({ n: 0 });
+    const r = await env.DB.prepare(`SELECT COUNT(*) AS n FROM threads WHERE last_from != ?1 AND
+        ((buyer = ?1 AND last > buyer_seen) OR (seller = ?1 AND last > seller_seen))`).bind(user.id).first();
+    return json({ n: r.n || 0 });
+  }
+  if (path === "/api/messages" && method === "GET") {
+    if (needUser()) return needUser();
+    const rows = await env.DB.prepare(`${THREAD_SQL("t.buyer = ?1 OR t.seller = ?1")} ORDER BY t.last DESC LIMIT 100`).bind(user.id).all();
+    return json({ threads: rows.results.map((t) => threadOut(t, user.id)) });
+  }
+  if (path === "/api/admin/message-reports" && method === "GET") {
+    if (!isAdmin(env, user)) { alert(request, "not-admin"); return json({ error: "Admins only." }, 403); }
+    const reps = await env.DB.prepare(`SELECT r.thread, COUNT(*) AS n, MAX(r.t) AS t, th.item_name, th.listing,
+        ub.ign AS buyer_ign, us.ign AS seller_ign, th.buyer, th.seller
+      FROM thread_reports r JOIN threads th ON th.id = r.thread
+      LEFT JOIN users ub ON ub.id = th.buyer LEFT JOIN users us ON us.id = th.seller
+      GROUP BY r.thread ORDER BY t DESC LIMIT 50`).all();
+    const out = [];
+    for (const r of reps.results) {
+      const msgs = await env.DB.prepare(`SELECT sender, body, t FROM messages WHERE thread = ? ORDER BY id DESC LIMIT 60`).bind(r.thread).all();
+      out.push({ id: r.thread, reports: r.n, t: r.t, itemName: r.item_name, listing: r.listing, buyer: r.buyer_ign, seller: r.seller_ign,
+        messages: msgs.results.reverse().map((m) => ({ from: m.sender === r.buyer ? r.buyer_ign : r.seller_ign, body: m.body, t: m.t })) });
+    }
+    return json({ reports: out });
+  }
+  const mr = /^\/api\/admin\/message-reports\/([a-f0-9]{16})\/dismiss$/.exec(path);
+  if (mr && method === "POST") {
+    if (!isAdmin(env, user)) { alert(request, "not-admin"); return json({ error: "Admins only." }, 403); }
+    await env.DB.prepare(`DELETE FROM thread_reports WHERE thread = ?`).bind(mr[1]).run();
+    return json({ ok: true });
+  }
+  const mt = /^\/api\/messages\/([a-f0-9]{16})(\/block|\/unblock|\/report)?$/.exec(path);
+  if (mt) {
+    if (needUser()) return needUser();
+    const t = await env.DB.prepare(`${THREAD_SQL("t.id = ?2 AND (t.buyer = ?1 OR t.seller = ?1)")}`).bind(user.id, mt[1]).first();
+    if (!t) return json({ error: "Conversation not found." }, 404);
+    const action = mt[2];
+    if (!action && method === "GET") {
+      const msgs = await env.DB.prepare(`SELECT id, sender, body, t FROM messages WHERE thread = ? ORDER BY id DESC LIMIT 200`).bind(t.id).all();
+      const seen = t.buyer === user.id ? "buyer_seen" : "seller_seen";
+      await env.DB.prepare(`UPDATE threads SET ${seen} = ? WHERE id = ?`).bind(Date.now(), t.id).run();
+      return json({ thread: { ...threadOut(t, user.id), unread: false },
+        messages: msgs.results.reverse().map((m) => ({ id: m.id, mine: m.sender === user.id, body: m.body, t: m.t })) });
+    }
+    if (!action && method === "POST") {
+      const err = await sendMessage(env, json, t, user, body.body);
+      return err || json({ ok: true });
+    }
+    if (action === "/block" && method === "POST") {
+      await env.DB.prepare(`INSERT OR IGNORE INTO blocks (who, blocked) VALUES (?, ?)`).bind(user.id, otherOf(t, user.id)).run();
+      return json({ ok: true });
+    }
+    if (action === "/unblock" && method === "POST") {
+      await env.DB.prepare(`DELETE FROM blocks WHERE who = ? AND blocked = ?`).bind(user.id, otherOf(t, user.id)).run();
+      return json({ ok: true });
+    }
+    if (action === "/report" && method === "POST") {
+      await env.DB.prepare(`INSERT OR IGNORE INTO thread_reports (thread, who, t) VALUES (?, ?, ?)`).bind(t.id, user.id, Date.now()).run();
+      alert(request, "message-report", { thread: t.id });
+      return json({ ok: true });
+    }
+  }
+
   if (path === "/api/listings/cats" && method === "GET") {
     const demo = await demoOn(env);
     const { where, args } = listWhere(url.searchParams, Date.now(), true, demo);
@@ -726,7 +854,7 @@ export async function community(request, env, ctx, url, json) {
     return json({ id });
   }
 
-  const m = /^\/api\/listings\/([a-f0-9]{12})(\/verify|\/flag|\/boost|\/unflag)?$/.exec(path);
+  const m = /^\/api\/listings\/([a-f0-9]{12})(\/verify|\/flag|\/boost|\/unflag|\/message)?$/.exec(path);
   if (m) {
     const [, id, action] = m;
     const row = await env.DB.prepare(`SELECT ${COLS} FROM listings l JOIN users u ON u.id = l.user_id WHERE l.id = ?`).bind(id).first();
@@ -736,6 +864,28 @@ export async function community(request, env, ctx, url, json) {
     if (!action && method === "GET") return json({ listing: publicListing(row, user) });
 
     if (row.demo && method !== "GET" && !isAdmin(env, user)) return json({ error: "This is an example item." }, 400);
+
+    if (action === "/message" && method === "POST") {
+      if (needUser()) return needUser();
+      if (!user.ign) return json({ error: "Add your in-game name first (top of the page)." }, 400);
+      if (mine) return json({ error: "That's your own item." }, 400);
+      let t = await env.DB.prepare(`SELECT * FROM threads WHERE listing = ? AND buyer = ?`).bind(id, user.id).first();
+      const fresh = !t;
+      if (!t) {
+        if (!msgText(body.body)) return json({ error: "Write a message first." }, 400);
+        if (row.status !== "active") return json({ error: "This item isn't up anymore." }, 400);
+        const today = await env.DB.prepare(`SELECT COUNT(*) AS n FROM threads WHERE buyer = ? AND created > ?`).bind(user.id, Date.now() - DAY).first();
+        if ((today.n || 0) >= NEW_CHATS_PER_DAY) return json({ error: `That's ${NEW_CHATS_PER_DAY} new conversations today. Try again tomorrow.` }, 429);
+        const now = Date.now();
+        t = { id: randomHex(8), listing: id, item: row.item, item_name: row.name, buyer: user.id, seller: row.user_id, created: now, last: now };
+        await env.DB.prepare(`INSERT INTO threads (id, listing, item, item_name, buyer, seller, created, last) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+          .bind(t.id, t.listing, t.item, t.item_name, t.buyer, t.seller, t.created, t.last).run();
+      }
+      const err = await sendMessage(env, json, t, user, body.body);
+      // nothing was sent: don't leave an empty conversation behind
+      if (err && fresh) await env.DB.prepare(`DELETE FROM threads WHERE id = ?`).bind(t.id).run();
+      return err || json({ thread: t.id });
+    }
 
     if (action === "/flag" && method === "POST") {
       if (needUser()) return needUser();

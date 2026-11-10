@@ -1,12 +1,12 @@
 // Browse items: scrolled items players posted, as cards with how rare each one is.
-import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=4fa45b8f";
-import { drawCard, cardBlob } from "./card.js?v=4fa45b8f";
-import { cardInfo, cardLabel, cardFmt, cardDate } from "./itemcard.js?v=4fa45b8f";
-import { rarity, oneInText } from "./rarity.js?v=4fa45b8f";
-import { setupA11y } from "./a11y.js?v=4fa45b8f";
-import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=4fa45b8f";
-import { itemSearch } from "./itemsearch.js?v=4fa45b8f";
-import { DISCORD_URL } from "./config.js?v=4fa45b8f";
+import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=2a731c0e";
+import { drawCard, cardBlob } from "./card.js?v=2a731c0e";
+import { cardInfo, cardLabel, cardFmt, cardDate } from "./itemcard.js?v=2a731c0e";
+import { rarity, oneInText } from "./rarity.js?v=2a731c0e";
+import { setupA11y } from "./a11y.js?v=2a731c0e";
+import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=2a731c0e";
+import { itemSearch } from "./itemsearch.js?v=2a731c0e";
+import { DISCORD_URL } from "./config.js?v=2a731c0e";
 
 const $ = (id) => document.getElementById(id);
 // a small MapleStory icon next to a label (assets/ui/)
@@ -132,10 +132,13 @@ function query() {
 async function load(more = false) {
   const box = $("listings");
   if (tab === "mine") return renderMine();
+  if (tab === "messages") return renderMessages();
   $("market").hidden = false;
   if (!more) { offset = 0; shown = []; box.innerHTML = `<p class="hint">Loading…</p>`; loadCounts(); }
+  const forTab = tab;
   try {
     const j = await api(`/api/listings?${query()}`);
+    if (tab !== forTab) return; // switched tabs meanwhile
     shown = shown.concat(j.listings);
     offset = shown.length;
     $("more").hidden = !j.more;
@@ -174,6 +177,7 @@ async function loadCounts() {
 
 function setTab(t) {
   tab = t;
+  stopThreadPoll();
   for (const b of document.querySelectorAll("[data-tab]")) b.setAttribute("aria-selected", String(b.dataset.tab === t));
   $("fSort").disabled = t === "rare";
   load();
@@ -246,10 +250,17 @@ async function openDetail(id) {
         <div class="detail-actions">
           <button type="button" class="ghost-btn" id="copyLink">Copy link</button>
           <button type="button" class="ghost-btn" id="saveCard">${IC("map-piece")} Image</button>
+          ${l.mine || l.demo ? "" : `<button type="button" class="ghost-btn" id="msgSeller">${IC("letter")} Message ${l.ign ? esc(l.ign) : "the seller"}</button>`}
           ${l.mine || l.demo ? "" : `<button type="button" class="ghost-btn" id="flag">${IC("flag")} Report</button>`}
           ${me_admin && !l.mine && !l.demo ? `<button type="button" class="ghost-btn" id="adminUnflag">Admin: clear reports</button>
             <button type="button" class="ghost-btn" id="adminRemove">${IC("trash")} Admin: remove</button>` : ""}
         </div>
+        <form id="msgForm" class="msg-compose" hidden>
+          <label for="msgBody">Your message to ${esc(l.ign || "the seller")} about this ${esc(l.name)}</label>
+          <textarea id="msgBody" maxlength="500" rows="3" placeholder="Hi! Is it still for sale? I can meet you in ${l.channel ? `Ch ${l.channel}` : "game"}."></textarea>
+          <p class="hint">${SAFETY}</p>
+          <button type="submit">Send</button>
+        </form>
         <p id="detailMsg" class="sale-msg" role="status"></p>
       </div>
     </div>`;
@@ -275,6 +286,26 @@ async function openDetail(id) {
     try { await api(`/api/listings/${l.id}/unflag`, { method: "POST", body: {} }); $("detailMsg").textContent = "Reports cleared."; }
     catch (e) { $("detailMsg").textContent = e.message; }
   });
+  $("msgSeller")?.addEventListener("click", () => {
+    if (!user) { $("detailMsg").textContent = "Sign in (top of the page) to message the seller."; return; }
+    if (!user.ign) { $("detailMsg").textContent = "Add your in-game name first (top of the page)."; return; }
+    $("msgForm").hidden = false;
+    $("msgBody").focus();
+  });
+  $("msgForm")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const text = $("msgBody").value.trim();
+    if (!text) { $("msgBody").focus(); return; }
+    const btn = e.target.querySelector("button");
+    btn.disabled = true;
+    try {
+      const j = await api(`/api/listings/${l.id}/message`, { method: "POST", body: { body: text } });
+      $("msgForm").hidden = true;
+      $("detailMsg").innerHTML = `Sent! Their reply will show under Messages. <button type="button" class="ghost-btn mini" id="openChat">Open the conversation</button>`;
+      $("openChat").addEventListener("click", () => { $("detail").close(); openThread(j.thread); });
+    } catch (err) { $("detailMsg").textContent = err.message; }
+    finally { btn.disabled = false; }
+  });
   $("flag")?.addEventListener("click", async () => {
     if (!user) { $("detailMsg").textContent = "Sign in (top of the page) to report an item."; return; }
     if (!confirm("Report this item as fake or wrong?")) return;
@@ -283,7 +314,7 @@ async function openDetail(id) {
   });
 }
 $("detailClose").addEventListener("click", () => $("detail").close());
-$("detail").addEventListener("close", () => history.replaceState(null, "", location.pathname));
+$("detail").addEventListener("close", () => { if (location.hash.startsWith("#l=")) history.replaceState(null, "", location.pathname); });
 $("detail").addEventListener("click", (e) => { if (e.target === $("detail")) $("detail").close(); });
 
 // ---------- account and my items ----------
@@ -291,6 +322,7 @@ $("detail").addEventListener("click", (e) => { if (e.target === $("detail")) $("
 function renderAccount() {
   const box = $("accountBody");
   document.querySelector('[data-tab="mine"]').hidden = !user;
+  document.querySelector('[data-tab="messages"]').hidden = !user;
   if (!user) {
     box.innerHTML = `<div class="account-row"><p><b>Post your scrolled items.</b>
       Sign in to put your items up. No email or name is stored, only the in-game name you choose.</p><div id="gbtn"></div></div>`;
@@ -313,7 +345,7 @@ function renderAccount() {
     try { user = (await api("/api/me", { method: "PUT", body: { ign } })).user; $("accountMsg").textContent = "Saved."; if (tab === "mine") renderMine(); }
     catch (err) { $("accountMsg").textContent = err.message; }
   });
-  $("signOut").addEventListener("click", async () => { await signOut(); user = null; myListings = []; renderAccount(); if (tab === "mine") setTab("sale"); });
+  $("signOut").addEventListener("click", async () => { await signOut(); user = null; myListings = []; renderAccount(); if (tab === "mine" || tab === "messages") setTab("all"); });
   $("deleteMe").addEventListener("click", async () => {
     if (!confirm("Delete your account and all your items? This can't be undone.")) return;
     try { await api("/api/me", { method: "DELETE" }); user = null; myListings = []; renderAccount(); setTab("sale"); toast("Your account was deleted."); }
@@ -501,6 +533,118 @@ const toSupporters = () => {
 $("supBtn").addEventListener("click", toSupporters);
 $("featureYours").addEventListener("click", toSupporters);
 
+// ---------- private messages ----------
+
+const SAFETY = "Trade in game. Never share your password or pay outside the game: FMCheck will never ask for either.";
+let threadPoll = null, openChatId = null;
+function stopThreadPoll() { clearInterval(threadPoll); threadPoll = null; openChatId = null; }
+
+// The unread count on the Messages tab, checked every minute while the page is open.
+async function refreshUnread() {
+  if (!user) { $("msgCount").hidden = true; return; }
+  try {
+    const { n } = await api("/api/messages/unread");
+    $("msgCount").textContent = n;
+    $("msgCount").hidden = !n;
+    $("msgCount").setAttribute("aria-label", `${n} new`);
+  } catch { /* try again next time */ }
+}
+function watchUnread() {
+  refreshUnread();
+  setInterval(() => { if (!document.hidden) refreshUnread(); }, 60e3);
+}
+
+async function renderMessages() {
+  $("market").hidden = true;
+  $("more").hidden = true;
+  const box = $("listings");
+  if (!user) { box.innerHTML = `<p class="hint">Sign in to see your messages.</p>`; return; }
+  box.innerHTML = `<p class="hint">Loading…</p>`;
+  try {
+    const { threads } = await api("/api/messages");
+    box.innerHTML = threads.length ? `<ul class="chats">${threads.map((t) => `<li><button type="button" class="chat-row${t.unread ? " unread" : ""}" data-chat="${t.id}">
+        <img src="${icon(t.item)}" alt="" />
+        <span class="chat-main"><b>${esc(t.with)}</b> <small>${t.role === "buyer" ? "you asked about" : "asked about your"} ${esc(t.itemName)}</small>
+          <span class="chat-snippet">${esc(t.snippet) || "&nbsp;"}</span></span>
+        <small class="chat-when">${ago(t.last)}${t.unread ? ` <span class="msg-dot" aria-label="new"></span>` : ""}</small>
+      </button></li>`).join("")}</ul>`
+      : `<p class="hint">No messages yet. Open an item you like and press <b>Message</b> to write to its seller.</p>`;
+  } catch (e) { box.innerHTML = `<p class="hint">${esc(e.message)}</p>`; }
+}
+$("listings").addEventListener("click", (e) => { const b = e.target.closest("[data-chat]"); if (b) openThread(b.dataset.chat); });
+
+async function openThread(id) {
+  if (tab !== "messages") { tab = "messages"; for (const b of document.querySelectorAll("[data-tab]")) b.setAttribute("aria-selected", String(b.dataset.tab === "messages")); }
+  stopThreadPoll();
+  openChatId = id;
+  $("market").hidden = true;
+  $("more").hidden = true;
+  history.replaceState(null, "", `#m=${id}`);
+  const box = $("listings");
+  box.innerHTML = `<p class="hint">Loading…</p>`;
+  let lastId = -1;
+  const draw = async (first) => {
+    let j;
+    try { j = await api(`/api/messages/${id}`); } catch (e) { if (first) box.innerHTML = `<p class="hint">${esc(e.message)}</p>`; return; }
+    if (openChatId !== id) return;
+    const t = j.thread, newest = j.messages.length ? j.messages[j.messages.length - 1].id : 0;
+    if (!first && newest === lastId) return;
+    lastId = newest;
+    const draft = $("chatBody")?.value || "";
+    box.innerHTML = `<div class="chat">
+      <div class="chat-head">
+        <button type="button" class="ghost-btn mini" id="chatBack">← All messages</button>
+        <img src="${icon(t.item)}" alt="" />
+        <span><b>${esc(t.with)}</b><small>${t.role === "buyer" ? "About their" : "About your"} ${esc(t.itemName)}${t.itemUp ? ` · <button type="button" class="link-btn" id="chatItem">see the item</button>` : " · no longer up"}</small></span>
+      </div>
+      <ol class="chat-log" id="chatLog">${j.messages.map((m) => `<li class="${m.mine ? "me" : "them"}"><p>${esc(m.body).replace(/\n/g, "<br>")}</p><small>${ago(m.t)}</small></li>`).join("")}</ol>
+      ${t.blocked ? `<p class="hint">You blocked ${esc(t.with)}. They can't write to you. <button type="button" class="link-btn" id="chatUnblock">Unblock</button></p>`
+        : `<form class="chat-reply" id="chatForm">
+          <label class="sr-only" for="chatBody">Reply to ${esc(t.with)}</label>
+          <textarea id="chatBody" maxlength="500" rows="2" placeholder="Write a reply…"></textarea>
+          <button type="submit">Send</button>
+        </form>`}
+      <p class="hint">${SAFETY}</p>
+      <div class="chat-tools">
+        ${t.blocked ? "" : `<button type="button" class="ghost-btn mini" id="chatBlock">Block ${esc(t.with)}</button>`}
+        <button type="button" class="ghost-btn mini" id="chatReport">${IC("flag")} Report this conversation</button>
+      </div>
+      <p id="chatMsg" class="sale-msg" role="status"></p>
+    </div>`;
+    const log = $("chatLog");
+    log.scrollTop = log.scrollHeight;
+    if ($("chatBody")) { $("chatBody").value = draft; if (draft) $("chatBody").focus(); }
+    $("chatBack").addEventListener("click", () => { stopThreadPoll(); history.replaceState(null, "", location.pathname); renderMessages(); refreshUnread(); });
+    $("chatItem")?.addEventListener("click", () => openDetail(t.listing));
+    $("chatForm")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const text = $("chatBody").value.trim();
+      if (!text) return;
+      const btn = e.target.querySelector("button");
+      btn.disabled = true;
+      try { await api(`/api/messages/${id}`, { method: "POST", body: { body: text } }); $("chatBody").value = ""; await draw(false); }
+      catch (err) { $("chatMsg").textContent = err.message; }
+      finally { btn.disabled = false; }
+    });
+    $("chatBody")?.addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) $("chatForm").requestSubmit(); });
+    $("chatBlock")?.addEventListener("click", async () => {
+      if (!confirm(`Block ${t.with}? They won't be able to write to you.`)) return;
+      try { await api(`/api/messages/${id}/block`, { method: "POST", body: {} }); toast(`${t.with} is blocked.`); await draw(true); } catch (err) { $("chatMsg").textContent = err.message; }
+    });
+    $("chatUnblock")?.addEventListener("click", async () => {
+      try { await api(`/api/messages/${id}/unblock`, { method: "POST", body: {} }); toast("Unblocked."); await draw(true); } catch (err) { $("chatMsg").textContent = err.message; }
+    });
+    $("chatReport").addEventListener("click", async () => {
+      if (!confirm("Report this conversation to FMCheck? An admin will read it.")) return;
+      try { await api(`/api/messages/${id}/report`, { method: "POST", body: {} }); $("chatMsg").textContent = "Thanks, reported. You can also block them."; } catch (err) { $("chatMsg").textContent = err.message; }
+    });
+    refreshUnread();
+  };
+  await draw(true);
+  // new replies show up while the conversation is open
+  threadPoll = setInterval(() => { if (!document.hidden && openChatId === id) draw(false); }, 8000);
+}
+
 // ---------- start ----------
 
 (async function start() {
@@ -522,9 +666,14 @@ $("featureYours").addEventListener("click", toSupporters);
   }
   if (canSignIn()) await refreshMe();
   else { renderAccount(); renderSupporter(); }
-  load();
+  // a link to a conversation or to Messages opens there; otherwise the items
+  const chat = /^#m=([a-f0-9]{16})$/.exec(location.hash)?.[1];
+  if (user && chat) openThread(chat);
+  else if (user && location.hash === "#messages") setTab("messages");
+  else load();
   loadFeatured();
   if (location.hash === "#supporters" && h.supporters) setTimeout(toSupporters, 300);
   const id = /^#l=([a-f0-9]{12})$/.exec(location.hash)?.[1];
   if (id) openDetail(id);
+  watchUnread();
 })();

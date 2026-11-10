@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <script src="js/boot.js?v=4fa45b8f"></script>
+  <script src="js/boot.js?v=2a731c0e"></script>
   <link rel="canonical" href="https://fmcheck.org/community.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>FMCheck · Scrolled items players posted</title>
@@ -20,7 +20,7 @@
   <link rel="apple-touch-icon" href="assets/favicon-180.png" />
   <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="css/style.css?v=4fa45b8f" />
+  <link rel="stylesheet" href="css/style.css?v=2a731c0e" />
 </head>
 <body>
   <a class="skip" href="#listings">Skip to the items</a>
@@ -89,6 +89,7 @@
         <button role="tab" type="button" data-tab="all" aria-selected="true"><img class="tab-ic" src="assets/ui/meso.png" alt="" /> All items</button>
         <button role="tab" type="button" data-tab="rare" aria-selected="false"><img class="tab-ic" src="assets/ui/zakum-helmet.png" alt="" /> Rarest this week</button>
         <button role="tab" type="button" data-tab="mine" aria-selected="false" hidden><img class="tab-ic" src="assets/ui/inventory.png" alt="" /> My items</button>
+        <button role="tab" type="button" data-tab="messages" aria-selected="false" hidden><img class="tab-ic" src="assets/ui/letter.png" alt="" /> Messages <span class="msg-count" id="msgCount" hidden></span></button>
       </div>
       <div id="market" class="market-search" role="search" aria-labelledby="marketTitle">
         <p class="market-title" id="marketTitle"><img src="assets/ui/meso.png" alt="" /> Find items
@@ -146,7 +147,7 @@
           and the way its scrolls passed. FMCheck works it out from the stats; nobody types it in.
           Common, Uncommon (1 in 5+), Rare (1 in 50+), Epic (1 in 500+) and Legendary (1 in 5,000+).</li>
         <li><b>The tabs:</b> <i>All items</i> is every post, <i>Rarest this week</i> the last 7 days, rarest first,
-          and <i>My items</i> yours, with the buttons to manage them.</li>
+          and <i>My items</i> yours, with the buttons to manage them. <i>Messages</i> is where you write to sellers and read their replies (press <i>Message</i> on any item).</li>
         <li><b><img class="ic" src="assets/ui/mirror.png" alt="" /> Checked on screen:</b> the owner showed the item's window from the game,
           and the stats and slots matched. Reading happens in their browser: the screen is never uploaded. It's a strong hint, not a guarantee.</li>
         <li>Trades happen in the game, between players. Mesos only: real-money trading isn't allowed. See something fake? Press <i>Report</i> on the item.</li>
@@ -191,6 +192,6 @@
   </div>
 
 
-  <script type="module" src="js/community.js?v=4fa45b8f"></script>
+  <script type="module" src="js/community.js?v=2a731c0e"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 // What goes on an item card (drawn by card.js), shared by the calculator and the community page.
-import { mesos } from "./calc.js?v=4fa45b8f";
-import { oneInText as rareText } from "./rarity.js?v=4fa45b8f";
+import { mesos } from "./calc.js?v=2a731c0e";
+import { oneInText as rareText } from "./rarity.js?v=2a731c0e";
 
 export const GAME_LABEL = { STR: "STR", DEX: "DEX", INT: "INT", LUK: "LUK", MHP: "MaxHP", MMP: "MaxMP", PAD: "Weapon Att.",
   MAD: "Magic Att.", PDD: "Weapon Def.", MDD: "Magic Def.", ACC: "Accuracy", EVA: "Avoidability", Speed: "Speed",
