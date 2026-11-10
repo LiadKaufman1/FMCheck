@@ -8,6 +8,24 @@
   Cross-Origin-Opener-Policy: same-origin-allow-popups
   Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://accounts.google.com/gsi/client https://static.cloudflareinsights.com; connect-src 'self' https://accounts.google.com/gsi/ https://cloudflareinsights.com; frame-src https://accounts.google.com/gsi/; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: blob:; worker-src 'self' blob:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
 
+# Pages: the browser checks for a new version every time (so a page never mixes old and new code)
+/
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache
+/community
+  Cache-Control: no-cache
+/community.html
+  Cache-Control: no-cache
+/terms
+  Cache-Control: no-cache
+/terms.html
+  Cache-Control: no-cache
+/admin
+  Cache-Control: no-cache
+/admin.html
+  Cache-Control: no-cache
+
 # Cloudflare Pages caching (GitHub Pages ignores this file).
 # css/js links carry ?v=<version> (scripts/stamp.py), so a new version is a new address.
 /assets/*

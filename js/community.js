@@ -1,12 +1,12 @@
 // Browse items: scrolled items players posted, as cards with how rare each one is.
-import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=2a731c0e";
-import { drawCard, cardBlob } from "./card.js?v=2a731c0e";
-import { cardInfo, cardLabel, cardFmt, cardDate } from "./itemcard.js?v=2a731c0e";
-import { rarity, oneInText } from "./rarity.js?v=2a731c0e";
-import { setupA11y } from "./a11y.js?v=2a731c0e";
-import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=2a731c0e";
-import { itemSearch } from "./itemsearch.js?v=2a731c0e";
-import { DISCORD_URL } from "./config.js?v=2a731c0e";
+import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=3937cb09";
+import { drawCard, cardBlob } from "./card.js?v=3937cb09";
+import { cardInfo, cardLabel, cardFmt, cardDate } from "./itemcard.js?v=3937cb09";
+import { rarity, oneInText } from "./rarity.js?v=3937cb09";
+import { setupA11y } from "./a11y.js?v=3937cb09";
+import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=3937cb09";
+import { itemSearch } from "./itemsearch.js?v=3937cb09";
+import { DISCORD_URL } from "./config.js?v=3937cb09";
 
 const $ = (id) => document.getElementById(id);
 // a small MapleStory icon next to a label (assets/ui/)
@@ -321,8 +321,10 @@ $("detail").addEventListener("click", (e) => { if (e.target === $("detail")) $("
 
 function renderAccount() {
   const box = $("accountBody");
-  document.querySelector('[data-tab="mine"]').hidden = !user;
-  document.querySelector('[data-tab="messages"]').hidden = !user;
+  // (?. so a page saved by the browser from an older version still works)
+  const mineTab = document.querySelector('[data-tab="mine"]'), msgTab = document.querySelector('[data-tab="messages"]');
+  if (mineTab) mineTab.hidden = !user;
+  if (msgTab) msgTab.hidden = !user;
   if (!user) {
     box.innerHTML = `<div class="account-row"><p><b>Post your scrolled items.</b>
       Sign in to put your items up. No email or name is stored, only the in-game name you choose.</p><div id="gbtn"></div></div>`;
@@ -541,12 +543,14 @@ function stopThreadPoll() { clearInterval(threadPoll); threadPoll = null; openCh
 
 // The unread count on the Messages tab, checked every minute while the page is open.
 async function refreshUnread() {
-  if (!user) { $("msgCount").hidden = true; return; }
+  const c = $("msgCount");
+  if (!c) return;
+  if (!user) { c.hidden = true; return; }
   try {
     const { n } = await api("/api/messages/unread");
-    $("msgCount").textContent = n;
-    $("msgCount").hidden = !n;
-    $("msgCount").setAttribute("aria-label", `${n} new`);
+    c.textContent = n;
+    c.hidden = !n;
+    c.setAttribute("aria-label", `${n} new`);
   } catch { /* try again next time */ }
 }
 function watchUnread() {
@@ -647,6 +651,12 @@ async function openThread(id) {
 
 // ---------- start ----------
 
+// If anything goes wrong while starting, say so (instead of "Loading…" forever).
+const startFailed = () => {
+  const box = $("accountBody");
+  if (box && /Loading/.test(box.textContent)) box.innerHTML = `<p class="hint">Something didn't load. <button type="button" class="link-btn" id="reloadPage">Reload the page</button></p>`;
+  $("reloadPage")?.addEventListener("click", () => location.reload());
+};
 (async function start() {
   const [eq, sc, h] = await Promise.all([
     fetch("data/equips.json").then((r) => r.json()),
@@ -676,4 +686,4 @@ async function openThread(id) {
   const id = /^#l=([a-f0-9]{12})$/.exec(location.hash)?.[1];
   if (id) openDetail(id);
   watchUnread();
-})();
+})().catch((e) => { console.error(e); startFailed(); });

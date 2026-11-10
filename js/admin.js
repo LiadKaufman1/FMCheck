@@ -1,10 +1,10 @@
 // The price list page (admins): average prices of scrolls and clean items that estimates use when a player
 // leaves a price empty. Stored on the server (/api/prices); anyone can read them, only admins can change them.
-import { mesos, readPrice, UNITS } from "./calc.js?v=2a731c0e";
-import { setupA11y } from "./a11y.js?v=2a731c0e";
-import { api, me, googleButton, esc, canSignIn } from "./account.js?v=2a731c0e";
-import { iconUrl, priceLink } from "./config.js?v=2a731c0e";
-import { findPrices } from "./priceimport.js?v=2a731c0e";
+import { mesos, readPrice, UNITS } from "./calc.js?v=3937cb09";
+import { setupA11y } from "./a11y.js?v=3937cb09";
+import { api, me, googleButton, esc, canSignIn } from "./account.js?v=3937cb09";
+import { iconUrl, priceLink } from "./config.js?v=3937cb09";
+import { findPrices } from "./priceimport.js?v=3937cb09";
 
 const $ = (id) => document.getElementById(id);
 setupA11y();

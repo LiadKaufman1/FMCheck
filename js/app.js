@@ -1,11 +1,11 @@
-import { iconUrl, DONATE_URL, DISCORD_URL } from "./config.js?v=2a731c0e";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, mesos, readPrice } from "./calc.js?v=2a731c0e";
-import { rarity, oneInText } from "./rarity.js?v=2a731c0e";
-import { drawCard, cardBlob } from "./card.js?v=2a731c0e";
-import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=2a731c0e";
-import { itemSearch } from "./itemsearch.js?v=2a731c0e";
-import { setupA11y } from "./a11y.js?v=2a731c0e";
-import { API, api, health, me, googleButton, validIgn } from "./account.js?v=2a731c0e";
+import { iconUrl, DONATE_URL, DISCORD_URL } from "./config.js?v=3937cb09";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, mesos, readPrice } from "./calc.js?v=3937cb09";
+import { rarity, oneInText } from "./rarity.js?v=3937cb09";
+import { drawCard, cardBlob } from "./card.js?v=3937cb09";
+import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=3937cb09";
+import { itemSearch } from "./itemsearch.js?v=3937cb09";
+import { setupA11y } from "./a11y.js?v=3937cb09";
+import { API, api, health, me, googleButton, validIgn } from "./account.js?v=3937cb09";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -628,6 +628,7 @@ if (DONATE_URL) {
 // New private messages: a link at the top, so a seller sees replies from any page.
 async function checkMessages() {
   try {
+    if (!$("msgLink")) return;
     const { n } = await api("/api/messages/unread");
     $("msgLink").hidden = !n;
     $("msgLinkText").textContent = `${n} new message${n === 1 ? "" : "s"}`;
