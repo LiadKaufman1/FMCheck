@@ -1,10 +1,10 @@
 // The price list page (admins): average prices of scrolls and clean items that estimates use when a player
 // leaves a price empty. Stored on the server (/api/prices); anyone can read them, only admins can change them.
-import { mesos, readPrice, UNITS } from "./calc.js?v=3937cb09";
-import { setupA11y } from "./a11y.js?v=3937cb09";
-import { api, me, googleButton, esc, canSignIn } from "./account.js?v=3937cb09";
-import { iconUrl, priceLink } from "./config.js?v=3937cb09";
-import { findPrices } from "./priceimport.js?v=3937cb09";
+import { mesos, readPrice, UNITS } from "./calc.js?v=17e3dd26";
+import { setupA11y } from "./a11y.js?v=17e3dd26";
+import { api, me, googleButton, esc, canSignIn } from "./account.js?v=17e3dd26";
+import { iconUrl, priceLink } from "./config.js?v=17e3dd26";
+import { findPrices } from "./priceimport.js?v=17e3dd26";
 
 const $ = (id) => document.getElementById(id);
 setupA11y();
@@ -162,7 +162,7 @@ async function showReports() {
   const when = (t) => new Date(t).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   $("reportsBody").innerHTML = reports.length ? reports.map((r) => `<article class="report" data-id="${r.id}">
       <p><b>${esc(r.buyer || "?")}</b> → <b>${esc(r.seller || "?")}</b> about ${esc(r.itemName)}
-        <a href="community.html#l=${r.listing}" target="_blank" rel="noopener">item</a> · reported ${r.reports}× · ${when(r.t)}</p>
+        <a href="./#l=${r.listing}" target="_blank" rel="noopener">item</a> · reported ${r.reports}× · ${when(r.t)}</p>
       <ol class="report-log">${r.messages.map((m) => `<li><b>${esc(m.from || "?")}:</b> ${esc(m.body)} <small>${when(m.t)}</small></li>`).join("")}</ol>
       <button type="button" class="ghost-btn mini" data-dismiss>Dismiss report</button>
     </article>`).join("") : `<p class="hint">No reported conversations.</p>`;

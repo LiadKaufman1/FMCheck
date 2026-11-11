@@ -1,12 +1,12 @@
 // Browse items: scrolled items players posted, as cards with how rare each one is.
-import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=3937cb09";
-import { drawCard, cardBlob } from "./card.js?v=3937cb09";
-import { cardInfo, cardLabel, cardFmt, cardDate } from "./itemcard.js?v=3937cb09";
-import { rarity, oneInText } from "./rarity.js?v=3937cb09";
-import { setupA11y } from "./a11y.js?v=3937cb09";
-import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=3937cb09";
-import { itemSearch } from "./itemsearch.js?v=3937cb09";
-import { DISCORD_URL } from "./config.js?v=3937cb09";
+import { STATS, STAT_LABEL, mesos, readPrice } from "./calc.js?v=17e3dd26";
+import { drawCard, cardBlob } from "./card.js?v=17e3dd26";
+import { cardInfo, cardLabel, cardFmt, cardDate } from "./itemcard.js?v=17e3dd26";
+import { rarity, oneInText } from "./rarity.js?v=17e3dd26";
+import { setupA11y } from "./a11y.js?v=17e3dd26";
+import { api, health, me, googleButton, signOut, validIgn, esc, ago, place, canSignIn } from "./account.js?v=17e3dd26";
+import { itemSearch } from "./itemsearch.js?v=17e3dd26";
+import { DISCORD_URL } from "./config.js?v=17e3dd26";
 
 const $ = (id) => document.getElementById(id);
 // a small MapleStory icon next to a label (assets/ui/)
@@ -146,7 +146,7 @@ async function load(more = false) {
       ? `<p class="demo-note">Items tagged <span class="badge demo">Example</span> aren't real posts: they show how FMCheck works.</p>` : "";
     box.innerHTML = shown.length ? `${demoNote}<ul class="itiles">${shown.map(tile).join("")}</ul>` : `<p class="hint">${
       tab === "rare" ? "No items this week yet." : "No items match yet."}
-      Be the first: <a href="./">post yours</a>.</p>`;
+      Be the first: <a href="post.html">post yours</a>.</p>`;
   } catch (e) {
     box.innerHTML = `<p class="hint">${esc(e.status === 503 ? "Posting opens soon." : e.message)}</p>`;
   }
@@ -232,7 +232,7 @@ async function openDetail(id) {
       <canvas id="detailCard" class="item-card" role="img"></canvas>
       <div class="detail-info">
         ${l.demo ? `<p class="demo-banner"><b>Example item.</b> This isn't a real post and the player isn't real:
-          it shows how items look on FMCheck. <a href="./">Post your own</a>.</p>` : ""}
+          it shows how items look on FMCheck. <a href="post.html">Post your own</a>.</p>` : ""}
         ${l.status === "sold" ? `<p class="badge">Sold</p>` : ""}
         <p class="detail-rarity" style="--tier:${rarityOf(l).tier.color}"><b>${rarityOf(l).tier.name}</b> ${oneInText(rarityOf(l).oneIn)}</p>
         <p class="detail-price">${l.price ? `For sale: <b>${mesos(l.price)}</b>` : "Not for sale"}</p>
@@ -287,8 +287,8 @@ async function openDetail(id) {
     catch (e) { $("detailMsg").textContent = e.message; }
   });
   $("msgSeller")?.addEventListener("click", () => {
-    if (!user) { $("detailMsg").textContent = "Sign in (top of the page) to message the seller."; return; }
-    if (!user.ign) { $("detailMsg").textContent = "Add your in-game name first (top of the page)."; return; }
+    if (!user) { $("detailMsg").textContent = "Sign in (below the items) to message the seller."; return; }
+    if (!user.ign) { $("detailMsg").textContent = "Add your in-game name first (below the items)."; return; }
     $("msgForm").hidden = false;
     $("msgBody").focus();
   });
@@ -307,7 +307,7 @@ async function openDetail(id) {
     finally { btn.disabled = false; }
   });
   $("flag")?.addEventListener("click", async () => {
-    if (!user) { $("detailMsg").textContent = "Sign in (top of the page) to report an item."; return; }
+    if (!user) { $("detailMsg").textContent = "Sign in (below the items) to report an item."; return; }
     if (!confirm("Report this item as fake or wrong?")) return;
     try { await api(`/api/listings/${l.id}/flag`, { method: "POST", body: {} }); $("detailMsg").textContent = "Thanks, reported."; }
     catch (e) { $("detailMsg").textContent = e.message; }
@@ -324,6 +324,8 @@ function renderAccount() {
   // (?. so a page saved by the browser from an older version still works)
   const mineTab = document.querySelector('[data-tab="mine"]'), msgTab = document.querySelector('[data-tab="messages"]');
   if (mineTab) mineTab.hidden = !user;
+  const signIn = $("signInLink");
+  if (signIn) signIn.hidden = !!user;
   if (msgTab) msgTab.hidden = !user;
   if (!user) {
     box.innerHTML = `<div class="account-row"><p><b>Post your scrolled items.</b>
@@ -370,7 +372,7 @@ function renderMine() {
   $("more").hidden = true;
   const box = $("listings");
   if (!user) { box.innerHTML = `<p class="hint">Sign in to see your items.</p>`; return; }
-  if (!myListings.length) { box.innerHTML = `<p class="hint">You haven't posted any items yet. <a href="./">Post one</a>.</p>`; return; }
+  if (!myListings.length) { box.innerHTML = `<p class="hint">You haven't posted any items yet. <a href="post.html">Post one</a>.</p>`; return; }
   box.innerHTML = `<ul class="mine">${myListings.map((l) => `<li data-id="${l.id}">
       <ul class="itiles one">${tile(l)}</ul>
       <div class="mine-actions">
@@ -511,7 +513,7 @@ function renderSupporter() {
       <button type="submit">Link my payment</button></form>
       <p class="hint">The email is only used to find your payment: we keep a one-way code of it, never the email itself.</p>
       <p id="claimMsg" class="sale-msg" role="status"></p>
-    </details>` : `<p class="hint">Sign in first (top of the page), so your perks go to your account.</p>`}
+    </details>` : `<p class="hint">Sign in first (below the items), so your perks go to your account.</p>`}
     <p class="hint">Payments go through Ko-fi; FMCheck never sees your card. Supporting is voluntary and doesn't buy anything in the game.
       Perks may change. <a href="terms.html#supporters">Supporter terms</a></p>`;
   $("copyCode")?.addEventListener("click", () => navigator.clipboard.writeText(user.code).then(() => toast("Code copied. Paste it in the Ko-fi message.")).catch(() => {}));
@@ -669,7 +671,7 @@ const startFailed = () => {
   $("fStat").innerHTML += STATS.filter(([k]) => !["CRT", "CRD"].includes(k)).map(([k, label]) => `<option value="${k}">${label}</option>`).join("");
   healthInfo = h;
   if (!h.community) {
-    $("accountBody").innerHTML = `<p class="hint">Posting opens soon. Meanwhile, see how rare your items are under <a href="./">Post an item</a>.</p>`;
+    $("accountBody").innerHTML = `<p class="hint">Posting opens soon. Meanwhile, see how rare your items are under <a href="post.html">Post an item</a>.</p>`;
     $("listings").innerHTML = "";
     $("market").hidden = true;
     return;

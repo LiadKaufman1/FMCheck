@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <!-- www moves to fmcheck.org. The older addresses (GitHub Pages, workers.dev) keep working as a backup for networks
+       that block newly registered domains, with a note pointing to the main address. -->
+  <script src="js/boot.js?v=17e3dd26"></script>
+  <link rel="canonical" href="https://fmcheck.org/post" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FMCheck · Post your scrolled item</title>
+  <meta name="description" content="Post your scrolled MapleStory Classic item with its exact stats, slots and scrolls, and see how rare it is: its natural roll and the way its scrolls passed, on a card you can share." />
+  <!-- Link previews (Discord, Facebook, WhatsApp, X) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="FMCheck" />
+  <meta property="og:url" content="https://fmcheck.org/post" />
+  <meta property="og:title" content="FMCheck · How rare is your item?" />
+  <meta property="og:description" content="Post your scrolled MapleStory Classic item and see how rare it is, on a card you can share." />
+  <meta property="og:image" content="https://fmcheck.org/assets/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="FMCheck logo next to an item card" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="FMCheck · How rare is your item?" />
+  <meta name="twitter:description" content="Post your scrolled MapleStory Classic item and see how rare it is, on a card you can share." />
+  <meta name="twitter:image" content="https://fmcheck.org/assets/og-image.png" />
+  <meta name="theme-color" content="#5ccfc0" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="64x64" href="assets/favicon-64.png" />
+  <link rel="apple-touch-icon" href="assets/favicon-180.png" />
+  <link rel="preload" href="assets/fonts/fredoka-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="assets/fonts/nunito-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="css/style.css?v=17e3dd26" />
+</head>
+<body>
+  <a class="skip" href="#itemSearch">Skip to posting an item</a>
+  <!-- Moving background: meso drops, Maple items and monsters floating up. Stars at night (dark mode). -->
+  <div class="sky" aria-hidden="true">
+    <span class="float" style="--x:3%;--w:30px;--d:21s;--delay:-3s"><img src="assets/float/meso-gold.png" alt="" /></span>
+    <span class="float" style="--x:10%;--w:44px;--d:26s;--delay:-14s"><img src="assets/float/red-potion.png" alt="" /></span>
+    <span class="float" style="--x:17%;--w:56px;--d:31s;--delay:-6s"><img src="assets/float/orange-mushroom.png" alt="" /></span>
+    <span class="float" style="--x:25%;--w:28px;--d:19s;--delay:-9s"><img src="assets/float/meso-bronze.png" alt="" /></span>
+    <span class="float" style="--x:31%;--w:50px;--d:29s;--delay:-20s"><img src="assets/float/steel-slain.png" alt="" /></span>
+    <span class="float" style="--x:40%;--w:58px;--d:34s;--delay:-25s"><img src="assets/float/slime.png" alt="" /></span>
+    <span class="float" style="--x:48%;--w:44px;--d:24s;--delay:-1s"><img src="assets/float/meso-bag.png" alt="" /></span>
+    <span class="float" style="--x:55%;--w:40px;--d:27s;--delay:-8s"><img src="assets/float/elixir.png" alt="" /></span>
+    <span class="float" style="--x:62%;--w:44px;--d:22s;--delay:-17s"><img src="assets/float/meso-bundle.png" alt="" /></span>
+    <span class="float" style="--x:69%;--w:46px;--d:30s;--delay:-12s"><img src="assets/float/work-gloves.png" alt="" /></span>
+    <span class="float" style="--x:76%;--w:56px;--d:36s;--delay:-2s"><img src="assets/float/pig.png" alt="" /></span>
+    <span class="float" style="--x:84%;--w:26px;--d:20s;--delay:-22s"><img src="assets/float/meso-gold.png" alt="" /></span>
+    <span class="float" style="--x:91%;--w:48px;--d:33s;--delay:-29s"><img src="assets/float/green-mushroom.png" alt="" /></span>
+    <span class="float" style="--x:36%;--w:40px;--d:25s;--delay:-5s"><img src="assets/float/blue-potion.png" alt="" /></span>
+    <span class="float" style="--x:21%;--w:34px;--d:28s;--delay:-30s"><img src="assets/float/blue-snail.png" alt="" /></span>
+    <span class="float" style="--x:88%;--w:40px;--d:26s;--delay:-11s"><img src="assets/float/meso-bundle.png" alt="" /></span>
+    <span class="float" style="--x:58%;--w:40px;--d:32s;--delay:-27s"><img src="assets/float/maple-leaf.png" alt="" /></span>
+    <span class="float" style="--x:7%;--w:40px;--d:23s;--delay:-18s"><img src="assets/float/kumbi.png" alt="" /></span>
+    <span class="float" style="--x:73%;--w:44px;--d:28s;--delay:-33s"><img src="assets/float/mushroom-cap.png" alt="" /></span>
+    <span class="float" style="--x:45%;--w:24px;--d:18s;--delay:-13s"><img src="assets/float/meso-bronze.png" alt="" /></span>
+    <span class="float" style="--x:95%;--w:44px;--d:30s;--delay:-16s"><img src="assets/float/scroll.png" alt="" /></span>
+    <span class="float bubble" style="--x:29%;--w:22px;--d:17s;--delay:-4s"></span>
+    <span class="float bubble" style="--x:66%;--w:16px;--d:15s;--delay:-24s"></span>
+    <span class="float bubble" style="--x:12%;--w:14px;--d:16s;--delay:-31s"></span>
+    <span class="stars"></span>
+  </div>
+
+  <header class="top">
+    <p class="moved">FMCheck's main address is <a href="https://fmcheck.org/post">fmcheck.org</a>. This backup address works too.</p>
+    <a class="logo-link" href="./"><h1 class="logo" aria-label="FMCheck">
+      <span class="word" data-text="FM">FM</span><img class="logo-scroll" src="assets/scroll.png" alt="" /><span class="word" data-text="Check">Check</span>
+    </h1></a>
+    <p class="tagline">Post your item: see how rare it really is.</p>
+    <div class="top-actions">
+      <a class="guide-btn" href="./"><img class="ic" src="assets/ui/market.png" alt="" /> Browse items</a>
+      <a class="guide-btn msg-link" id="msgLink" href="./#messages" hidden><img class="ic" src="assets/ui/letter.png" alt="" /> <span id="msgLinkText">Messages</span></a>
+      <button id="guideBtn" class="guide-btn" type="button" aria-controls="guide" aria-expanded="false"><img class="ic" src="assets/ui/book.png" alt="" /> How it works</button>
+      <a class="discord" data-discord href="https://discord.gg/hWYs9vxhRv" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M5 5.5C7 4.4 9 4 9 4l.6 1.2a15 15 0 0 1 4.8 0L15 4s2 .4 4 1.5c2 3 2.6 6.4 2.4 10.5-1.6 1.3-3.3 2-5 2.5l-1-1.7c.7-.3 1.3-.6 1.9-1-3.8 1.8-8.8 1.8-12.6 0 .6.4 1.2.7 1.9 1l-1 1.7c-1.7-.5-3.4-1.2-5-2.5C2.4 11.9 3 8.5 5 5.5Z"/><circle cx="9" cy="12" r="1.6" fill="#5865f2"/><circle cx="15" cy="12" r="1.6" fill="#5865f2"/></svg>
+        Discord</a>
+
+      <a class="donate" data-donate hidden target="_blank" rel="noopener" title="Voluntary, helps cover the site's running costs"><img class="ic" src="assets/ui/meso-pouch.png" alt="" /> Support FMCheck</a>
+    </div>
+  </header>
+
+  <main>
+    <datalist id="equipNames"></datalist>
+
+    <!-- How it works: four real frames from the site, played like a short animation. -->
+    <section id="guide" class="card guide" aria-labelledby="guideTitle" hidden>
+      <div class="guide-head">
+        <h2 id="guideTitle">How FMCheck works</h2>
+        <button id="guideClose" type="button" class="ghost-btn" aria-label="Close the guide">✕</button>
+      </div>
+      <div class="guide-stage">
+        <img id="guideImg" src="assets/guide/1.webp?v=5" alt="" />
+      </div>
+      <p id="guideCaption" class="guide-caption" aria-live="polite"></p>
+      <div class="guide-nav">
+        <button id="guidePrev" type="button" class="ghost-btn" aria-label="Previous step">←</button>
+        <div class="guide-dots" role="group" aria-label="Steps">
+          <button type="button" data-step="0" aria-label="Step 1"></button><button type="button" data-step="1" aria-label="Step 2"></button>
+          <button type="button" data-step="2" aria-label="Step 3"></button><button type="button" data-step="3" aria-label="Step 4"></button>
+          <button type="button" data-step="4" aria-label="Step 5"></button><button type="button" data-step="5" aria-label="Step 6"></button>
+          <button type="button" data-step="6" aria-label="Step 7"></button><button type="button" data-step="7" aria-label="Step 8"></button>
+        </div>
+        <button id="guideNext" type="button" class="ghost-btn" aria-label="Next step">→</button>
+        <button id="guideGo" type="button">Got it, let's start</button>
+      </div>
+    </section>
+
+    <!-- 1. Item -->
+    <section class="card" id="itemCard">
+      <h2><b>1</b> Item</h2>
+      <div class="shot" id="shotBox">
+        <img class="shot-ic" src="assets/ui/vip-mirror.png" alt="" />
+        <div class="shot-text">
+          <b>Have a picture of the item?</b> Hover it in the game and take a screenshot (or a phone photo of the screen),
+          then <label class="shot-pick" for="shotFile">choose the picture</label>, drop it here or paste it (Ctrl+V).
+          FMCheck fills everything in for you to check.
+          <input type="file" id="shotFile" accept="image/*" class="sr-only" />
+        </div>
+      </div>
+      <div id="shotResult" class="shot-result" role="status" aria-live="polite" hidden></div>
+      <p class="or-line"><span>or find it yourself</span></p>
+      <div id="cats" class="cats" role="toolbar" aria-label="Item categories"></div>
+      <div class="search-row">
+      <div class="search">
+        <input id="itemSearch" type="search" placeholder="Search, or pick a category above" autocomplete="off" spellcheck="false"
+          role="combobox" aria-label="Search for an item" aria-autocomplete="list" aria-controls="itemResults" aria-expanded="false" />
+        <ul id="itemResults" class="results" role="listbox" aria-label="Matching items" hidden></ul>
+      </div>
+        <select id="jobFilter" aria-label="Class">
+          <option value="">All classes</option><option>Beginner</option><option>Warrior</option>
+          <option>Magician</option><option>Bowman</option><option>Thief</option>
+        </select>
+      </div>
+      <div id="itemInfo" class="item-info" hidden></div>
+    </section>
+
+    <!-- 2. Clean roll -->
+    <section class="card" id="rollCard" hidden>
+      <h2><b>2</b> Clean stats <small>what the item had before any scroll</small></h2>
+      <div id="rolls" class="rolls"></div>
+    </section>
+
+    <!-- 3. Scrolls -->
+    <section class="card" id="scrollCard" hidden>
+      <h2><b>3</b> Scrolls</h2>
+      <div class="slots-left">
+        <span>Slots left</span>
+        <span class="stepper">
+          <button type="button" class="step" data-step="-1" aria-label="Fewer">−</button>
+          <input id="slotsLeft" type="number" inputmode="numeric" min="0" aria-label="Slots left" />
+          <button type="button" class="step" data-step="1" aria-label="More">+</button>
+        </span>
+        <small id="slotInfo"></small>
+      </div>
+      <p class="label">Scrolls used · how many passed (×0 = all failed)</p>
+      <div id="scrollRows" class="scroll-rows"></div>
+      
+      <button id="openPicker" type="button" class="add-btn">+ Add a scroll</button>
+      <div id="picker" class="picker" hidden>
+        <input id="pickerSearch" type="search" placeholder="Filter, e.g. attack" autocomplete="off" />
+        <ul id="pickerList" aria-label="Scrolls for this item"></ul>
+      </div>
+    </section>
+
+    <!-- 4. Result -->
+    <section class="card result" id="resultCard" hidden>
+      <h2><b>4</b> How rare it is</h2>
+      <div class="card-wrap">
+        <canvas id="card" class="item-card" role="img" aria-label="Item card"></canvas>
+        <div class="card-actions">
+          <button id="cardDownload" type="button"><img class="ic" src="assets/ui/map-piece.png" alt="" /> Download image</button>
+          <button id="cardCopy" type="button" class="ghost-btn">Copy image</button>
+          <button id="cardShare" type="button" class="ghost-btn">Share</button>
+        </div>
+      </div>
+      <div id="odds" class="odds" aria-live="polite"></div>
+      <div id="publish" class="publish" hidden>
+        <h3><img class="h-ic" src="assets/ui/starpiece.png" alt="" /> Post it on FMCheck</h3>
+        <p class="hint">Show it off on <a href="./">FMCheck</a>: everyone sees its card with the full stats, slots, scrolls and how rare it is.
+          Selling it? Add your price and where to find you (optional).</p>
+        <p class="pub-upsell sup-only"><img class="ic" src="assets/ui/starpiece.png" alt="" /> Want it at the top? Supporters can feature it for 24 hours, first in every search and on our Discord.
+          <a href="./#supporters">See supporter perks →</a></p>
+        <div id="pubSignIn" class="pub-signin"></div>
+        <form id="pubForm" class="pub-form" hidden>
+          <label id="pubIgnRow">In-game name <input id="pubIgn" autocomplete="off" maxlength="13" placeholder="e.g. GuaiLan" /></label>
+          <fieldset class="sale-switch">
+            <legend>Is it for sale?</legend>
+            <label><input type="radio" name="pubMode" value="sale" checked />
+              <span><img src="assets/ui/meso-bundle.png" alt="" /> For sale</span></label>
+            <label><input type="radio" name="pubMode" value="show" />
+              <span><img src="assets/ui/starpiece.png" alt="" /> Just showing it off</span></label>
+          </fieldset>
+          <div id="saleBox" class="sale-box">
+            <label class="sale-label" for="pubPrice">Your price</label>
+            <div class="price-line">
+              <img class="coin" src="assets/ui/meso.png" alt="" />
+              <input id="pubPrice" inputmode="decimal" autocomplete="off" placeholder="0" aria-describedby="pubPriceSay" />
+              <div class="unit-seg" role="radiogroup" aria-label="Unit">
+                <label><input type="radio" name="pubUnit" value="k" /><span>K</span></label>
+                <label><input type="radio" name="pubUnit" value="m" checked /><span>M</span></label>
+                <label><input type="radio" name="pubUnit" value="b" /><span>B</span></label>
+              </div>
+            </div>
+            <p id="pubPriceSay" class="price-say" aria-live="polite">In millions: 48 = 48,000,000 mesos.</p>
+            <div class="where-line">
+              <span class="sale-label">Where to find you</span>
+              <label>Channel <input id="pubChannel" inputmode="numeric" maxlength="2" placeholder="3" aria-required="true" /></label>
+              <label>FM room <input id="pubRoom" inputmode="numeric" maxlength="2" placeholder="7" aria-required="true" /></label>
+              <label class="where-free">More about where <small>(optional)</small> <input id="pubWhere" maxlength="60" placeholder="e.g. whisper me, Henesys ch 5" /></label>
+            </div>
+          </div>
+          <label>Note <small>(optional)</small> <input id="pubNote" maxlength="140" placeholder="e.g. open to offers, can trade" /></label>
+          <div class="check-box" id="checkBox">
+            <label class="check-opt"><input type="checkbox" id="pubCheck" checked />
+              <span><img src="assets/ui/mirror.png" alt="" /> <b>Check it on screen after posting</b> <small>optional, recommended</small></span></label>
+            <p class="hint"><b>Why it matters:</b> anyone can type stats. Showing the item's window from the game shows yours is real:
+              it gets a green <i>Checked on screen</i> badge, and buyers who only want checked items will find it.
+              It takes a few seconds: share the game window and hover the item. Your screen isn't uploaded, it's read in your browser.</p>
+          </div>
+          <p class="hint" id="checkLater" hidden>Checking on screen needs a computer (Chrome or Edge). You can do it later under <a href="./">My items</a>.</p>
+          <button type="submit" id="pubSend">Post it</button>
+          <p id="pubMsg" class="sale-msg" role="status"></p>
+        </form>
+      </div>
+      <details class="how">
+        <summary>How is the rarity worked out?</summary>
+        <p><b>Natural roll.</b> A dropped item's stats roll around its default: ±10% of it (at most ±5, or ±10 for DEF, HP and MP),
+          every value equally likely. For each stat your clean item rolled <i>above</i> the default, we take the chance a drop rolls it
+          at least that high, and multiply them. Stats at or below the default don't make it rarer.</p>
+        <pre class="formula">roll chance (one stat) = (max − value + 1) ÷ (max − min + 1)
+natural roll = product over the stats above default</pre>
+        <p><b>Scrolls.</b> The chance the scrolls pass like this in the slots used: each pass has the scroll's success rate,
+          and failed slots are spread over the scrolls in the most likely way (a failed Chaos scroll destroys the item half the time,
+          so the item must also have survived).</p>
+        <pre class="formula">scrolls = for each scroll used:
+  sum over k ≥ passed of
+    C(used, k) × p^k × ((1 − p) × (1 − boom))^(used − k)</pre>
+        <p><b>Rarity</b> = natural roll × scrolls, shown as "1 in N":
+          Common (under 1 in 5), Uncommon (1 in 5+), Rare (1 in 50+), Epic (1 in 500+), Legendary (1 in 5,000+).</p>
+        <p><b>Scroll rates in MapleStory Classic</b>: Lesser 100%, Intermediate 60%, Greater 10%, Chaos 10% (half of Chaos failures destroy the item).
+          Exact gains per scroll come from the game data.</p>
+        <p>Something looks off? <a data-discord href="https://discord.gg/hWYs9vxhRv" target="_blank" rel="noopener">Tell us on Discord</a>.</p>
+      </details>
+    </section>
+  </main>
+
+  <footer>
+    <p class="community"><img class="ic" src="assets/ui/letter.png" alt="" /> Ideas or bugs? <a data-discord href="https://discord.gg/hWYs9vxhRv" target="_blank" rel="noopener">Join the FMCheck Discord</a>
+      to suggest a feature or report a bug.</p>
+    <p>Item and scroll data and icons from <a href="https://osmsdataexplorer.com" target="_blank" rel="noopener">OSMS Data Explorer</a>
+      by @ohmi, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>.
+      Game content © Nexon. Not affiliated with Nexon.</p>
+    <p>© 2026 Liad Kaufman. All rights reserved. · <a href="terms.html">Terms & Privacy</a> · <a href="terms.html#accessibility">Accessibility</a></p>
+  </footer>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <dialog id="verify" class="detail" aria-labelledby="verifyTitle">
+    <div class="detail-head"><h2 id="verifyTitle">Check it on screen</h2><button type="button" class="ghost-btn" id="verifyClose" aria-label="Close">✕</button></div>
+    <div id="verifyBody"></div>
+  </dialog>
+
+  <!-- Accessibility options (bottom right), saved in this browser. -->
+  <div class="a11y-wrap">
+<button id="a11yBtn" class="a11y-btn" type="button" aria-expanded="false" aria-controls="a11yPanel" aria-label="Accessibility options">
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="4" r="2" fill="currentColor"/><path d="M4 8.5 12 10l8-1.5M12 10v4.5m0 0-3.5 6.5m3.5-6.5 3.5 6.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <div id="a11yPanel" class="a11y-panel" role="dialog" aria-label="Accessibility options" hidden>
+    <b>Accessibility</b>
+    <label><input type="checkbox" data-a11y="big" /> Larger text</label>
+    <label><input type="checkbox" data-a11y="still" /> Stop animations</label>
+    <label><input type="checkbox" data-a11y="contrast" /> High contrast</label>
+    <label><input type="checkbox" data-a11y="links" /> Underline links</label>
+    <a href="terms.html#accessibility">Accessibility statement</a>
+  </div>
+  
+  </div>
+
+
+  <script type="module" src="js/app.js?v=17e3dd26"></script>
+</body>
+</html>

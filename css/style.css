@@ -849,3 +849,11 @@ html:not(.sup-on) .sup-only { display: none !important; }
 .chat-tools { display: flex; flex-wrap: wrap; gap: 6px; }
 .report { border-top: 1px solid var(--line); padding: 10px 0; }
 .report-log { margin: 6px 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
+
+/* home page: less used filters folded away, so items show right away */
+.more-filters { margin-top: 8px; }
+.more-filters > summary { cursor: pointer; font-weight: 800; padding: 6px 2px; list-style-position: inside; }
+.more-filters > summary small { font-weight: 600; color: var(--muted); margin-left: 4px; }
+.more-filters[open] > summary { margin-bottom: 6px; }
+.post-btn { background: #fff4e5; }
+@media (max-width: 600px) { .market-title small { display: none; } }

@@ -1,11 +1,11 @@
-import { iconUrl, DONATE_URL, DISCORD_URL } from "./config.js?v=3937cb09";
-import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, mesos, readPrice } from "./calc.js?v=3937cb09";
-import { rarity, oneInText } from "./rarity.js?v=3937cb09";
-import { drawCard, cardBlob } from "./card.js?v=3937cb09";
-import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=3937cb09";
-import { itemSearch } from "./itemsearch.js?v=3937cb09";
-import { setupA11y } from "./a11y.js?v=3937cb09";
-import { API, api, health, me, googleButton, validIgn } from "./account.js?v=3937cb09";
+import { iconUrl, DONATE_URL, DISCORD_URL } from "./config.js?v=17e3dd26";
+import { STATS, STAT_LABEL, statRange, rollAtLeast, finalStats, mesos, readPrice } from "./calc.js?v=17e3dd26";
+import { rarity, oneInText } from "./rarity.js?v=17e3dd26";
+import { drawCard, cardBlob } from "./card.js?v=17e3dd26";
+import { cardInfo, cardLabel, cardFmt } from "./itemcard.js?v=17e3dd26";
+import { itemSearch } from "./itemsearch.js?v=17e3dd26";
+import { setupA11y } from "./a11y.js?v=17e3dd26";
+import { API, api, health, me, googleButton, validIgn } from "./account.js?v=17e3dd26";
 
 const $ = (id) => document.getElementById(id);
 const icon = iconUrl;
@@ -424,8 +424,8 @@ $("pubForm").addEventListener("submit", async (e) => {
       where: forSale ? $("pubWhere").value.trim() : "", note: $("pubNote").value.trim(),
       image: $("card").toDataURL("image/png"),
     } });
-    const link = `${location.origin}/community.html#l=${j.id}`;
-    msg.innerHTML = `Posted! <a href="community.html#l=${j.id}">See it on FMCheck</a>
+    const link = `${location.origin}/#l=${j.id}`;
+    msg.innerHTML = `Posted! <a href="./#l=${j.id}">See it on FMCheck</a>
       · <button type="button" class="ghost-btn" id="pubCopy">Copy link</button>`;
     $("pubCopy").addEventListener("click", () => navigator.clipboard.writeText(link).then(() => toast("Link copied.")).catch(() => {}));
     // the screen check, if they chose it (it works on a computer only)
@@ -440,7 +440,7 @@ $("pubForm").addEventListener("submit", async (e) => {
       } catch { /* they can still do it under My items */ }
     }
   } catch (err) {
-    msg.innerHTML = esc(err.message) + (err.upsell && supportersOn ? ` <a class="sup-link" href="community.html#supporters"><img class="ic" src="assets/ui/starpiece.png" alt="" /> Become a supporter</a>` : "");
+    msg.innerHTML = esc(err.message) + (err.upsell && supportersOn ? ` <a class="sup-link" href="./#supporters"><img class="ic" src="assets/ui/starpiece.png" alt="" /> Become a supporter</a>` : "");
     if (err.status === 401) { pubUser = null; showPublish(null); }
   } finally {
     $("pubSend").disabled = false;

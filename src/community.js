@@ -364,7 +364,7 @@ async function discordPost(env, l, ign, image, origin, featured = false) {
   if (!featured && l.oneIn < min) return;
   const lines = Object.entries(l.gained).map(([k, v]) => `+${v} ${k}`).join(", ");
   const oneIn = l.oneIn < 1e6 ? Math.round(l.oneIn).toLocaleString("en-US") : l.oneIn.toExponential(1);
-  const link = `${origin}/community.html#l=${l.id}`;
+  const link = `${origin}/#l=${l.id}`;
   const embed = {
     title: `${l.name}${l.upgrades ? ` (+${l.upgrades})` : ""}`, url: link,
     description: [lines && `**${lines}**`, `${l.left} slot${l.left === 1 ? "" : "s"} left · 1 in ${oneIn}`,

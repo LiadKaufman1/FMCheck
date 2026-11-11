@@ -35,7 +35,7 @@ const loadGsi = () => (gsiP ||= new Promise((ok, fail) => {
 // Puts a "Sign in with Google" button in `el`; calls onUser(user) once signed in.
 export async function googleButton(el, onUser) {
   if (!canSignIn()) {
-    el.innerHTML = `<a class="ghost-btn" href="https://fmcheck.org/community.html">Sign in on fmcheck.org</a>`;
+    el.innerHTML = `<a class="ghost-btn" href="https://fmcheck.org/">Sign in on fmcheck.org</a>`;
     return;
   }
   const h = await health();
